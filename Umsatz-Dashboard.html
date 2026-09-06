@@ -1,0 +1,1150 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Umsatz-Dashboard – Blu Mare Hotel</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Quicksand:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<style>
+  /* Farb- und Typo-Werte gemäss "Blu Mare Hotel – Priručnik logotipa" (CI/CD-Vorlage) */
+  :root {
+    color-scheme: light;
+    --brand-navy:        #0B404C; /* primär: tamnoplava */
+    --brand-terracotta:  #AD4427; /* primär: terracotta */
+    --brand-beige:       #EED7CA; /* primär: bež bijela */
+    --brand-olive:       #BEBDA5; /* sekundär: svijetlo maslinasta */
+    --brand-olive-gray:  #C5C4B5; /* sekundär: svijetlo maslinasto siva */
+    --brand-gray:        #DDDCD9; /* sekundär: svijetlo siva */
+    --brand-olive-deep:  #8B8964; /* aus --brand-olive vertieft, für Diagramm-Lesbarkeit */
+
+    --surface-1:      #ffffff;
+    --page:           #F7F3ED;
+    --text-primary:   #142E36;
+    --text-secondary: #58696C;
+    --text-muted:     #948F7C;
+    --grid:           #E7E1D3;
+    --axis:           #CAC4B1;
+    --border:         rgba(11,64,76,0.14);
+    --good:           #2E7D4F;
+    --bad:            #C23B3B;
+    --series-1:       var(--brand-navy);        /* Logement */
+    --series-2:       var(--brand-terracotta);  /* F&B */
+    --series-3:       var(--brand-olive-deep);  /* Spa & Wellness */
+    --vj:             #A39C86; /* Vorjahr / Vergleichslinie */
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) {
+      color-scheme: dark;
+      --surface-1:      #0F4550;
+      --page:           #082A32;
+      --text-primary:   #F3E7DE;
+      --text-secondary: #CBB9AC;
+      --text-muted:     #9BA6A4;
+      --grid:           rgba(238,215,202,0.12);
+      --axis:           rgba(238,215,202,0.28);
+      --border:         rgba(238,215,202,0.18);
+      --good:           #55B379;
+      --bad:            #E2685F;
+      --series-1:       var(--brand-beige);
+      --series-2:       #D9702F;
+      --series-3:       #D2D0B6;
+      --vj:             #B7AE95;
+    }
+  }
+  :root[data-theme="dark"] {
+    color-scheme: dark;
+    --surface-1:      #0F4550;
+    --page:           #082A32;
+    --text-primary:   #F3E7DE;
+    --text-secondary: #CBB9AC;
+    --text-muted:     #9BA6A4;
+    --grid:           rgba(238,215,202,0.12);
+    --axis:           rgba(238,215,202,0.28);
+    --border:         rgba(238,215,202,0.18);
+    --good:           #55B379;
+    --bad:            #E2685F;
+    --series-1:       var(--brand-beige);
+    --series-2:       #D9702F;
+    --series-3:       #D2D0B6;
+    --vj:             #B7AE95;
+  }
+
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0;
+    background: var(--page);
+    color: var(--text-primary);
+    font-family: "Quicksand", system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  h1, h2, .brand-name, .brand-sub, .panel h2 {
+    font-family: "Brandon Text", "Century Gothic", "Quicksand", system-ui, sans-serif;
+  }
+  body { padding: 0 0 60px; }
+  .wrap { max-width: 1180px; margin: 0 auto; padding: 0 20px; }
+
+  header.top {
+    background: var(--brand-navy);
+    color: var(--brand-beige);
+    margin-bottom: 26px;
+    border-bottom: 1px solid rgba(238,215,202,0.18);
+  }
+  header.top .inner {
+    max-width: 1180px; margin: 0 auto; padding: 18px 20px;
+    display: flex; align-items: center; justify-content: space-between;
+    gap: 16px; flex-wrap: wrap;
+  }
+  .brand { display: flex; align-items: center; gap: 14px; }
+  .brand-mark { width: 30px; height: 30px; color: var(--brand-beige); flex-shrink: 0; }
+  .brand-name {
+    font-weight: 300; font-size: 21px; letter-spacing: 0.32em;
+    color: var(--brand-beige); line-height: 1; text-transform: uppercase;
+  }
+  .brand-sub {
+    font-weight: 400; font-size: 10px; letter-spacing: 0.28em;
+    color: var(--brand-olive); text-transform: uppercase; margin-top: 6px;
+  }
+  header.top .sub { color: var(--brand-olive); font-size: 12.5px; }
+  .top-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+  button {
+    font-family: inherit; cursor: pointer;
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 9px 16px; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: 0.06em;
+  }
+  button:hover { border-color: var(--brand-terracotta); color: var(--brand-terracotta); }
+  button.icon { padding: 9px 12px; letter-spacing: 0; text-transform: none; }
+
+  /* Buttons im dunklen Header-Band: immer helle Schrift auf transparentem Grund */
+  .top-actions button {
+    background: transparent; color: var(--brand-beige);
+    border-color: rgba(238,215,202,0.4);
+  }
+  .top-actions button:hover { border-color: var(--brand-terracotta); color: #fff; background: rgba(238,215,202,0.08); }
+  select {
+    font: inherit; font-size: 13px; font-weight: 600;
+    background: var(--surface-1); color: var(--text-primary);
+    border: 1px solid var(--border); border-radius: 4px;
+    padding: 9px 12px;
+  }
+
+  .panel {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-radius: 4px; padding: 18px 20px; margin-bottom: 18px;
+  }
+  .panel h2 {
+    font-size: 14px; margin: 0 0 14px; font-weight: 400;
+    text-transform: uppercase; letter-spacing: 0.14em; color: var(--brand-navy);
+  }
+  .panel h2 .hint { color: var(--text-muted); font-weight: 400; font-size: 11.5px; margin-left: 6px; letter-spacing: normal; text-transform: none; }
+  :root[data-theme="dark"] .panel h2 { color: var(--text-primary); }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .panel h2 { color: var(--text-primary); }
+  }
+
+  .empty-state {
+    text-align: center; padding: 60px 20px; color: var(--text-secondary);
+  }
+  .empty-state .big { font-size: 15px; color: var(--text-primary); font-weight: 600; margin-bottom: 6px; }
+  .empty-state code {
+    background: var(--page); border: 1px solid var(--border); border-radius: 4px;
+    padding: 2px 6px; font-size: 12px; word-break: break-all;
+  }
+
+  .kpi-row {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px;
+    margin-bottom: 18px;
+  }
+  @media (max-width: 820px) { .kpi-row { grid-template-columns: repeat(2, 1fr); } }
+  .kpi {
+    background: var(--surface-1); border: 1px solid var(--border);
+    border-top: 2px solid var(--brand-navy);
+    border-radius: 4px; padding: 16px 18px;
+  }
+  .kpi .label {
+    font-size: 11px; color: var(--text-secondary); margin-bottom: 10px;
+    text-transform: uppercase; letter-spacing: 0.08em; font-weight: 600;
+  }
+  .kpi .value { font-size: 24px; font-weight: 700; font-variant-numeric: tabular-nums; }
+  .kpi .delta { font-size: 12.5px; margin-top: 6px; font-weight: 600; }
+  .kpi .delta.up { color: var(--good); }
+  .kpi .delta.down { color: var(--bad); }
+  .kpi .delta .vs { color: var(--text-muted); font-weight: 400; }
+
+  .datepick-row { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; }
+  .datepick-row .field { display: flex; align-items: center; gap: 8px; }
+  .datepick-row label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+  .datepick-row .rangeinfo { font-size: 12.5px; color: var(--text-muted); margin-left: auto; }
+
+  .filter-row { display: flex; align-items: center; gap: 18px; flex-wrap: wrap; }
+  .chip-group { display: flex; gap: 8px; flex-wrap: wrap; }
+  .chip {
+    font-family: inherit; cursor: pointer; font-size: 12px; font-weight: 600;
+    text-transform: uppercase; letter-spacing: .05em;
+    background: var(--surface-1); color: var(--text-secondary);
+    border: 1px solid var(--border); border-radius: 20px; padding: 7px 16px;
+  }
+  .chip:hover { border-color: var(--brand-terracotta); color: var(--brand-terracotta); }
+  .chip.active { background: var(--brand-navy); border-color: var(--brand-navy); color: var(--brand-beige); }
+  :root[data-theme="dark"] .chip.active { background: var(--brand-beige); border-color: var(--brand-beige); color: var(--brand-navy); }
+  @media (prefers-color-scheme: dark) {
+    :root:where(:not([data-theme="light"])) .chip.active { background: var(--brand-beige); border-color: var(--brand-beige); color: var(--brand-navy); }
+  }
+  .filter-row .field { display: flex; align-items: center; gap: 8px; }
+  .filter-row label { font-size: 13px; color: var(--text-secondary); font-weight: 600; }
+
+  .donut-legend { display: flex; flex-direction: column; gap: 7px; margin-top: 14px; max-height: 280px; overflow-y: auto; padding-right: 4px; }
+  .donut-legend .row { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+  .donut-legend .sw { width: 10px; height: 10px; border-radius: 2px; flex-shrink: 0; }
+  .donut-legend .name { flex: 1; color: var(--text-primary); }
+  .donut-legend .val { color: var(--text-muted); font-size: 11px; white-space: nowrap; }
+
+  .hbar-list { display: flex; flex-direction: column; gap: 14px; max-height: 520px; overflow-y: auto; padding-right: 4px; }
+  .hbar-group { display: flex; flex-direction: column; gap: 3px; }
+  .hbar-title { font-size: 12.5px; font-weight: 600; color: var(--text-primary); margin-bottom: 2px; }
+  .hbar-row { display: flex; align-items: center; gap: 10px; }
+  .hbar-track { flex: 1; height: 10px; background: var(--grid); border-radius: 2px; overflow: hidden; }
+  .hbar-fill { height: 100%; border-radius: 2px; min-width: 2px; }
+  .hbar-value { width: 120px; text-align: right; font-size: 11.5px; font-variant-numeric: tabular-nums; color: var(--text-secondary); flex-shrink: 0; }
+  .hbar-value.muted { color: var(--text-muted); }
+
+  table.breakdown { width: 100%; border-collapse: collapse; font-size: 13px; }
+  table.breakdown th, table.breakdown td {
+    text-align: right; padding: 7px 10px; border-bottom: 1px solid var(--grid);
+    font-variant-numeric: tabular-nums; white-space: nowrap;
+  }
+  table.breakdown th:first-child, table.breakdown td:first-child,
+  table.breakdown th:nth-child(2), table.breakdown td:nth-child(2) { text-align: left; white-space: normal; }
+  table.breakdown thead th { color: var(--text-secondary); font-weight: 600; font-size: 11.5px; text-transform: uppercase; letter-spacing: .02em; border-bottom: 1px solid var(--axis); }
+  table.breakdown tr.subtotal td { font-weight: 700; background: color-mix(in srgb, var(--series-1) 7%, transparent); }
+  table.breakdown tr.grandtotal td { font-weight: 700; background: color-mix(in srgb, var(--series-1) 16%, transparent); }
+  table.breakdown td.pos { color: var(--good); }
+  table.breakdown td.neg { color: var(--bad); }
+  table.breakdown .swatch { display:inline-block; width:9px; height:9px; border-radius:2px; margin-right:7px; }
+  .table-scroll { overflow-x: auto; }
+
+  .charts-grid { display: grid; grid-template-columns: 1.4fr 1fr; gap: 18px; }
+  @media (max-width: 980px) { .charts-grid { grid-template-columns: 1fr; } }
+  .chart-box svg { width: 100%; height: auto; display: block; overflow: visible; }
+  .legend { display: flex; gap: 16px; flex-wrap: wrap; margin-top: 10px; font-size: 12.5px; color: var(--text-secondary); }
+  .legend .item { display: flex; align-items: center; gap: 6px; }
+  .legend .swatch { width: 14px; height: 3px; border-radius: 2px; }
+  .legend .swatch.dot { width: 9px; height: 9px; border-radius: 50%; }
+  .legend .swatch.dash { background-image: linear-gradient(to right, var(--vj) 60%, transparent 0); background-size: 6px 3px; height:3px; }
+
+  .tooltip {
+    position: fixed; pointer-events: none; z-index: 50;
+    background: var(--surface-1); border: 1px solid var(--border); border-radius: 4px;
+    padding: 8px 10px; font-size: 12px; box-shadow: 0 4px 16px rgba(0,0,0,.18);
+    line-height: 1.5; opacity: 0; transition: opacity .08s; white-space: nowrap;
+  }
+  .tooltip.show { opacity: 1; }
+  .tooltip .t-title { font-weight: 700; margin-bottom: 3px; }
+  .tooltip .t-row { display:flex; align-items:center; gap:6px; }
+  .tooltip .t-row .sw { width:8px; height:8px; border-radius:2px; display:inline-block; }
+
+  footer.note { text-align: center; color: var(--text-muted); font-size: 11.5px; margin-top: 24px; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <header class="top">
+    <div class="inner">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 40 40" aria-hidden="true">
+          <circle cx="20" cy="11" r="4" fill="none" stroke="currentColor" stroke-width="1.6"/>
+          <line x1="6" y1="19" x2="34" y2="19" stroke="currentColor" stroke-width="1.6"/>
+        </svg>
+        <div>
+          <div class="brand-name">Blu Mare</div>
+          <div class="brand-sub">Hotel &nbsp;·&nbsp; Umsatz-Dashboard</div>
+        </div>
+      </div>
+      <div class="top-actions">
+        <button id="btnLoad">📁 Ordner auswählen / aktualisieren</button>
+        <button id="btnChangeFolder" class="icon" title="Anderen Ordner wählen" style="display:none;">📂↻</button>
+        <button id="btnTheme" class="icon" title="Hell/Dunkel umschalten">🌓</button>
+      </div>
+    </div>
+    <div class="inner" style="padding-top:0;">
+      <div class="sub" id="subheading">Kein Ordner geladen.</div>
+    </div>
+  </header>
+
+  <div id="emptyState" class="panel empty-state">
+    <div id="emptyStateDefault">
+      <div class="big">Noch keine Daten geladen</div>
+      <p>Klicke oben auf <strong>„Ordner auswählen"</strong> und wähle den Ordner mit den täglichen
+      <code>Tagesumsatzbericht_Hotel_YYYY-MM-DD.xlsx</code>-Dateien, z.&nbsp;B.:</p>
+      <p><code>...\local_ae7c8201-43ef-4d16-9925-2dd36a9bc9fb\outputs\</code></p>
+      <p id="fsaHint" style="display:none;">Dieser Browser unterstützt dauerhaften Ordnerzugriff: Der Ordner muss danach
+      nicht mehr jedes Mal neu ausgewählt werden – neue Monatsdateien werden beim nächsten Laden automatisch mit erfasst.</p>
+    </div>
+    <div id="emptyStateReconnect" style="display:none;">
+      <div class="big">Gespeicherter Ordner gefunden</div>
+      <p>Der Browser merkt sich den zuletzt gewählten Ordner. Klicke einmal auf <strong>„Ordner auswählen"</strong>,
+      um den Zugriff zu bestätigen – ohne erneutes Durchsuchen.</p>
+    </div>
+  </div>
+
+  <div id="dashboard" style="display:none;">
+
+    <div class="panel">
+      <h2>Filter <span class="hint">Ansicht auf einen Bereich/Outlet einschränken – für Abteilungsleiter</span></h2>
+      <div class="filter-row">
+        <div class="chip-group" id="bereichChips">
+          <button type="button" class="chip active" data-bereich="ALL">Alle Bereiche</button>
+          <button type="button" class="chip" data-bereich="Logement">Logement</button>
+          <button type="button" class="chip" data-bereich="Spa &amp; Wellness">Spa &amp; Wellness</button>
+          <button type="button" class="chip" data-bereich="F&amp;B">F&amp;B</button>
+        </div>
+        <div class="field" id="sparteField" style="display:none;">
+          <label for="sparteSelect">Outlet/Sparte:</label>
+          <select id="sparteSelect"></select>
+        </div>
+      </div>
+    </div>
+
+    <div class="kpi-row">
+      <div class="kpi">
+        <div class="label">Tagesumsatz (gewählter Tag)</div>
+        <div class="value" id="kpiTag">–</div>
+        <div class="delta" id="kpiTagDelta"></div>
+      </div>
+      <div class="kpi">
+        <div class="label">Umsatz Monat (MTD)</div>
+        <div class="value" id="kpiMonat">–</div>
+        <div class="delta" id="kpiMonatDelta"></div>
+      </div>
+      <div class="kpi">
+        <div class="label">Umsatz Jahr (YTD)</div>
+        <div class="value" id="kpiJahr">–</div>
+        <div class="delta" id="kpiJahrDelta"></div>
+      </div>
+      <div class="kpi">
+        <div class="label">YoY-Wachstum YTD</div>
+        <div class="value" id="kpiYoy">–</div>
+        <div class="delta" id="kpiYoySub"><span class="vs">vs. Vorjahr, kumuliert</span></div>
+      </div>
+    </div>
+
+    <div class="panel">
+      <div class="datepick-row">
+        <div class="field">
+          <label for="dateSelect">Datum ansehen:</label>
+          <select id="dateSelect"></select>
+        </div>
+        <button id="btnPrevDay" class="icon" title="Vorheriger Tag">◀</button>
+        <button id="btnNextDay" class="icon" title="Nächster Tag">▶</button>
+        <span class="rangeinfo" id="rangeInfo"></span>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>Aufschlüsselung – <span id="breakdownDateLabel"></span>
+        <span class="hint" id="breakdownHint">Tageswert aktuell vs. Vorjahr, je Bereich &amp; Sparte</span>
+      </h2>
+      <div class="table-scroll">
+        <table class="breakdown">
+          <thead>
+            <tr>
+              <th>Bereich</th><th>Sparte</th>
+              <th>Tag (aktuell)</th><th>Tag (Vorjahr)</th><th>Δ %</th>
+              <th>MTD (aktuell)</th><th>MTD (Vorjahr)</th>
+              <th>YTD (aktuell)</th><th>YTD (Vorjahr)</th>
+            </tr>
+          </thead>
+          <tbody id="breakdownBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="charts-grid">
+      <div class="panel chart-box">
+        <h2 id="trendTitle">Tagesumsatz-Trend <span class="hint" id="trendHint">aktuelles Jahr vs. Vorjahr, je geladenem Tag</span></h2>
+        <div id="trendChart"></div>
+        <div class="legend">
+          <div class="item"><span class="swatch" style="background:var(--series-1)"></span>Aktuelles Jahr</div>
+          <div class="item"><span class="swatch dash"></span>Vorjahr (gleicher Tag)</div>
+        </div>
+      </div>
+      <div class="panel chart-box">
+        <h2 id="donutTitle">Verteilung nach Bereich <span class="hint" id="donutHint">gewählter Tag</span></h2>
+        <div id="donutChart"></div>
+      </div>
+    </div>
+
+    <div class="panel chart-box">
+      <h2 id="barTitle">Vorjahresvergleich nach Bereich <span class="hint" id="barHint">gewählter Tag – aktuell vs. Vorjahr</span></h2>
+      <div id="barChart"></div>
+    </div>
+
+  </div>
+
+  <footer class="note">Daten werden ausschließlich lokal im Browser gelesen – es erfolgt kein Upload. Beträge in CHF.</footer>
+</div>
+
+<div class="tooltip" id="tooltip"></div>
+
+<input type="file" id="folderInput" webkitdirectory multiple style="display:none">
+
+<script>
+(function () {
+  "use strict";
+
+  const BEREICH_ORDER = ["Logement", "Spa & Wellness", "F&B"];
+  const BEREICH_COLOR = {
+    "Logement": "var(--series-1)",
+    "F&B": "var(--series-2)",
+    "Spa & Wellness": "var(--series-3)",
+  };
+  const BEREICH_COLOR_RESOLVED = {}; // filled after DOM ready (resolved hex)
+
+  let dataByDate = {};   // date -> { details:[], agg:{perBereich, total} }
+  let allDates = [];     // sorted ascending
+  let currentDate = null;
+
+  let filterBereich = localStorage.getItem("bm_filterBereich") || "ALL";
+  let filterSparte = localStorage.getItem("bm_filterSparte") || "ALL";
+
+  const $ = (id) => document.getElementById(id);
+  const tooltip = () => $("tooltip");
+
+  function num(v) { const n = Number(v); return Number.isFinite(n) ? n : 0; }
+
+  function fmtCHF(n) {
+    return n.toLocaleString("de-CH", { minimumFractionDigits: 2, maximumFractionDigits: 2 }) + " CHF";
+  }
+  function fmtCompact(n) {
+    if (Math.abs(n) >= 1000) return (n/1000).toLocaleString("de-CH",{maximumFractionDigits:1}) + "k";
+    return n.toLocaleString("de-CH",{maximumFractionDigits:0});
+  }
+  function fmtPct(n) {
+    const s = n.toLocaleString("de-CH", { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+    return (n > 0 ? "+" : "") + s + " %";
+  }
+  function fmtDateLabel(iso) {
+    const [y,m,d] = iso.split("-");
+    return `${d}.${m}.${y}`;
+  }
+  function pctDelta(cur, prev) {
+    if (!prev) return 0;
+    return (cur - prev) / prev * 100;
+  }
+  function resolveVar(name) {
+    return getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  }
+
+  // ---------- Ordner-Zugriff dauerhaft merken (File System Access API) ----------
+
+  const hasFSAccess = typeof window.showDirectoryPicker === "function";
+  let dirHandle = null;
+  let connectedFolderName = null;
+
+  const IDB_NAME = "blumare-dashboard", IDB_STORE = "handles";
+  function idbOpen() {
+    return new Promise((resolve, reject) => {
+      const req = indexedDB.open(IDB_NAME, 1);
+      req.onupgradeneeded = () => req.result.createObjectStore(IDB_STORE);
+      req.onsuccess = () => resolve(req.result);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbGet(key) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const req = db.transaction(IDB_STORE, "readonly").objectStore(IDB_STORE).get(key);
+      req.onsuccess = () => resolve(req.result || null);
+      req.onerror = () => reject(req.error);
+    });
+  }
+  async function idbSet(key, val) {
+    const db = await idbOpen();
+    return new Promise((resolve, reject) => {
+      const tx = db.transaction(IDB_STORE, "readwrite");
+      tx.objectStore(IDB_STORE).put(val, key);
+      tx.oncomplete = () => resolve();
+      tx.onerror = () => reject(tx.error);
+    });
+  }
+
+  async function loadFromHandle(handle) {
+    connectedFolderName = handle.name;
+    $("btnChangeFolder").style.display = "inline-block";
+    const files = [];
+    for await (const entry of handle.values()) {
+      if (entry.kind === "file" && FILE_RE.test(entry.name)) files.push(await entry.getFile());
+    }
+    await handleFiles(files);
+  }
+
+  async function connectFolder() {
+    if (!hasFSAccess) { $("folderInput").click(); return; }
+    if (dirHandle) {
+      let perm = await dirHandle.queryPermission({ mode: "read" });
+      if (perm !== "granted") perm = await dirHandle.requestPermission({ mode: "read" });
+      if (perm === "granted") { await loadFromHandle(dirHandle); return; }
+    }
+    try {
+      const handle = await window.showDirectoryPicker();
+      dirHandle = handle;
+      await idbSet("dirHandle", handle);
+      await loadFromHandle(handle);
+    } catch (e) {
+      if (e.name !== "AbortError") console.error("Ordnerzugriff fehlgeschlagen:", e);
+    }
+  }
+
+  async function initFolderAccess() {
+    if (!hasFSAccess) return;
+    $("fsaHint").style.display = "block";
+    const stored = await idbGet("dirHandle");
+    if (!stored) return;
+    dirHandle = stored;
+    const perm = await dirHandle.queryPermission({ mode: "read" });
+    if (perm === "granted") {
+      await loadFromHandle(dirHandle);
+    } else {
+      $("emptyStateDefault").style.display = "none";
+      $("emptyStateReconnect").style.display = "block";
+      $("btnChangeFolder").style.display = "inline-block";
+    }
+  }
+  $("btnChangeFolder").addEventListener("click", async () => {
+    try {
+      const handle = await window.showDirectoryPicker();
+      dirHandle = handle;
+      await idbSet("dirHandle", handle);
+      await loadFromHandle(handle);
+    } catch (e) {
+      if (e.name !== "AbortError") console.error("Ordnerzugriff fehlgeschlagen:", e);
+    }
+  });
+
+  // ---------- Parsing ----------
+
+  const FILE_RE = /^Tagesumsatzbericht_Hotel_(\d{4}-\d{2}-\d{2})\.xlsx$/i;
+
+  async function handleFiles(fileList) {
+    const files = Array.from(fileList).filter(f => FILE_RE.test(f.name));
+    if (!files.length) {
+      alert("Im gewählten Ordner wurden keine Dateien im Format „Tagesumsatzbericht_Hotel_YYYY-MM-DD.xlsx“ gefunden.");
+      return;
+    }
+    if (typeof XLSX === "undefined") {
+      alert("Die Excel-Bibliothek (SheetJS) konnte nicht geladen werden. Bitte Internetverbindung prüfen und die Seite neu laden.");
+      return;
+    }
+
+    const newData = {};
+    let errors = 0;
+    for (const file of files) {
+      try {
+        const buf = await file.arrayBuffer();
+        const wb = XLSX.read(buf, { type: "array" });
+        const ws = wb.Sheets["Tagesbericht"] || wb.Sheets[wb.SheetNames[0]];
+        const rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: null });
+
+        const headerIdx = rows.findIndex(r => r && r[0] === "Bereich" && r[2] === "Tag");
+        if (headerIdx === -1) { errors++; continue; }
+
+        const details = [];
+        for (let i = headerIdx + 1; i < rows.length; i++) {
+          const r = rows[i];
+          if (!r || r.length === 0) continue;
+          const bereich = r[0], sparte = r[1];
+          if (typeof bereich !== "string" || typeof sparte !== "string") continue;
+          if (bereich === "Gesamt" || sparte === "Zwischensumme") continue; // recomputed client-side
+          if (typeof r[2] !== "number") continue;
+          details.push({
+            bereich, sparte,
+            tag: num(r[2]), monat: num(r[3]), jahr: num(r[4]),
+            vjTag: num(r[5]), vjMonat: num(r[6]), vjJahr: num(r[7]),
+          });
+        }
+        if (!details.length) { errors++; continue; }
+
+        const m = file.name.match(FILE_RE);
+        newData[m[1]] = { details, agg: computeAggregates(details) };
+      } catch (e) {
+        console.error("Fehler beim Lesen von", file.name, e);
+        errors++;
+      }
+    }
+
+    if (!Object.keys(newData).length) {
+      alert("Es konnten keine gültigen Tagesberichte gelesen werden.");
+      return;
+    }
+
+    dataByDate = newData;
+    allDates = Object.keys(dataByDate).sort();
+    currentDate = allDates[allDates.length - 1];
+
+    $("subheading").textContent =
+      `${allDates.length} Tag(e) geladen · ${fmtDateLabel(allDates[0])} – ${fmtDateLabel(allDates[allDates.length-1])}` +
+      (connectedFolderName ? ` · Ordner „${connectedFolderName}“` : "") +
+      (errors ? ` · ${errors} Datei(en) übersprungen` : "");
+
+    $("emptyState").style.display = "none";
+    $("dashboard").style.display = "block";
+
+    populateDateSelect();
+    document.querySelectorAll("#bereichChips .chip").forEach(c => {
+      c.classList.toggle("active", c.dataset.bereich === filterBereich);
+    });
+    populateSparteSelect();
+    renderAll();
+  }
+
+  function computeAggregates(details) {
+    const perBereich = {};
+    const total = { tag:0, monat:0, jahr:0, vjTag:0, vjMonat:0, vjJahr:0 };
+    for (const d of details) {
+      if (!perBereich[d.bereich]) {
+        perBereich[d.bereich] = { tag:0, monat:0, jahr:0, vjTag:0, vjMonat:0, vjJahr:0 };
+      }
+      const pb = perBereich[d.bereich];
+      for (const k of ["tag","monat","jahr","vjTag","vjMonat","vjJahr"]) {
+        pb[k] += d[k]; total[k] += d[k];
+      }
+    }
+    return { perBereich, total };
+  }
+
+  // ---------- Filter (Bereich/Sparte) ----------
+
+  function getFilteredDetails(dayObj) {
+    return dayObj.details.filter(d =>
+      (filterBereich === "ALL" || d.bereich === filterBereich) &&
+      (filterSparte === "ALL" || d.sparte === filterSparte)
+    );
+  }
+  function getScopedAgg(date) {
+    return computeAggregates(getFilteredDetails(dataByDate[date]));
+  }
+  function scopeLabel() {
+    if (filterBereich === "ALL") return "Hotel gesamt";
+    if (filterSparte === "ALL") return filterBereich;
+    return `${filterBereich} – ${filterSparte}`;
+  }
+
+  function populateSparteSelect() {
+    const field = $("sparteField");
+    const sel = $("sparteSelect");
+    if (filterBereich === "ALL") {
+      field.style.display = "none";
+      filterSparte = "ALL";
+      localStorage.setItem("bm_filterSparte", filterSparte);
+      return;
+    }
+    const seen = new Set();
+    for (const date of allDates) {
+      for (const d of dataByDate[date].details) {
+        if (d.bereich === filterBereich) seen.add(d.sparte);
+      }
+    }
+    const sparten = Array.from(seen);
+    sel.innerHTML = "";
+    const optAll = document.createElement("option");
+    optAll.value = "ALL"; optAll.textContent = "Alle Sparten";
+    sel.appendChild(optAll);
+    for (const s of sparten) {
+      const opt = document.createElement("option");
+      opt.value = s; opt.textContent = s;
+      sel.appendChild(opt);
+    }
+    if (!sparten.includes(filterSparte)) filterSparte = "ALL";
+    sel.value = filterSparte;
+    field.style.display = sparten.length ? "flex" : "none";
+  }
+
+  function setBereichFilter(bereich) {
+    filterBereich = bereich;
+    localStorage.setItem("bm_filterBereich", filterBereich);
+    document.querySelectorAll("#bereichChips .chip").forEach(c => {
+      c.classList.toggle("active", c.dataset.bereich === bereich);
+    });
+    if (allDates.length) populateSparteSelect();
+    if (dataByDate[currentDate]) renderAll(true);
+  }
+
+  document.querySelectorAll("#bereichChips .chip").forEach(chip => {
+    chip.addEventListener("click", () => setBereichFilter(chip.dataset.bereich));
+  });
+  $("sparteSelect").addEventListener("change", (e) => {
+    filterSparte = e.target.value;
+    localStorage.setItem("bm_filterSparte", filterSparte);
+    renderAll(true);
+  });
+
+  // ---------- Farbabstufungen für Sparten-Diagramme (aus Bereichsfarbe abgeleitet) ----------
+
+  function hexToHsl(hex) {
+    const r = parseInt(hex.slice(1,3),16)/255, g = parseInt(hex.slice(3,5),16)/255, b = parseInt(hex.slice(5,7),16)/255;
+    const max = Math.max(r,g,b), min = Math.min(r,g,b);
+    let h, s, l = (max+min)/2;
+    if (max === min) { h = s = 0; }
+    else {
+      const d = max-min;
+      s = l > 0.5 ? d/(2-max-min) : d/(max+min);
+      switch (max) {
+        case r: h = (g-b)/d + (g<b?6:0); break;
+        case g: h = (b-r)/d + 2; break;
+        default: h = (r-g)/d + 4;
+      }
+      h /= 6;
+    }
+    return [h*360, s*100, l*100];
+  }
+  function hslToHex(h, s, l) {
+    h/=360; s/=100; l/=100;
+    let r, g, b;
+    if (s === 0) { r = g = b = l; }
+    else {
+      const hue2rgb = (p,q,t) => { if(t<0)t+=1; if(t>1)t-=1; if(t<1/6)return p+(q-p)*6*t; if(t<1/2)return q; if(t<2/3)return p+(q-p)*(2/3-t)*6; return p; };
+      const q = l < 0.5 ? l*(1+s) : l+s-l*s;
+      const p = 2*l-q;
+      r = hue2rgb(p,q,h+1/3); g = hue2rgb(p,q,h); b = hue2rgb(p,q,h-1/3);
+    }
+    const toHex = (x) => Math.round(x*255).toString(16).padStart(2,"0");
+    return "#" + toHex(r) + toHex(g) + toHex(b);
+  }
+  function shadesOf(hex, n) {
+    if (n <= 1) return [hex];
+    const [h, s] = hexToHsl(hex);
+    const lo = 30, hi = 68;
+    const out = [];
+    for (let i = 0; i < n; i++) out.push(hslToHex(h, Math.max(s,35), lo + (hi-lo) * (i/(n-1))));
+    return out;
+  }
+
+  // ---------- UI wiring ----------
+
+  function populateDateSelect() {
+    const sel = $("dateSelect");
+    sel.innerHTML = "";
+    for (let i = allDates.length - 1; i >= 0; i--) {
+      const opt = document.createElement("option");
+      opt.value = allDates[i];
+      opt.textContent = fmtDateLabel(allDates[i]);
+      sel.appendChild(opt);
+    }
+    sel.value = currentDate;
+  }
+
+  $("btnLoad").addEventListener("click", connectFolder);
+  $("folderInput").addEventListener("change", (e) => handleFiles(e.target.files));
+
+  $("dateSelect").addEventListener("change", (e) => { currentDate = e.target.value; renderAll(false); });
+  $("btnPrevDay").addEventListener("click", () => stepDay(-1));
+  $("btnNextDay").addEventListener("click", () => stepDay(1));
+  function stepDay(dir) {
+    const idx = allDates.indexOf(currentDate);
+    const next = idx + dir;
+    if (next < 0 || next >= allDates.length) return;
+    currentDate = allDates[next];
+    $("dateSelect").value = currentDate;
+    renderAll(false);
+  }
+
+  $("btnTheme").addEventListener("click", () => {
+    const root = document.documentElement;
+    const cur = root.getAttribute("data-theme");
+    const next = cur === "dark" ? "light" : (cur === "light" ? null : "dark");
+    if (next) root.setAttribute("data-theme", next); else root.removeAttribute("data-theme");
+    renderAll(true);
+  });
+
+  // ---------- Render ----------
+
+  function renderAll(rebuildTrend = true) {
+    updateFilterLabels();
+    renderKpis();
+    renderBreakdown();
+    renderDonut();
+    renderBar();
+    if (rebuildTrend || !trendBuilt) renderTrend();
+    $("rangeInfo").textContent = `${allDates.length} Tag(e) geladen`;
+  }
+  let trendBuilt = false;
+
+  function updateFilterLabels() {
+    const scoped = filterBereich !== "ALL";
+    $("donutTitle").firstChild.textContent = scoped ? `Verteilung nach Sparte – ${filterBereich} ` : "Verteilung nach Bereich ";
+    $("barTitle").firstChild.textContent = scoped ? `Vorjahresvergleich nach Sparte – ${filterBereich} ` : "Vorjahresvergleich nach Bereich ";
+    $("trendHint").textContent = `aktuelles Jahr vs. Vorjahr, je geladenem Tag · ${scopeLabel()}`;
+    $("breakdownHint").textContent = `Tageswert aktuell vs. Vorjahr, je Bereich & Sparte · Ansicht: ${scopeLabel()}`;
+  }
+
+  function renderKpis() {
+    const { total } = getScopedAgg(currentDate);
+    $("kpiTag").textContent = fmtCHF(total.tag);
+    $("kpiMonat").textContent = fmtCHF(total.monat);
+    $("kpiJahr").textContent = fmtCHF(total.jahr);
+
+    setDelta($("kpiTagDelta"), total.tag, total.vjTag, "Vortag-Vergleich (Vorjahr)");
+    setDelta($("kpiMonatDelta"), total.monat, total.vjMonat, "vs. Vorjahr MTD");
+    setDelta($("kpiJahrDelta"), total.jahr, total.vjJahr, "vs. Vorjahr YTD");
+
+    const yoy = pctDelta(total.jahr, total.vjJahr);
+    $("kpiYoy").textContent = fmtPct(yoy);
+    $("kpiYoy").style.color = yoy >= 0 ? "var(--good)" : "var(--bad)";
+  }
+
+  function setDelta(el, cur, prev, label) {
+    const d = pctDelta(cur, prev);
+    el.className = "delta " + (d >= 0 ? "up" : "down");
+    el.innerHTML = `${d >= 0 ? "▲" : "▼"} ${fmtPct(d)} <span class="vs">${label}</span>`;
+  }
+
+  function renderBreakdown() {
+    $("breakdownDateLabel").textContent = fmtDateLabel(currentDate);
+    const filtered = getFilteredDetails(dataByDate[currentDate]);
+    const agg = computeAggregates(filtered);
+    const tbody = $("breakdownBody");
+    tbody.innerHTML = "";
+
+    const bereichScope = filterBereich === "ALL" ? BEREICH_ORDER : [filterBereich];
+    const showSubtotals = bereichScope.length > 1;
+
+    for (const bereich of bereichScope) {
+      const rows = filtered.filter(d => d.bereich === bereich);
+      if (!rows.length) continue;
+      rows.forEach((d, idx) => {
+        tbody.appendChild(rowEl([
+          idx === 0 ? swatchLabel(bereich) : "",
+          d.sparte, fmtCHF(d.tag), fmtCHF(d.vjTag), pctCell(d.tag, d.vjTag),
+          fmtCHF(d.monat), fmtCHF(d.vjMonat), fmtCHF(d.jahr), fmtCHF(d.vjJahr),
+        ], "detail"));
+      });
+      if (showSubtotals) {
+        const sb = agg.perBereich[bereich];
+        tbody.appendChild(rowEl([
+          bereich, "Zwischensumme", fmtCHF(sb.tag), fmtCHF(sb.vjTag), pctCell(sb.tag, sb.vjTag),
+          fmtCHF(sb.monat), fmtCHF(sb.vjMonat), fmtCHF(sb.jahr), fmtCHF(sb.vjJahr),
+        ], "subtotal"));
+      }
+    }
+
+    if (filtered.length > 1) {
+      const t = agg.total;
+      const [labelA, labelB] = filterBereich === "ALL" ? ["Gesamt", "Hotel gesamt"] : [filterBereich, `Gesamt ${filterBereich}`];
+      tbody.appendChild(rowEl([
+        labelA, labelB, fmtCHF(t.tag), fmtCHF(t.vjTag), pctCell(t.tag, t.vjTag),
+        fmtCHF(t.monat), fmtCHF(t.vjMonat), fmtCHF(t.jahr), fmtCHF(t.vjJahr),
+      ], "grandtotal"));
+    }
+  }
+
+  function swatchLabel(bereich) {
+    return `<span class="swatch" style="background:${BEREICH_COLOR[bereich]}"></span>${bereich}`;
+  }
+  function pctCell(cur, prev) {
+    const d = pctDelta(cur, prev);
+    const cls = d >= 0 ? "pos" : "neg";
+    return `<td class="${cls}">${fmtPct(d)}</td>`;
+  }
+  function rowEl(cells, cls) {
+    const tr = document.createElement("tr");
+    if (cls) tr.className = cls;
+    tr.innerHTML = cells.map((c, i) => {
+      if (typeof c === "string" && c.startsWith("<td")) return c; // pctCell already a <td>
+      return `<td>${c}</td>`;
+    }).join("");
+    return tr;
+  }
+
+  // ---------- Charts (hand-built SVG) ----------
+
+  function showTip(x, y, html) {
+    const tp = tooltip();
+    tp.innerHTML = html;
+    tp.style.left = (x + 14) + "px";
+    tp.style.top = (y + 14) + "px";
+    tp.classList.add("show");
+  }
+  function hideTip() { tooltip().classList.remove("show"); }
+
+  function renderTrend() {
+    trendBuilt = true;
+    const el = $("trendChart");
+    const W = 760, H = 260, ML = 46, MR = 12, MT = 14, MB = 28;
+    const plotW = W - ML - MR, plotH = H - MT - MB;
+
+    const cur = allDates.map(d => getScopedAgg(d).total.tag);
+    const vj  = allDates.map(d => getScopedAgg(d).total.vjTag);
+    const maxY = Math.max(1, ...cur, ...vj) * 1.15;
+    const n = allDates.length;
+    const xAt = (i) => ML + (n === 1 ? plotW/2 : plotW * i / (n - 1));
+    const yAt = (v) => MT + plotH - (v / maxY) * plotH;
+
+    const gridColor = resolveVar("--grid"), axisColor = resolveVar("--axis"),
+          mutedColor = resolveVar("--text-muted"), s1 = resolveVar("--series-1"),
+          vjColor = resolveVar("--vj");
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}">`;
+
+    // gridlines + y labels
+    const ticks = 4;
+    for (let t = 0; t <= ticks; t++) {
+      const v = maxY * t / ticks;
+      const y = yAt(v);
+      svg += `<line x1="${ML}" y1="${y}" x2="${W-MR}" y2="${y}" stroke="${gridColor}" stroke-width="1"/>`;
+      svg += `<text x="${ML-8}" y="${y+3}" text-anchor="end" font-size="10" fill="${mutedColor}">${fmtCompact(v)}</text>`;
+    }
+
+    // x labels (thinned)
+    const labelEvery = Math.max(1, Math.ceil(n / 8));
+    for (let i = 0; i < n; i += labelEvery) {
+      svg += `<text x="${xAt(i)}" y="${H-8}" text-anchor="middle" font-size="10" fill="${mutedColor}">${fmtDateLabel(allDates[i]).slice(0,5)}</text>`;
+    }
+
+    function pathFor(arr) {
+      return arr.map((v,i) => `${i===0?"M":"L"}${xAt(i).toFixed(1)},${yAt(v).toFixed(1)}`).join(" ");
+    }
+    svg += `<path d="${pathFor(vj)}" fill="none" stroke="${vjColor}" stroke-width="2" stroke-dasharray="5,4" stroke-linecap="round"/>`;
+    svg += `<path d="${pathFor(cur)}" fill="none" stroke="${s1}" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>`;
+
+    // selected date marker
+    const selIdx = allDates.indexOf(currentDate);
+    if (selIdx >= 0) {
+      const sx = xAt(selIdx);
+      svg += `<line x1="${sx}" y1="${MT}" x2="${sx}" y2="${MT+plotH}" stroke="${axisColor}" stroke-width="1" stroke-dasharray="2,3"/>`;
+      svg += `<circle cx="${sx}" cy="${yAt(cur[selIdx])}" r="4" fill="${s1}"/>`;
+      svg += `<circle cx="${sx}" cy="${yAt(vj[selIdx])}" r="4" fill="${vjColor}"/>`;
+    }
+
+    // hover capture
+    svg += `<rect id="trendHover" x="${ML}" y="${MT}" width="${plotW}" height="${plotH}" fill="transparent"/>`;
+    svg += `</svg>`;
+    el.innerHTML = svg;
+
+    const rect = el.querySelector("#trendHover");
+    rect.addEventListener("mousemove", (ev) => {
+      const svgEl = el.querySelector("svg");
+      const pt = clientToSvg(svgEl, ev.clientX, ev.clientY);
+      let i = Math.round((pt.x - ML) / plotW * (n - 1));
+      i = Math.max(0, Math.min(n - 1, i));
+      showTip(ev.clientX, ev.clientY, `
+        <div class="t-title">${fmtDateLabel(allDates[i])}</div>
+        <div class="t-row"><span class="sw" style="background:${s1}"></span>Aktuell: ${fmtCHF(cur[i])}</div>
+        <div class="t-row"><span class="sw" style="background:${vjColor}"></span>Vorjahr: ${fmtCHF(vj[i])}</div>`);
+    });
+    rect.addEventListener("mouseleave", hideTip);
+    rect.addEventListener("click", (ev) => {
+      const svgEl = el.querySelector("svg");
+      const pt = clientToSvg(svgEl, ev.clientX, ev.clientY);
+      let i = Math.round((pt.x - ML) / plotW * (n - 1));
+      i = Math.max(0, Math.min(n - 1, i));
+      currentDate = allDates[i];
+      $("dateSelect").value = currentDate;
+      renderAll(false);
+    });
+  }
+
+  function clientToSvg(svgEl, cx, cy) {
+    const r = svgEl.getBoundingClientRect();
+    const vb = svgEl.viewBox.baseVal;
+    return { x: (cx - r.left) / r.width * vb.width, y: (cy - r.top) / r.height * vb.height };
+  }
+
+  function renderDonut() {
+    const el = $("donutChart");
+    const filtered = getFilteredDetails(dataByDate[currentDate]);
+    const agg = computeAggregates(filtered);
+
+    let segs;
+    if (filterBereich === "ALL") {
+      segs = BEREICH_ORDER
+        .filter(b => agg.perBereich[b])
+        .map(b => ({ label: b, value: agg.perBereich[b].tag, color: resolveVar(colorVarName(b)) }));
+    } else {
+      const baseColor = resolveVar(colorVarName(filterBereich));
+      const sorted = filtered.slice().sort((a,b) => b.tag - a.tag);
+      const shades = shadesOf(baseColor, sorted.length || 1);
+      segs = sorted.map((d,i) => ({ label: d.sparte, value: d.tag, color: shades[i] }));
+    }
+
+    const W = 240, H = 240, cx = 120, cy = 120, rOuter = 95, rInner = 58;
+    let svg = `<svg viewBox="0 0 ${W} ${H}">`;
+    let angle = -Math.PI / 2;
+    const sum = segs.reduce((a,s) => a + s.value, 0) || 1;
+    const arcs = [];
+
+    for (const s of segs) {
+      const frac = s.value / sum;
+      const a0 = angle, a1 = angle + frac * Math.PI * 2;
+      angle = a1;
+      const gap = segs.length > 1 ? 0.012 : 0; // 2px-ish surface gap between segments
+      arcs.push(donutArc(cx, cy, rInner, rOuter, a0+gap, a1-gap, s.color, s));
+    }
+    svg += arcs.map(a => a.path).join("");
+    svg += `<text x="${cx}" y="${cy-4}" text-anchor="middle" font-size="12" fill="${resolveVar('--text-muted')}">Gesamt</text>`;
+    svg += `<text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="14" font-weight="700" fill="${resolveVar('--text-primary')}">${fmtCompact(sum)} CHF</text>`;
+    svg += `</svg>`;
+    el.innerHTML = svg;
+
+    el.querySelectorAll("path.donut-seg").forEach(p => {
+      p.addEventListener("mousemove", (ev) => {
+        const s = arcs.find(a => a.id === p.dataset.id).seg;
+        const pct = (s.value/sum*100).toLocaleString("de-CH",{maximumFractionDigits:1});
+        showTip(ev.clientX, ev.clientY, `<div class="t-title">${s.label}</div>${fmtCHF(s.value)} (${pct}%)`);
+      });
+      p.addEventListener("mouseleave", hideTip);
+    });
+
+    const legend = document.createElement("div");
+    legend.className = "donut-legend";
+    for (const s of segs) {
+      const pct = (s.value/sum*100).toLocaleString("de-CH",{maximumFractionDigits:1});
+      const row = document.createElement("div");
+      row.className = "row";
+      row.innerHTML = `<span class="sw" style="background:${s.color}"></span><span class="name">${s.label}</span><span class="val">${fmtCHF(s.value)} · ${pct}%</span>`;
+      legend.appendChild(row);
+    }
+    el.parentElement.querySelectorAll(".donut-legend").forEach(x => x.remove());
+    el.after(legend);
+  }
+  function colorVarName(bereich) {
+    return bereich === "Logement" ? "--series-1" : bereich === "F&B" ? "--series-2" : "--series-3";
+  }
+  let donutIdSeq = 0;
+  function donutArc(cx, cy, rInner, rOuter, a0, a1, color, seg) {
+    const id = "seg" + (donutIdSeq++);
+    const large = (a1 - a0) > Math.PI ? 1 : 0;
+    const p = (r,a) => [cx + r*Math.cos(a), cy + r*Math.sin(a)];
+    const [ox0, oy0] = p(rOuter, a0), [ox1, oy1] = p(rOuter, a1);
+    const [ix0, iy0] = p(rInner, a1), [ix1, iy1] = p(rInner, a0);
+    const d = `M${ox0},${oy0} A${rOuter},${rOuter} 0 ${large} 1 ${ox1},${oy1} L${ix0},${iy0} A${rInner},${rInner} 0 ${large} 0 ${ix1},${iy1} Z`;
+    return { id, seg, path: `<path class="donut-seg" data-id="${id}" d="${d}" fill="${color}"/>` };
+  }
+
+  function renderBar() {
+    const el = $("barChart");
+    const filtered = getFilteredDetails(dataByDate[currentDate]);
+
+    if (filterBereich !== "ALL") {
+      renderBarBySparte(el, filtered);
+      return;
+    }
+
+    const { perBereich } = computeAggregates(filtered);
+    const groups = BEREICH_ORDER.filter(b => perBereich[b]).map(b => ({
+      label: b, color: resolveVar(colorVarName(b)),
+      cur: perBereich[b].tag, prev: perBereich[b].vjTag,
+    }));
+
+    const W = 900, H = 220, ML = 50, MR = 12, MT = 14, MB = 26;
+    const plotW = W - ML - MR, plotH = H - MT - MB;
+    const maxY = Math.max(1, ...groups.map(g => Math.max(g.cur, g.prev))) * 1.15;
+    const yAt = (v) => MT + plotH - (v/maxY)*plotH;
+    const mutedColor = resolveVar("--text-muted"), gridColor = resolveVar("--grid");
+
+    const groupW = plotW / groups.length;
+    const barW = Math.min(58, groupW * 0.28);
+    const gap = 6;
+
+    let svg = `<svg viewBox="0 0 ${W} ${H}">`;
+    const ticks = 4;
+    for (let t = 0; t <= ticks; t++) {
+      const v = maxY * t / ticks, y = yAt(v);
+      svg += `<line x1="${ML}" y1="${y}" x2="${W-MR}" y2="${y}" stroke="${gridColor}" stroke-width="1"/>`;
+      svg += `<text x="${ML-8}" y="${y+3}" text-anchor="end" font-size="10" fill="${mutedColor}">${fmtCompact(v)}</text>`;
+    }
+
+    const bars = [];
+    groups.forEach((g, i) => {
+      const cx = ML + groupW * (i + 0.5);
+      const curX = cx - barW - gap/2, prevX = cx + gap/2;
+      const curY = yAt(g.cur), prevY = yAt(g.prev);
+      bars.push({ x: curX, y: curY, w: barW, h: (MT+plotH)-curY, color: g.color, opacity: 1, label: g.label, kind: "Aktuell", value: g.cur });
+      bars.push({ x: prevX, y: prevY, w: barW, h: (MT+plotH)-prevY, color: g.color, opacity: 0.4, label: g.label, kind: "Vorjahr", value: g.prev });
+      svg += `<text x="${cx}" y="${H-6}" text-anchor="middle" font-size="11" fill="${resolveVar('--text-primary')}">${g.label}</text>`;
+    });
+
+    bars.forEach((b, i) => {
+      svg += `<rect class="bar" data-i="${i}" x="${b.x.toFixed(1)}" y="${b.y.toFixed(1)}" width="${b.w.toFixed(1)}" height="${Math.max(0,b.h).toFixed(1)}" rx="4" fill="${b.color}" fill-opacity="${b.opacity}"/>`;
+    });
+    svg += `</svg>`;
+    el.innerHTML = svg;
+
+    el.querySelectorAll("rect.bar").forEach(r => {
+      const b = bars[+r.dataset.i];
+      r.addEventListener("mousemove", (ev) => {
+        showTip(ev.clientX, ev.clientY, `<div class="t-title">${b.label} · ${b.kind}</div>${fmtCHF(b.value)}`);
+      });
+      r.addEventListener("mouseleave", hideTip);
+    });
+
+    const legend = document.createElement("div");
+    legend.className = "legend";
+    legend.innerHTML = `
+      <div class="item"><span class="swatch dot" style="background:${resolveVar('--text-secondary')}"></span>Farbe = Bereich</div>
+      <div class="item"><span class="swatch" style="background:${resolveVar('--text-secondary')};opacity:1;height:10px;width:10px;border-radius:2px;"></span>Aktuell (volle Deckkraft)</div>
+      <div class="item"><span class="swatch" style="background:${resolveVar('--text-secondary')};opacity:.4;height:10px;width:10px;border-radius:2px;"></span>Vorjahr (abgeblendet)</div>`;
+    el.parentElement.querySelectorAll(".legend").forEach(x => x.remove());
+    el.after(legend);
+  }
+
+  // Horizontale Rangliste je Sparte/Outlet innerhalb eines gefilterten Bereichs
+  function renderBarBySparte(el, filtered) {
+    const baseColor = resolveVar(colorVarName(filterBereich));
+    const rows = filtered.slice().sort((a,b) => b.tag - a.tag);
+    const maxV = Math.max(1, ...rows.map(d => Math.max(d.tag, d.vjTag)));
+
+    if (!rows.length) {
+      el.innerHTML = `<p style="color:var(--text-muted); font-size:13px;">Keine Daten für diese Auswahl.</p>`;
+      el.parentElement.querySelectorAll(".legend").forEach(x => x.remove());
+      return;
+    }
+
+    const list = document.createElement("div");
+    list.className = "hbar-list";
+    for (const d of rows) {
+      const curPct = Math.max(0, d.tag / maxV * 100).toFixed(1);
+      const vjPct = Math.max(0, d.vjTag / maxV * 100).toFixed(1);
+      const group = document.createElement("div");
+      group.className = "hbar-group";
+      group.innerHTML = `
+        <div class="hbar-title">${d.sparte}</div>
+        <div class="hbar-row">
+          <div class="hbar-track"><div class="hbar-fill cur" style="width:${curPct}%; background:${baseColor}"></div></div>
+          <div class="hbar-value">${fmtCHF(d.tag)}</div>
+        </div>
+        <div class="hbar-row">
+          <div class="hbar-track"><div class="hbar-fill vj" style="width:${vjPct}%; background:${baseColor}; opacity:.4"></div></div>
+          <div class="hbar-value muted">${fmtCHF(d.vjTag)} (Vorjahr)</div>
+        </div>`;
+      list.appendChild(group);
+      group.querySelector(".hbar-fill.cur").addEventListener("mousemove", (ev) => {
+        showTip(ev.clientX, ev.clientY, `<div class="t-title">${d.sparte} · Aktuell</div>${fmtCHF(d.tag)}`);
+      });
+      group.querySelector(".hbar-fill.vj").addEventListener("mousemove", (ev) => {
+        showTip(ev.clientX, ev.clientY, `<div class="t-title">${d.sparte} · Vorjahr</div>${fmtCHF(d.vjTag)}`);
+      });
+      group.querySelectorAll(".hbar-fill").forEach(f => f.addEventListener("mouseleave", hideTip));
+    }
+    el.innerHTML = "";
+    el.appendChild(list);
+
+    const legend = document.createElement("div");
+    legend.className = "legend";
+    legend.innerHTML = `
+      <div class="item"><span class="swatch" style="background:${baseColor};height:10px;width:10px;border-radius:2px;"></span>Aktuell</div>
+      <div class="item"><span class="swatch" style="background:${baseColor};opacity:.4;height:10px;width:10px;border-radius:2px;"></span>Vorjahr</div>`;
+    el.parentElement.querySelectorAll(".legend").forEach(x => x.remove());
+    el.after(legend);
+  }
+
+  initFolderAccess();
+
+})();
+</script>
+</body>
+</html>
