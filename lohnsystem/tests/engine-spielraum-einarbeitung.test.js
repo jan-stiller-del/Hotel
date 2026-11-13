@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const E = require('../src/engine.js');
+const FX = require('./abschluss-fixture.js');
 const { validateConfig } = require('../src/config.js');
 
 function baueConfig() {
@@ -18,12 +19,14 @@ function baueConfig() {
     ],
     stufen,
     abteilungen: [{ id: 'a', label: 'A' }],
+    bereiche: FX.bereiche,
+    abschluesse: FX.abschluesse,
     funktionen: [
       { id: 'rec', abteilung: 'a', label: 'Rec', gaestekontakt: true, bandMin: 4300, bandMax: 5600 },
       { id: 'schmal', abteilung: 'a', label: 'Schmal', gaestekontakt: true, bandMin: 4750, bandMax: 4800 },
       { id: 'weit', abteilung: 'a', label: 'Weit', gaestekontakt: true, bandMin: 4300, bandMax: 6000 },
       { id: 'eng', abteilung: 'a', label: 'Eng', gaestekontakt: true, bandMin: 4300, bandMax: 4400 },
-    ],
+    ].map(FX.funktion),
     bausteine: { erfahrungProJahr: 50, spracheProSprache: 100, maxSprachen: 2, sprachen: ['EN', 'FR', 'IT'], mindestNiveau: 'B2' },
     zusatzbausteine: [],
   };

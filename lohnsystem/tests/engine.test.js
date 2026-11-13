@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const E = require('../src/engine.js');
+const FX = require('./abschluss-fixture.js');
 
 function baueConfig() {
   return {
@@ -15,11 +16,13 @@ function baueConfig() {
     ],
     stufen: {},
     abteilungen: [{ id: 'a', label: 'A' }],
+    bereiche: FX.bereiche,
+    abschluesse: FX.abschluesse,
     funktionen: [
       { id: 'rec', abteilung: 'a', label: 'Rec', gaestekontakt: true, bandMin: 4300, bandMax: 5600 },
       { id: 'koch', abteilung: 'a', label: 'Koch', gaestekontakt: false, bandMin: 4300, bandMax: 5600 },
       { id: 'eng', abteilung: 'a', label: 'Eng', gaestekontakt: true, bandMin: 4300, bandMax: 4400 },
-    ],
+    ].map(FX.funktion),
     bausteine: { erfahrungProJahr: 50, spracheProSprache: 100, maxSprachen: 2, sprachen: ['DE', 'EN', 'FR', 'IT'], mindestNiveau: 'B2' },
     zusatzbausteine: [
       { id: 'zl', label: 'Zulage', art: 'lohn', betrag: 150 },
@@ -37,7 +40,8 @@ function eingabe(extra) {
 }
 
 test('bestimmeStufe: Abschluss zu Stufe', () => {
-  const s = (i) => E.bestimmeStufe(i).stufe;
+  const c = baueConfig();
+  const s = (i) => E.bestimmeStufe(c, Object.assign({ funktionId: 'rec' }, i)).stufe;
   assert.equal(s({ abschluss: 'keiner' }), 'Ia');
   assert.equal(s({ abschluss: 'progresso' }), 'Ib');
   assert.equal(s({ abschluss: 'eba' }), 'II');
@@ -47,14 +51,13 @@ test('bestimmeStufe: Abschluss zu Stufe', () => {
 });
 
 test('bestimmeStufe: HF ohne Handwahl offen, mit Handwahl IV; beides mit Warnung', () => {
-  for (const ab of ['hf', 'hotelfachschule']) {
-    const offen = E.bestimmeStufe({ abschluss: ab });
-    assert.equal(offen.stufe, null);
-    assert.ok(offen.warnungen.some((w) => w.code === 'hf_offen'));
-    const manuell = E.bestimmeStufe({ abschluss: ab, stufeManuell: 'IV' });
-    assert.equal(manuell.stufe, 'IV');
-    assert.ok(manuell.warnungen.some((w) => w.code === 'hf_offen'));
-  }
+  const c = baueConfig();
+  const offen = E.bestimmeStufe(c, { funktionId: 'rec', abschluss: 'hf' });
+  assert.equal(offen.stufe, null);
+  assert.ok(offen.warnungen.some((w) => w.code === 'hf_offen'));
+  const manuell = E.bestimmeStufe(c, { funktionId: 'rec', abschluss: 'hf', stufeManuell: 'IV' });
+  assert.equal(manuell.stufe, 'IV');
+  assert.ok(manuell.warnungen.some((w) => w.code === 'hf_offen'));
 });
 
 test('findeMindestlohnTabelle: Stichtage Jahresbetrieb', () => {
@@ -263,7 +266,7 @@ test('rechneBetraege: gewaehlter Lohn, Teilzeit 60 % und Einarbeitung 8 %', () =
   assert.equal(o.reduzierterTotal, null);
 });
 
-test('Standardkonfiguration: EFZ-Beispiel Receptionist/in ergibt 4675', () => {
+test('Standardkonfiguration: EFZ-Beispiel Receptionist/in (Kaufmann HGT EFZ) ergibt 4675', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const vm = require('node:vm');
@@ -275,9 +278,124 @@ test('Standardkonfiguration: EFZ-Beispiel Receptionist/in ergibt 4675', () => {
   assert.deepEqual(config.bausteine.sprachen, ['DE', 'EN', 'FR', 'IT']);
   assert.equal(config.bausteine.maxSprachen, 4);
   const r = E.berechne(config, eingabe({
-    funktionId: 'reception-receptionist', erfahrungJahre: 4,
+    funktionId: 'reception-receptionist', abschluss: 'kaufmann-hgt-efz', erfahrungJahre: 4,
     sprachen: [{ sprache: 'DE', niveau: 'B2' }, { sprache: 'EN', niveau: 'B2' }, { sprache: 'FR', niveau: 'C1' }, { sprache: 'IT', niveau: 'B2' }],
   }));
   assert.deepEqual(r.positionen.map((p) => p.betrag), [4555, 40, 80]);
   assert.equal(r.vorschlag, 4675);
+});
+
+// ---- Einstufung nach Abschluss und Funktionsbereich (Standardkonfiguration) ----
+function standardConfig() {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vm = require('node:vm');
+  const sandbox = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'config', 'config.js'), 'utf8'), sandbox);
+  return JSON.parse(JSON.stringify(sandbox.window.LOHN_CONFIG));
+}
+const SC = standardConfig();
+function stufeFuer(funktionId, abschluss, extra) {
+  const r = E.berechne(SC, eingabe(Object.assign({ funktionId, abschluss }, extra || {})));
+  return { stufe: r.stufe, codes: r.warnungen.map((w) => w.code), r };
+}
+
+test('Einstufung: Koch EFZ in der Küche ergibt IIIa ohne Warnung', () => {
+  const r = stufeFuer('kueche-koch-efz', 'koch-efz');
+  assert.equal(r.stufe, 'IIIa');
+  assert.deepEqual(r.codes, []);
+});
+
+test('Einstufung: Koch EFZ im Service ergibt IIIa', () => {
+  const r = stufeFuer('service-commis-de-rang', 'koch-efz');
+  assert.equal(r.stufe, 'IIIa');
+  assert.deepEqual(r.codes, []);
+});
+
+test('Einstufung: Koch EFZ im Housekeeping ergibt Ia mit Warnung', () => {
+  const r = stufeFuer('housekeeping-zimmermaedchen', 'koch-efz');
+  assert.equal(r.stufe, 'Ia');
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt']);
+  assert.match(r.r.warnungen[0].text, /nicht anerkannt/);
+});
+
+test('Einstufung: Restaurationsfachfrau EFZ in der Küche ergibt Ia', () => {
+  const r = stufeFuer('kueche-koch-efz', 'restaurationsfachmann-efz');
+  assert.equal(r.stufe, 'Ia');
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt']);
+});
+
+test('Einstufung: Hotelfachfrau EFZ an der Réception ergibt Ia mit Warnung', () => {
+  const r = stufeFuer('reception-receptionist', 'hotelfachmann-efz');
+  assert.equal(r.stufe, 'Ia');
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt']);
+});
+
+test('Einstufung: Kaufmann/Kauffrau EFZ an der Réception ergibt IIIa', () => {
+  const r = stufeFuer('reception-receptionist', 'kaufmann-efz');
+  assert.equal(r.stufe, 'IIIa');
+  assert.deepEqual(r.codes, []);
+});
+
+test('Einstufung: Koch EFZ mit Weiterbildung von 6 Tagen im Service ergibt IIIb', () => {
+  const r = stufeFuer('service-commis-de-rang', 'koch-efz', { weiterbildung6Tage: true });
+  assert.equal(r.stufe, 'IIIb');
+});
+
+test('Einstufung: Chefkoch FA im Service ist nicht anerkannt, Ia mit Warnung', () => {
+  const r = stufeFuer('service-commis-de-rang', 'chefkoch-fa');
+  assert.equal(r.stufe, 'Ia');
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt']);
+});
+
+test('Einstufung: Küchenangestellte EBA im Housekeeping ergibt Ia', () => {
+  const r = stufeFuer('housekeeping-zimmermaedchen', 'kuechenangestellte-eba');
+  assert.equal(r.stufe, 'Ia');
+});
+
+test('Einstufung: Progresso Allrounder in Küche, Service und Housekeeping ergibt Ib', () => {
+  for (const f of ['kueche-koch-efz', 'service-commis-de-rang', 'housekeeping-zimmermaedchen']) {
+    const r = stufeFuer(f, 'progresso-allrounder');
+    assert.equal(r.stufe, 'Ib', f);
+    assert.deepEqual(r.codes, [], f);
+  }
+});
+
+test('Einstufung: Abschluss im Spa (Bereich nicht geregelt) ergibt Ia mit beiden Warnungen', () => {
+  const r = stufeFuer('spa-kosmetiker-efz', 'kaufmann-efz');
+  assert.equal(r.stufe, 'Ia');
+  assert.deepEqual(r.codes.sort(), ['abschluss_nicht_anerkannt', 'bereich_ungeregelt']);
+});
+
+test('Einstufung: kein Abschluss im Spa ergibt Ia ohne Warnung', () => {
+  const r = stufeFuer('spa-kosmetiker-efz', 'keiner');
+  assert.equal(r.stufe, 'Ia');
+  assert.deepEqual(r.codes, []);
+});
+
+test('Einstufung: stufeManuell überschreibt mit Warnung stufe_manuell', () => {
+  const r = stufeFuer('housekeeping-zimmermaedchen', 'koch-efz', { stufeManuell: 'IIIa' });
+  assert.equal(r.stufe, 'IIIa');
+  assert.ok(r.codes.includes('stufe_manuell'));
+  assert.ok(!r.codes.includes('abschluss_nicht_anerkannt'));
+});
+
+test('Einstufung: anderer Abschluss verlangt die Stufe von Hand', () => {
+  const r = stufeFuer('spa-kosmetiker-efz', 'anderer');
+  assert.equal(r.r.modus, 'fehler');
+  assert.deepEqual(r.r.fehler, ['Stufe wählen']);
+});
+
+test('Einstufung: HF ohne stufeManuell ergibt Fehler «Stufe wählen»', () => {
+  const r = stufeFuer('reception-receptionist', 'hf');
+  assert.equal(r.r.modus, 'fehler');
+  assert.deepEqual(r.r.fehler, ['Stufe wählen']);
+  const mit = stufeFuer('reception-receptionist', 'hf', { stufeManuell: 'IV' });
+  assert.equal(mit.stufe, 'IV');
+});
+
+test('Einstufung: unbekannte Abschluss-Id ist ein Fehler', () => {
+  const r = stufeFuer('reception-receptionist', 'gibtsnicht');
+  assert.equal(r.r.modus, 'fehler');
+  assert.ok(r.r.fehler.includes('Abschluss unbekannt.'));
 });

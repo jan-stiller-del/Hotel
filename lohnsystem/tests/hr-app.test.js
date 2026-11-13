@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen } = require('../src/hr-app.js');
+const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueAbschlussGruppen, funktionsbereichText } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -126,4 +126,36 @@ test('baueAuszahlungZeilen: Vollzeit, anderer Satz, kein Stundenansatz im Block'
   assert.equal(z[0].label, 'Monatslohn brutto (Vollzeit)');
   assert.match(z[1].label, /\(5 %\)/);
   assert.ok(z.every(r => !/Stundenansatz/.test(r.label)));
+});
+
+function standardConfig() {
+  const sandbox = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'config', 'config.js'), 'utf8'), sandbox);
+  return JSON.parse(JSON.stringify(sandbox.window.LOHN_CONFIG));
+}
+
+test('baueAbschlussGruppen: keiner zuerst, dann Gruppen nach Stufe mit Beschriftung aus der Konfiguration', () => {
+  const cfg = standardConfig();
+  const g = baueAbschlussGruppen(cfg);
+  assert.deepEqual(g.map(x => x.label),
+    ['Ohne Abschluss', 'Ib Progresso', 'II EBA', 'IIIa EFZ', 'IV Fachausweis', 'Stufe von Hand wählen']);
+  assert.deepEqual(g[0].optionen, [{ id: 'keiner', label: 'Kein Abschluss (Stufe Ia)' }]);
+  const alle = g.slice(1).reduce((a, x) => a.concat(x.optionen), []);
+  assert.equal(alle.length, cfg.abschluesse.length);
+  assert.equal(g[3].optionen.find(o => o.id === 'koch-efz').label, 'Koch/Köchin EFZ');
+  assert.ok(g[5].optionen.some(o => o.id === 'hf'));
+});
+
+test('baueAbschlussGruppen: leere Gruppen entfallen, fehlende Konfiguration ergibt nur «keiner»', () => {
+  const g = baueAbschlussGruppen({ abschluesse: [{ id: 'x', label: 'X', stufe: 'II', bereiche: '*' }] });
+  assert.deepEqual(g.map(x => x.label), ['Ohne Abschluss', 'II EBA']);
+  assert.equal(baueAbschlussGruppen({}).length, 1);
+});
+
+test('funktionsbereichText: Bereich aus der Konfiguration oder «nicht geregelt»', () => {
+  const cfg = standardConfig();
+  const f = (id) => cfg.funktionen.find(x => x.id === id);
+  assert.equal(funktionsbereichText(cfg, f('kueche-koch-efz')), 'Funktionsbereich: Küche');
+  assert.equal(funktionsbereichText(cfg, f('spa-masseur')), 'Funktionsbereich: nicht geregelt');
+  assert.equal(funktionsbereichText(cfg, null), '');
 });

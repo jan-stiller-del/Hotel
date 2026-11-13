@@ -188,3 +188,64 @@ test('parseConfigDatei wirft bei kaputtem Inhalt', () => {
     /Konfigurationsdatei nicht lesbar/);
   assert.throws(() => parseConfigDatei(''), /Konfigurationsdatei nicht lesbar/);
 });
+
+test('Standardkonfiguration: Bereiche, Abschlüsse und Funktionsbereiche', () => {
+  const k = ladeStandardkonfiguration();
+  assert.deepStrictEqual(k.bereiche.map((b) => b.id),
+    ['kueche', 'restauration', 'hotellerie', 'hotelempfang', 'backoffice', 'hotelkommunikation']);
+  const ab = (id) => k.abschluesse.find((a) => a.id === id);
+  assert.deepStrictEqual(ab('koch-efz').bereiche, ['kueche', 'restauration']);
+  assert.strictEqual(ab('koch-efz').stufe, 'IIIa');
+  assert.strictEqual(ab('progresso-allrounder').stufe, 'Ib');
+  assert.strictEqual(ab('hf').stufe, null);
+  assert.strictEqual(k.abschluesse.filter((a) => a.stufe === null).length, 4);
+  const bereich = (id) => k.funktionen.find((f) => f.id === id).bereich;
+  assert.strictEqual(bereich('reception-concierge'), 'hotelempfang');
+  assert.strictEqual(bereich('housekeeping-gouvernante'), 'hotellerie');
+  assert.strictEqual(bereich('kueche-sous-chef'), 'kueche');
+  assert.strictEqual(bereich('service-sommelier'), 'restauration');
+  assert.strictEqual(bereich('administration-sales-marketing'), 'backoffice');
+  assert.strictEqual(bereich('spa-masseur'), null);
+  assert.strictEqual(bereich('technik-electrician'), null);
+});
+
+test('Abschluss mit unbekannter Bereich-Id wird abgelehnt', () => {
+  const c = kopie();
+  c.abschluesse.find((a) => a.id === 'koch-efz').bereiche = ['kueche', 'gibt-es-nicht'];
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.fehler.some((t) => t.includes('gibt-es-nicht')));
+});
+
+test('Funktion mit unbekanntem Bereich wird abgelehnt', () => {
+  const c = kopie();
+  c.funktionen[0].bereich = 'gibt-es-nicht';
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.fehler.some((t) => t.includes('gibt-es-nicht')));
+});
+
+test('Funktion ohne Bereichsangabe wird abgelehnt, null ist erlaubt', () => {
+  const c = kopie();
+  delete c.funktionen[0].bereich;
+  assert.strictEqual(validateConfig(c).ok, false);
+  c.funktionen[0].bereich = null;
+  assert.strictEqual(validateConfig(c).ok, true);
+});
+
+test('doppelte Abschluss-Id wird abgelehnt', () => {
+  const c = kopie();
+  c.abschluesse[1].id = c.abschluesse[0].id;
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.fehler.some((t) => t.includes(c.abschluesse[0].id)));
+});
+
+test('Abschluss mit ungültiger Stufe oder reservierter Id keiner wird abgelehnt', () => {
+  const c = kopie();
+  c.abschluesse[0].stufe = 'IIIb';
+  assert.strictEqual(validateConfig(c).ok, false);
+  const d = kopie();
+  d.abschluesse[0].id = 'keiner';
+  assert.strictEqual(validateConfig(d).ok, false);
+});

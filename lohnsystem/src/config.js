@@ -9,6 +9,8 @@
 
   // P = Praktikum
   var STUFEN = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV', 'P'];
+  // Stufen, die ein Abschluss festlegen kann (IIIb ergibt sich aus IIIa plus Weiterbildung); null = von Hand.
+  var ABSCHLUSS_STUFEN = ['Ib', 'II', 'IIIa', 'IV'];
 
   function istZahl(x) {
     return typeof x === 'number' && isFinite(x);
@@ -60,6 +62,52 @@
       if (a && a.id) { abteilungIds[a.id] = true; }
     });
 
+    var bereichIds = {};
+    (Array.isArray(config.bereiche) ? config.bereiche : []).forEach(function (b, i) {
+      var id = b && b.id;
+      if (!id) {
+        fehler.push('Bereich ' + (i + 1) + ': ID fehlt.');
+      } else if (bereichIds[id]) {
+        fehler.push('Doppelte Bereichs-ID: ' + id + '.');
+      } else {
+        bereichIds[id] = true;
+      }
+    });
+    if (!Array.isArray(config.bereiche) || config.bereiche.length === 0) {
+      fehler.push('Keine Funktionsbereiche vorhanden.');
+    }
+
+    var abschlussIds = {};
+    if (!Array.isArray(config.abschluesse)) {
+      fehler.push('Keine Abschlüsse vorhanden.');
+    }
+    (Array.isArray(config.abschluesse) ? config.abschluesse : []).forEach(function (a, i) {
+      var id = a && a.id;
+      var name = 'Abschluss ' + (id || (i + 1));
+      if (!id) {
+        fehler.push(name + ': ID fehlt.');
+      } else if (id === 'keiner') {
+        fehler.push(name + ': die ID «keiner» ist reserviert.');
+      } else if (abschlussIds[id]) {
+        fehler.push('Doppelte Abschluss-ID: ' + id + '.');
+      }
+      if (id) { abschlussIds[id] = true; }
+      if (!a) { return; }
+      if (!a.label) { fehler.push(name + ': Bezeichnung fehlt.'); }
+      if (a.stufe !== null && ABSCHLUSS_STUFEN.indexOf(a.stufe) < 0) {
+        fehler.push(name + ': ungültige Stufe «' + a.stufe + '» (erlaubt: Ib, II, IIIa, IV oder null für von Hand).');
+      }
+      if (a.bereiche !== '*') {
+        if (!Array.isArray(a.bereiche)) {
+          fehler.push(name + ': Bereiche müssen eine Liste oder «*» sein.');
+        } else {
+          a.bereiche.forEach(function (b) {
+            if (!bereichIds[b]) { fehler.push(name + ': unbekannter Bereich «' + b + '».'); }
+          });
+        }
+      }
+    });
+
     var funktionIds = {};
     (Array.isArray(config.funktionen) ? config.funktionen : []).forEach(function (f, i) {
       var id = f && f.id;
@@ -73,6 +121,9 @@
       if (!f) { return; }
       if (!abteilungIds[f.abteilung]) {
         fehler.push(name + ': unbekannte Abteilung «' + f.abteilung + '».');
+      }
+      if (f.bereich === undefined || (f.bereich !== null && !bereichIds[f.bereich])) {
+        fehler.push(name + ': unbekannter Bereich «' + f.bereich + '» (Bereich oder null angeben).');
       }
       if (!istZahl(f.bandMin) || !istZahl(f.bandMax)) {
         fehler.push(name + ': Bandminimum und Bandmaximum müssen Zahlen sein.');

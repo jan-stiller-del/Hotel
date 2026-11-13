@@ -2,6 +2,7 @@
 const test = require('node:test');
 const assert = require('node:assert/strict');
 const E = require('../src/engine.js');
+const FX = require('./abschluss-fixture.js');
 const G = require('../src/spielraum-grafik.js');
 
 function config() {
@@ -13,10 +14,12 @@ function config() {
       stufen: { Ia: 3735, Ib: 3967, II: 4094, IIIa: 4555, IIIb: 4663, IV: 5325, P: 2404 } }],
     stufen: { IIIa: { spielraum: sp }, IV: { spielraum: sp }, P: { spielraum: sp } },
     abteilungen: [{ id: 'a', label: 'A' }],
+    bereiche: FX.bereiche,
+    abschluesse: FX.abschluesse,
     funktionen: [
       { id: 'rec', abteilung: 'a', label: 'Rec', gaestekontakt: true, bandMin: 4300, bandMax: 5600 },
       { id: 'eng', abteilung: 'a', label: 'Eng', gaestekontakt: true, bandMin: 4300, bandMax: 4400 },
-    ],
+    ].map(FX.funktion),
     bausteine: { erfahrungProJahr: 50, spracheProSprache: 100, maxSprachen: 2, sprachen: ['EN', 'FR', 'IT'], mindestNiveau: 'B2' },
     zusatzbausteine: [],
   };

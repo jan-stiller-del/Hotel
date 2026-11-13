@@ -22,7 +22,7 @@ function ergebnis(extra) {
   }, extra || {});
 }
 const kontext = {
-  funktionLabel: 'Réception Gästekontakt', eintritt: '2027-01-01', vertragsart: 'Jahresstelle (unbefristet)',
+  funktionLabel: 'Réception Gästekontakt', funktionsbereich: 'Hotelempfang', abschlussLabel: 'Kaufmann/Kauffrau EFZ', eintritt: '2027-01-01', vertragsart: 'Jahresstelle (unbefristet)',
   beschaeftigungsgrad: 80, dreizehnterProzent: 8.33, gewaehlterMonatslohn: 5040, begruendung: 'Begründung: Erfahrung',
   freigabe: 'HR', datum: '2026-11-13',
   betraege: { monatslohn: 4032, dreizehnter: 335.85, totalMonat: 4367.85, jahresbrutto: 52414.2, stundenansatz: 28.5,
@@ -107,4 +107,24 @@ test('exportiereExcel: ohne SheetJS keine Ausnahme, deutsche Meldung', () => {
   const r = X.exportiereExcel([['a', 1]], 'x.xlsx');
   assert.equal(r.ok, false);
   assert.match(r.meldung, /Excel/);
+});
+
+test('Export: Abschluss, Funktionsbereich und Einstufungshinweis', () => {
+  const warn = [
+    { code: 'abschluss_nicht_anerkannt', text: 'Nicht anerkannt.' },
+    { code: 'bereich_ungeregelt', text: 'Bereich ungeregelt.' },
+    { code: 'x', text: 'Andere Warnung' }
+  ];
+  const z = X.baueExportZeilen(ergebnis({ warnungen: warn }), kontext);
+  assert.equal(finde(z, 'Funktionsbereich')[0][1], 'Hotelempfang');
+  assert.equal(finde(z, 'Abschluss')[0][1], 'Kaufmann/Kauffrau EFZ');
+  assert.equal(finde(z, 'Einstufungshinweis').length, 1);
+  assert.equal(finde(z, 'Einstufungshinweis')[0][1], 'Nicht anerkannt. Bereich ungeregelt.');
+  assert.deepEqual(finde(z, 'Warnung').map(r => r[1]), ['Andere Warnung']);
+});
+
+test('Export: ohne Einstufungswarnung keine Zeile Einstufungshinweis', () => {
+  const z = X.baueExportZeilen(ergebnis(), kontext);
+  assert.equal(finde(z, 'Einstufungshinweis').length, 0);
+  assert.equal(finde(z, 'Warnung').length, 1);
 });

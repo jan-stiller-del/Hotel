@@ -7,13 +7,13 @@
 }(typeof window !== 'undefined' ? window : this, function () {
   'use strict';
 
-  var ABSCHLUESSE = [
-    ['keiner', 'Kein Abschluss (Stufe Ia)'],
-    ['progresso', 'Progresso (Stufe Ib)'],
-    ['eba', 'EBA (Stufe II)'],
-    ['efz', 'EFZ (Stufe IIIa)'],
-    ['berufspruefung', 'Berufsprüfung / Fachausweis (Stufe IV)'],
-    ['hf', 'Höhere Fachschule (Stufe von Hand wählen)']
+  // Reihenfolge und Titel der Gruppen im Abschluss-Dropdown (nach Stufe; null = Stufe von Hand).
+  var ABSCHLUSS_GRUPPEN = [
+    ['Ib', 'Ib Progresso'],
+    ['II', 'II EBA'],
+    ['IIIa', 'IIIa EFZ'],
+    ['IV', 'IV Fachausweis'],
+    [null, 'Stufe von Hand wählen']
   ];
   var SONDERFAELLE = [
     ['keiner', 'Kein Sonderfall'],
@@ -23,7 +23,7 @@
     ['wiedereingliederung', 'Wiedereingliederung']
   ];
   var VERTRAGSARTEN = [['unbefristet', 'Jahresstelle (unbefristet)'], ['saison', 'Saisonstelle']];
-  var STUFEN_HF = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV'];
+  var STUFEN_MANUELL = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV'];
   var NIVEAUS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Muttersprache'];
   var SPRACHNAMEN = { EN: 'Englisch', FR: 'Französisch', IT: 'Italienisch', DE: 'Deutsch' };
 
@@ -89,6 +89,25 @@
     ];
   }
 
+  // Gruppen für das Abschluss-Dropdown: «Ohne Abschluss» mit «keiner» zuerst, dann je Stufe die Abschlüsse aus der Konfiguration.
+  function baueAbschlussGruppen(config) {
+    var gruppen = [{ label: 'Ohne Abschluss', optionen: [{ id: 'keiner', label: 'Kein Abschluss (Stufe Ia)' }] }];
+    var liste = (config && config.abschluesse) || [];
+    ABSCHLUSS_GRUPPEN.forEach(function (g) {
+      var optionen = liste.filter(function (a) { return a.stufe === g[0]; })
+        .map(function (a) { return { id: a.id, label: a.label }; });
+      if (optionen.length) { gruppen.push({ label: g[1], optionen: optionen }); }
+    });
+    return gruppen;
+  }
+
+  // Schreibgeschützte Anzeige des Funktionsbereichs der gewählten Funktion.
+  function funktionsbereichText(config, funktion) {
+    if (!funktion) { return ''; }
+    var b = ((config && config.bereiche) || []).filter(function (x) { return x.id === funktion.bereich; })[0];
+    return 'Funktionsbereich: ' + (funktion.bereich && b ? b.label : 'nicht geregelt');
+  }
+
   // Welcher Wert bleibt in einem neu gefüllten Select gewählt? Sonst leer («– bitte wählen –»).
   function waehleOption(werte, alt) {
     return (alt && werte.indexOf(alt) >= 0) ? alt : '';
@@ -133,11 +152,16 @@
     // Dropdowns aus der Konfiguration füllen
     config.abteilungen.forEach(function (a) { option($('abteilung'), a.id, a.label); });
     option($('abschluss'), '', '– bitte wählen –');
-    ABSCHLUESSE.forEach(function (a) { option($('abschluss'), a[0], a[1]); });
+    baueAbschlussGruppen(config).forEach(function (g) {
+      var og = doc.createElement('optgroup');
+      og.label = g.label;
+      g.optionen.forEach(function (o) { option(og, o.id, o.label); });
+      $('abschluss').appendChild(og);
+    });
     SONDERFAELLE.forEach(function (a) { option($('sonderfall'), a[0], a[1]); });
     VERTRAGSARTEN.forEach(function (a) { option($('vertragsart'), a[0], a[1]); });
     option($('stufeManuell'), '', '– bitte wählen –');
-    STUFEN_HF.forEach(function (s) { option($('stufeManuell'), s, config.stufen[s] ? config.stufen[s].label : s); });
+    STUFEN_MANUELL.forEach(function (s) { option($('stufeManuell'), s, config.stufen[s] ? config.stufen[s].label : s); });
     for (var h = 0; h <= config.betrieb.maxErfahrungsjahre; h++) {
       option($('erfahrung'), String(h), h + (h === 1 ? ' Jahr' : ' Jahre'));
     }
@@ -187,6 +211,9 @@
       sel.value = waehleOption(ids, alt);
       if (sel.selectedIndex < 0) { sel.selectedIndex = 0; }
     }
+    function aktuellerAbschluss() {
+      return config.abschluesse.filter(function (a) { return a.id === $('abschluss').value; })[0] || null;
+    }
     function aktuelleFunktion() {
       return config.funktionen.filter(function (f) { return f.id === $('funktion').value; })[0] || null;
     }
@@ -201,8 +228,8 @@
       Array.prototype.forEach.call(doc.getElementsByName('zusatz'), function (cb) { if (cb.checked) { ids.push(cb.value); } });
       return {
         funktionId: $('funktion').value, abschluss: $('abschluss').value,
-        weiterbildung6Tage: $('abschluss').value === 'efz' && $('weiterbildung6Tage').checked,
-        stufeManuell: $('abschluss').value === 'hf' ? $('stufeManuell').value : '',
+        weiterbildung6Tage: !!(aktuellerAbschluss() && aktuellerAbschluss().stufe === 'IIIa') && $('weiterbildung6Tage').checked,
+        stufeManuell: $('stufeManuell').value,
         erfahrung: $('erfahrung').value, sprachen: sprachen,
         beschaeftigungsgrad: $('beschaeftigungsgrad').value, vertragsart: $('vertragsart').value,
         eintritt: $('eintritt').value, sonderfall: $('sonderfall').value, zusatzIds: ids,
@@ -352,7 +379,8 @@
       var vertrag = VERTRAGSARTEN.filter(function (v) { return v[0] === $('vertragsart').value; })[0];
       var f = aktuelleFunktion();
       var zeilen = window.LohnExport.baueExportZeilen(letztesErgebnis, {
-        funktionLabel: f ? f.label : '', eintritt: $('eintritt').value, vertragsart: vertrag ? vertrag[1] : '',
+        funktionLabel: f ? f.label : '', funktionsbereich: f ? funktionsbereichText(config, f).replace('Funktionsbereich: ', '') : '',
+        abschlussLabel: abschlussLabel(), eintritt: $('eintritt').value, vertragsart: vertrag ? vertrag[1] : '',
         beschaeftigungsgrad: $('beschaeftigungsgrad').value, dreizehnterProzent: config.betrieb.dreizehnterProzent,
         betraege: window.LohnEngine.rechneBetraege(config, wert, {
           beschaeftigungsgrad: Number($('beschaeftigungsgrad').value),
@@ -365,6 +393,10 @@
       var r = window.LohnExport.exportiereExcel(zeilen, name);
       $('exportHinweis').textContent = r.ok ? 'Excel-Datei wurde erstellt.' : r.meldung;
     }
+    function abschlussLabel() {
+      var a = aktuellerAbschluss();
+      return a ? a.label : ($('abschluss').value === 'keiner' ? 'Kein Abschluss' : '');
+    }
     function wahlLeeren() {
       $('gewaehlterLohn').value = '';
       manuell = false;
@@ -375,8 +407,8 @@
       var f = aktuelleFunktion();
       var abschluss = $('abschluss').value;
       var sonder = $('sonderfall').value;
-      $('wbWrap').hidden = abschluss !== 'efz';
-      $('hfWrap').hidden = abschluss !== 'hf';
+      $('wbWrap').hidden = !(aktuellerAbschluss() && aktuellerAbschluss().stufe === 'IIIa');
+      $('funktionsbereich').textContent = funktionsbereichText(config, f);
       $('sprachenWrap').hidden = !(f && f.gaestekontakt);
       $('einarbeitungFelder').hidden = !$('einarbeitungAktiv').checked;
 
@@ -425,5 +457,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAuszahlungZeilen: baueAuszahlungZeilen };
+  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, baueAuszahlungZeilen: baueAuszahlungZeilen };
 }));

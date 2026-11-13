@@ -9,7 +9,6 @@
 
   var STUFEN_MANUELL = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV'];
   var NIVEAUS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'MS'];
-  var ABSCHLUSS_STUFE = { keiner: 'Ia', progresso: 'Ib', eba: 'II', efz: 'IIIa', berufspruefung: 'IV' };
   var SONDERFAELLE_HINWEIS = {
     unter18: 'Unter 18 Jahre: Lohn individuell festlegen, keine Berechnung.',
     vollzeitstudium: 'Vollzeitstudium: Lohn individuell festlegen, keine Berechnung.',
@@ -42,17 +41,37 @@
     };
   }
 
-  function bestimmeStufe(input) {
+  function findeAbschluss(config, id) {
+    return ((config && config.abschluesse) || []).filter(function (x) { return x.id === id; })[0] || null;
+  }
+
+  // Stufe aus Abschluss und Funktionsbereich (L-GAV-Kommentar zu Art. 10): Der Abschluss zählt nur im anerkannten Bereich.
+  function bestimmeStufe(config, input) {
     var warnungen = [];
-    var ab = input && input.abschluss;
-    if (ab === 'hf' || ab === 'hotelfachschule') {
-      warnungen.push({ code: 'hf_offen', text: 'Höhere Fachschule: Stufe bitte von Hand wählen.' });
-      var m = input.stufeManuell;
-      return { stufe: STUFEN_MANUELL.indexOf(m) >= 0 ? m : null, warnungen: warnungen };
+    input = input || {};
+    var manuell = STUFEN_MANUELL.indexOf(input.stufeManuell) >= 0 ? input.stufeManuell : null;
+    var funktion = ((config && config.funktionen) || []).filter(function (x) { return x.id === input.funktionId; })[0] || null;
+    var bereich = funktion && funktion.bereich ? funktion.bereich : null;
+    var ab = input.abschluss === 'keiner' ? null : findeAbschluss(config, input.abschluss);
+    if (ab && ab.stufe === null) {
+      warnungen.push({ code: 'hf_offen', text: ab.label + ': Stufe bitte von Hand wählen.' });
     }
-    var stufe = ABSCHLUSS_STUFE[ab];
-    if (!stufe) { return { stufe: null, warnungen: warnungen }; }
-    if (ab === 'efz' && input.weiterbildung6Tage) { stufe = 'IIIb'; }
+    if (manuell) {
+      warnungen.push({ code: 'stufe_manuell', text: 'Stufe von Hand gewählt (' + manuell + '), die Einstufung nach Abschluss und Funktionsbereich wird übergangen.' });
+      return { stufe: manuell, warnungen: warnungen };
+    }
+    if (input.abschluss === 'keiner') { return { stufe: 'Ia', warnungen: warnungen }; }
+    if (!ab || ab.stufe === null) { return { stufe: null, warnungen: warnungen }; }
+    var anerkannt = !!bereich && (ab.bereiche === '*' || (Array.isArray(ab.bereiche) && ab.bereiche.indexOf(bereich) >= 0));
+    if (!anerkannt) {
+      warnungen.push({ code: 'abschluss_nicht_anerkannt', text: 'Abschluss in diesem Bereich nicht anerkannt, Einstufung Ia; Gleichwertigkeit prüft im Streitfall die Paritätische Aufsichtskommission; HR kann die Stufe von Hand wählen.' });
+      if (!bereich) {
+        warnungen.push({ code: 'bereich_ungeregelt', text: 'Für diesen Bereich enthält der L-GAV-Kommentar keine Anerkennungstabelle; Auskunft der Kontrollstelle einholen.' });
+      }
+      return { stufe: 'Ia', warnungen: warnungen };
+    }
+    var stufe = ab.stufe;
+    if (stufe === 'IIIa' && input.weiterbildung6Tage) { stufe = 'IIIb'; }
     return { stufe: stufe, warnungen: warnungen };
   }
 
@@ -104,8 +123,7 @@
     if (typeof input.eintritt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input.eintritt)) {
       f.push('Eintrittsdatum fehlt oder ist ungültig.');
     }
-    var ab = input.abschluss;
-    if (!ABSCHLUSS_STUFE[ab] && ab !== 'hf' && ab !== 'hotelfachschule') {
+    if (input.abschluss !== 'keiner' && !findeAbschluss(config, input.abschluss)) {
       f.push('Abschluss unbekannt.');
     }
     var ein = input.einarbeitung;
@@ -206,7 +224,7 @@
     if (sonder === 'praktikum') {
       stufe = 'P';
     } else {
-      var bs = bestimmeStufe(input);
+      var bs = bestimmeStufe(config, input);
       warnungen = warnungen.concat(bs.warnungen);
       if (!bs.stufe) { return fehlerErgebnis(['Stufe wählen'], warnungen); }
       stufe = bs.stufe;

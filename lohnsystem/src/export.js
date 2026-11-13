@@ -10,6 +10,9 @@
   function datumDe(iso) {
     return iso ? iso.slice(8, 10) + '.' + iso.slice(5, 7) + '.' + iso.slice(0, 4) : '';
   }
+  // Diese Warnungen stehen im Export als «Einstufungshinweis», nicht als «Warnung».
+  var EINSTUFUNG_CODES = ['abschluss_nicht_anerkannt', 'bereich_ungeregelt', 'stufe_manuell'];
+
   function prozentText(x) { return String(x).replace('.', ','); }
 
   // Reine Funktion: Zeilen [Bezeichnung, Wert]; Geldbeträge bleiben Zahlen.
@@ -18,9 +21,13 @@
     function add(label, wert) { z.push([label, wert === undefined || wert === null ? '' : wert]); }
     add('Einstiegslohn Hotel Waldhaus Flims', 'Erstellt am ' + datumDe(k.datum));
     add('Funktion', k.funktionLabel);
+    add('Funktionsbereich', k.funktionsbereich);
+    add('Abschluss', k.abschlussLabel);
     add('Eintrittsdatum', datumDe(k.eintritt));
     add('Vertragsart', k.vertragsart);
     add('Stufe', e.stufe === 'P' ? 'Praktikum' : e.stufe);
+    var hinweise = e.warnungen.filter(function (w) { return EINSTUFUNG_CODES.indexOf(w.code) >= 0; });
+    if (hinweise.length) { add('Einstufungshinweis', hinweise.map(function (w) { return w.text; }).join(' ')); }
     add('Mindestlohn (Tabelle ' + e.tabelleJahr + ')', e.mindestlohn);
     e.positionen.forEach(function (p) { add(p.label, p.betrag); });
     add('Vorschlag Vollzeit pro Monat', e.vorschlag);
@@ -56,7 +63,9 @@
         add('Einarbeitung', 'Keine Reduktion möglich: ' + ein.grund);
       }
     }
-    e.warnungen.forEach(function (w) { add('Warnung', w.text); });
+    e.warnungen.forEach(function (w) {
+      if (EINSTUFUNG_CODES.indexOf(w.code) < 0) { add('Warnung', w.text); }
+    });
     return z;
   }
 
