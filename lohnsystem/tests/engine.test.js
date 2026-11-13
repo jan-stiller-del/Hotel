@@ -602,9 +602,9 @@ test('Nicht-Kader: unveraendert, keine Pauschale', () => {
 test('Kader in Teilzeit 80 %: Pauschale skaliert', () => {
   const e = E.berechne(kaderConfig(), kEin({ beschaeftigungsgrad: 80 }));
   assert.equal(e.monatslohn, 4260);
-  assert.equal(e.ueberstundenpauschale, 636.65);
+  assert.equal(e.ueberstundenpauschale, 636.75); // 28.25 x 22.54 h (22,536 gerundet)
   assert.equal(e.dreizehnter, 407.9);
-  assert.equal(e.totalMonat, 5304.55);
+  assert.equal(e.totalMonat, 5304.65);
   assert.equal(e.stundenansatz, 28.25);
 });
 
@@ -626,4 +626,31 @@ test('rechneBetraege: Kader-Felder und Bezeichnungen', () => {
   assert.equal(n.ueberstundenpauschale, null);
   assert.equal(n.pauschale125, null);
   assert.equal(n.bezeichnungen, null);
+});
+
+test('Kader: gedruckte Stunden x Stundenansatz x Satz ergeben den Betrag (Vollzeit und 80 %)', () => {
+  [100, 80].forEach((grad) => {
+    const e = E.berechne(kaderConfig(), kEin({ beschaeftigungsgrad: grad }));
+    const h = Number(e.bezeichnungen.pauschale.match(/([\d,]+) h pro Monat/)[1].replace(',', '.'));
+    assert.equal(h, e.kader.stundenProMonat);
+    assert.equal(E.runde5(e.stundenansatz * h * 1), e.ueberstundenpauschale);
+    assert.equal(E.runde5(e.stundenansatz * h * 1.25), e.kader.pauschale125);
+  });
+  const e80 = E.berechne(kaderConfig(), kEin({ beschaeftigungsgrad: 80 }));
+  assert.equal(e80.kader.pauschale125, 795.95); // 28.25 x 22.54 x 1.25 = 795.94375
+});
+
+test('Kader mit Einarbeitung 8 %: reduzierte Pauschale, 13. und Total', () => {
+  const einarb = { aktiv: true, reduktionProzent: 8, frueheresLGAVMonate: 0, rueckkehrHausUnterbruchMonate: null };
+  const e = E.berechne(kaderConfig(), kEin({ funktionId: 'chefweit', abschluss: 'efz', einarbeitung: einarb }));
+  assert.equal(e.stufe, 'IIIa');
+  assert.equal(e.vorschlag, 4555);
+  assert.equal(e.ueberstundenpauschale, 680.6); // 24.16 x 28.17
+  assert.equal(e.einarbeitung.erlaubt, true);
+  assert.equal(e.einarbeitung.reduzierterMonatslohn, 4190.6);
+  assert.equal(e.einarbeitung.reduzierteUeberstundenpauschale, 626.2); // 22.23 x 28.17 = 626.22
+  // 13.: (4190.60 + 626.20) x 8,33 % = 401.24 -> 401.25; Total 4190.60 + 626.20 + 401.25
+  assert.equal(e.einarbeitung.reduzierterTotal, 5218.05);
+  const n = E.berechne(kaderConfig(), eingabe({ funktionId: 'koch', abschluss: 'efz', einarbeitung: einarb }));
+  assert.equal(n.einarbeitung.reduzierteUeberstundenpauschale, null);
 });

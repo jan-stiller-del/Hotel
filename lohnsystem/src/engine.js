@@ -34,13 +34,15 @@
     var pauschale125 = null;
     var stundenProMonat = null;
     var bezeichnungen = null;
+    var satzKader = istZahl(betrieb.ueberstundenSatz) ? betrieb.ueberstundenSatz : 1;
     if (kader) {
-      var satz = istZahl(betrieb.ueberstundenSatz) ? betrieb.ueberstundenSatz : 1;
+      var satz = satzKader;
       var diff = betrieb.kaderWochenstunden - betrieb.wochenstunden;
       var vollStunden = runde2(diff * 52 / 12);
-      pauschale = runde5(stundenansatz * vollStunden * satz * grad / 100);
-      pauschale125 = runde5(stundenansatz * vollStunden * 1.25 * grad / 100);
+      // Die gezeigten Stunden sind die Rechengrundlage: Betrag = Stundenansatz x Stunden pro Monat x Satz.
       stundenProMonat = runde2(vollStunden * grad / 100);
+      pauschale = runde5(stundenansatz * stundenProMonat * satz);
+      pauschale125 = runde5(stundenansatz * stundenProMonat * 1.25);
       var inkl = betrieb.dreizehnterInklPauschale !== false;
       bezeichnungen = {
         grundlohn: 'Grundlohn (' + dezimal(betrieb.wochenstunden) + ' h)' + (grad === 100 ? '' : ' bei ' + dezimal(grad) + ' %'),
@@ -54,16 +56,27 @@
     var totalMonat = runde2(monatslohn + (pauschale || 0) + dreizehnter);
     var reduzierterMonatslohn = null;
     var reduzierterTotal = null;
+    var reduzierteUeberstundenpauschale = null;
     var ein = opt.einarbeitung;
     if (ein && ein.erlaubt) {
       reduzierterMonatslohn = runde5(monatslohn * (1 - ein.reduktionProzent / 100));
-      reduzierterTotal = runde2(reduzierterMonatslohn + runde5(reduzierterMonatslohn * betrieb.dreizehnterProzent / 100));
+      if (kader) {
+        // Pauschale auf dem reduzierten Grundlohn: reduzierter Stundenansatz, gleiche Rundungsregel wie oben.
+        var reduzierterVoll = runde5(vollzeitLohn * (1 - ein.reduktionProzent / 100));
+        var redAnsatz = runde2(reduzierterVoll / (betrieb.wochenstunden * 52 / 12));
+        reduzierteUeberstundenpauschale = runde5(redAnsatz * stundenProMonat * satzKader);
+        var redBasis13 = betrieb.dreizehnterInklPauschale !== false ? reduzierterMonatslohn + reduzierteUeberstundenpauschale : reduzierterMonatslohn;
+        reduzierterTotal = runde2(reduzierterMonatslohn + reduzierteUeberstundenpauschale + runde5(redBasis13 * betrieb.dreizehnterProzent / 100));
+      } else {
+        reduzierterTotal = runde2(reduzierterMonatslohn + runde5(reduzierterMonatslohn * betrieb.dreizehnterProzent / 100));
+      }
     }
     return {
       monatslohn: monatslohn, dreizehnter: dreizehnter, totalMonat: totalMonat,
       jahresbrutto: runde2(totalMonat * 12),
       stundenansatz: stundenansatz,
       reduzierterMonatslohn: reduzierterMonatslohn, reduzierterTotal: reduzierterTotal,
+      reduzierteUeberstundenpauschale: reduzierteUeberstundenpauschale,
       ueberstundenpauschale: pauschale, pauschaleStundenProMonat: stundenProMonat, pauschale125: pauschale125,
       bezeichnungen: bezeichnungen
     };
@@ -354,9 +367,10 @@
       einarbeitung = { erlaubt: ep.erlaubt, grund: ep.grund, maxMonate: ep.maxMonate, reduktionProzent: rp,
         reduzierterMonatslohn: null, reduzierterTotal: null, volllohnAb: null };
       if (ep.erlaubt) {
-        var eb = rechneBetraege(config, vorschlag, { beschaeftigungsgrad: input.beschaeftigungsgrad, einarbeitung: { erlaubt: true, reduktionProzent: rp } });
+        var eb = rechneBetraege(config, vorschlag, { beschaeftigungsgrad: input.beschaeftigungsgrad, einarbeitung: { erlaubt: true, reduktionProzent: rp }, kader: istKader });
         einarbeitung.reduzierterMonatslohn = eb.reduzierterMonatslohn;
         einarbeitung.reduzierterTotal = eb.reduzierterTotal;
+        einarbeitung.reduzierteUeberstundenpauschale = eb.reduzierteUeberstundenpauschale;
         einarbeitung.volllohnAb = monateHinzu(input.eintritt, ep.maxMonate);
       }
     }

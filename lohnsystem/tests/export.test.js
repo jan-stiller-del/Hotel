@@ -172,3 +172,11 @@ test('baueExportZeilen: ohne Pauschale bleibt der Block wie bisher', () => {
   assert.ok(!z.some(r => /Überstundenpauschale/.test(r[0])));
   assert.equal(finde(z, 'Monatslohn brutto bei 80 %')[0][1], 4032);
 });
+
+test('baueExportZeilen: Einarbeitung bei Kader mit reduzierter Pauschale', () => {
+  const k = Object.assign({}, kontext, { betraege: Object.assign({}, kontext.betraege, { reduzierteUeberstundenpauschale: 626.2, reduzierterTotal: 5218.05 }) });
+  const z = X.baueExportZeilen(ergebnis(), k);
+  assert.equal(finde(z, 'Einarbeitung reduziert, Überstundenpauschale')[0][1], 626.2);
+  assert.equal(finde(z, 'Einarbeitung reduziert, Total pro Monat')[0][1], 5218.05);
+  assert.ok(!X.baueExportZeilen(ergebnis(), kontext).some(r => /Einarbeitung reduziert, Überstunden/.test(r[0])));
+});

@@ -433,6 +433,9 @@
           out.appendChild(meldung('info', 'Hinweis:', [ein.grund]));
           var et2 = el('table');
           zeile(et2, 'Reduziert um ' + prozent(ein.reduktionProzent) + ' während bis zu ' + ein.maxMonate + ' Monaten: Monatslohn', chf(ein.reduzierterMonatslohn));
+          if (ein.reduzierteUeberstundenpauschale !== null && ein.reduzierteUeberstundenpauschale !== undefined) {
+            zeile(et2, 'Überstundenpauschale auf reduziertem Grundlohn', chf(ein.reduzierteUeberstundenpauschale));
+          }
           zeile(et2, 'Total pro Monat mit 13. Monatslohn', chf(ein.reduzierterTotal));
           zeile(et2, 'Voller Lohn ab', datumDe(ein.volllohnAb));
           out.appendChild(et2);

@@ -66,6 +66,9 @@
       var ein = e.einarbeitung;
       if (ein.erlaubt) {
         add('Einarbeitung reduziert um ' + prozentText(ein.reduktionProzent) + ' % (Monatslohn)', b.reduzierterMonatslohn);
+        if (b.reduzierteUeberstundenpauschale !== null && b.reduzierteUeberstundenpauschale !== undefined) {
+          add('Einarbeitung reduziert, Überstundenpauschale (auf reduziertem Grundlohn)', b.reduzierteUeberstundenpauschale);
+        }
         add('Einarbeitung reduziert, Total pro Monat', b.reduzierterTotal);
         add('Voller Lohn ab', datumDe(ein.volllohnAb));
       } else {
