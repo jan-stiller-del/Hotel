@@ -44,7 +44,7 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   for (const a of c.abteilungen) {
     assert.strictEqual(c.funktionen.filter((f) => f.abteilung === a.id).length, anzahl[a.id], a.id);
   }
-  assert.strictEqual(c.betrieb.baenderBestaetigt, false);
+  assert.strictEqual(c.betrieb.baenderBestaetigt, true);
   assert.strictEqual(c.funktionen.length, 75);
   assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 75);
   for (const f of c.funktionen) {
@@ -65,24 +65,24 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.strictEqual(lab('service-restaurationsfachfrau-efz'), 'Demi-chef de rang');
   assert.strictEqual(lab('technik-leitung'), 'Head of Engineering');
   const neu = {
-    'reception-chauffeur': ['Chauffeur', true, 3735, 4500],
-    'reception-guest-relations': ['Guest Relations Agent', true, 4555, 5450],
-    'housekeeping-laundry-supervisor': ['Laundry Supervisor', false, 4555, 5450],
-    'kueche-saucier': ['Saucier', false, 5325, 6400],
-    'kueche-entremetier': ['Entremetier', false, 5325, 6400],
-    'kueche-garde-manger': ['Garde-manger', false, 5325, 6400],
-    'kueche-tournant': ['Tournant', false, 5325, 6400],
-    'kueche-cuisinier-fruehstueck': ['Cuisinier au petit-déjeuner', false, 4555, 5450],
-    'service-sommelier': ['Sommelier', true, 4663, 5600],
-    'service-chef-de-rang': ['Chef de rang', true, 4663, 5600],
-    'service-commis-de-bar': ['Commis de bar', true, 4094, 4900],
-    'spa-fitness-trainer': ['Fitness Trainer', true, 4555, 5450],
-    'spa-physiotherapist': ['Physiotherapist', true, 4555, 5450],
-    'technik-electrician': ['Electrician', false, 4555, 5450],
-    'administration-revenue-manager': ['Revenue Manager', false, 5325, 6400],
-    'administration-event-manager': ['Event Manager', true, 5325, 6400],
-    'administration-it-manager': ['IT Manager', false, 5325, 6400],
-    'administration-reservations-manager': ['Reservations Manager', false, 5325, 6400],
+    'reception-chauffeur': ['Chauffeur', true, 3735, 4050],
+    'reception-guest-relations': ['Guest Relations Agent', true, 4555, 4900],
+    'housekeeping-laundry-supervisor': ['Laundry Supervisor', false, 4555, 4900],
+    'kueche-saucier': ['Saucier', false, 5325, 5700],
+    'kueche-entremetier': ['Entremetier', false, 5325, 5700],
+    'kueche-garde-manger': ['Garde-manger', false, 5325, 5700],
+    'kueche-tournant': ['Tournant', false, 5325, 5700],
+    'kueche-cuisinier-fruehstueck': ['Cuisinier au petit-déjeuner', false, 4555, 4900],
+    'service-sommelier': ['Sommelier', true, 4663, 5000],
+    'service-chef-de-rang': ['Chef de rang', true, 4663, 5000],
+    'service-commis-de-bar': ['Commis de bar', true, 4094, 4450],
+    'spa-fitness-trainer': ['Fitness Trainer', true, 4555, 4900],
+    'spa-physiotherapist': ['Physiotherapist', true, 4555, 4900],
+    'technik-electrician': ['Electrician', false, 4555, 4900],
+    'administration-revenue-manager': ['Revenue Manager', false, 5325, 5700],
+    'administration-event-manager': ['Event Manager', true, 5325, 5700],
+    'administration-it-manager': ['IT Manager', false, 5325, 5700],
+    'administration-reservations-manager': ['Reservations Manager', false, 5325, 5700],
   };
   for (const [id, [label, g, min, max]] of Object.entries(neu)) {
     const f = c.funktionen.find((x) => x.id === id);
@@ -101,7 +101,14 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.strictEqual(gk('administration-buchhalter'), false);
   const rec = c.funktionen.find((f) => f.id === 'reception-receptionist');
   assert.strictEqual(rec.bandMin, 4555);
-  assert.strictEqual(rec.bandMax, 5450);
+  assert.strictEqual(rec.bandMax, 4900);
+});
+
+test('alle Funktionen einer Stufe teilen dasselbe Einstiegsband', () => {
+  const c = ladeStandardkonfiguration();
+  const paare = new Set(c.funktionen.map((f) => f.bandMin + '-' + f.bandMax));
+  assert.deepStrictEqual([...paare].sort(),
+    ['3735-4050', '4094-4450', '4555-4900', '4663-5000', '5325-5700']);
 });
 
 test('fehlende Mindestlohn-Stufe wird abgelehnt', () => {

@@ -214,7 +214,7 @@ test('zeigeBaenderHinweis: nur wenn das Flag nicht true ist', () => {
   assert.equal(zeigeBaenderHinweis({ betrieb: { baenderBestaetigt: false } }), true);
   assert.equal(zeigeBaenderHinweis({ betrieb: {} }), true);
   assert.equal(zeigeBaenderHinweis({ betrieb: { baenderBestaetigt: true } }), false);
-  assert.equal(zeigeBaenderHinweis(standardConfig()), true);
+  assert.equal(zeigeBaenderHinweis(standardConfig()), false);
 });
 
 test('stufeManuellBleibt: nur bei gleichem Abschluss und gleicher Funktion', () => {
