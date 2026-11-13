@@ -253,6 +253,41 @@ Bisher galt als Untergrenze das Maximum aus Funktions-Bandminimum und Stufen-Min
 - [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): Hotelfachfrau-Beispiel (Abschluss «Hotelfachmann/-frau EFZ», Funktion Receptionist) zeigt 3735 mit dem Hinweis; Konsole ohne Fehler.
 - [ ] **Step 5: Commit.** `git add` mit expliziten Pfaden, `git commit -m "feat: strikt nach Stufe, Funktionsband hebt nicht mehr an"`
 
+### Task 5n: Abrechnung mit dem gewählten Lohn direkt unter dem Feld (Wunsch von Jan)
+
+Zweck: Unter dem Feld «Gewählter Vollzeit-Monatslohn» steht live die komplette Abrechnung für diesen Lohn, nicht nur für den Vorschlag. Bildschirm und Excel-Export zeigen dieselbe Rechnung (`rechneBetraege` mit dem gewählten Lohn, `kontext.betraege`).
+
+**Files:**
+- Modify: `lohnsystem/src/hr-app.js`, `lohnsystem/hr.html`, `lohnsystem/src/hr.css`
+- Test: `lohnsystem/tests/hr-app.test.js`
+
+**Interfaces:**
+- Produces: reiner Helfer `baueWahlAbrechnung(config, ergebnis, gewaehlterLohn, kontext): { titel, zeilen:[{label, betrag, art}], differenz:{ chf, prozent }|null } | null` (`null` bei leerem oder ungültigem Lohn, Sonderfall, Hinweis, Fehler); Zeilen wie im Block «Auszahlung pro Monat» (Monatslohn brutto Vollzeit bzw. bei X %, Überstundenpauschale nur bei Kader, 13. Monatslohn mit Satz aus der Konfiguration separat, Total pro Monat, Jahresbrutto) plus Stundenansatz ohne 13. Monatslohn; bei aktiver und erlaubter Einarbeitung zusätzlich die reduzierten Beträge; `differenz` = gewählter Lohn minus Vorschlag in CHF und Prozent (eine Nachkommastelle), `null` bei gleichem Lohn. Der Block erscheint direkt unter dem Feld `gewaehlterLohn` (vor Begründung und Export-Knopf), live bei jeder Eingabe, mit Titel «Abrechnung mit gewähltem Lohn (CHF X)».
+
+- [ ] **Step 1: Failing tests.** `baueWahlAbrechnung` für Vorschlag 4675, gewählt 5000 (Vollzeit): 13. Monatslohn 416.50, Total 5416.50, Jahresbrutto 64998.00, Stundenansatz 26.53, `differenz` +325.00 und 7,0 %; gleicher Lohn → `differenz` null und Zeilen identisch mit denen des Vorschlags; Teilzeit 60 %; Kader (Pauschale und 13. auf Grundlohn plus Pauschale); Einarbeitung aktiv; ungültiger oder leerer Lohn → `null`; Satz aus der Konfiguration (anderer Satz im Test).
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren** (Helfer wiederverwendet `rechneBetraege`, Block unter dem Feld, textContent, Hervorhebung der Differenz mit Text).
+- [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): Wert ändern, die Abrechnung aktualisiert sich live; 375 px ohne Horizontalscroll; Konsole ohne Fehler.
+- [ ] **Step 5: Commit.** `git add` mit expliziten Pfaden, `git commit -m "feat: Abrechnung mit gewaehltem Lohn unter dem Feld"`
+
+### Task 5m: Erklärung bei den Stufen (Wunsch von Jan)
+
+Zweck: Die Stufen-Titel (Ia, Ib, II, IIIa, IIIb, IV, Praktikum) sagen allein nichts. Überall, wo eine Stufe vorkommt, steht eine kurze Erklärung.
+
+**Files:**
+- Modify: `lohnsystem/config/config.js`, `lohnsystem/src/config.js`, `lohnsystem/src/hr-app.js`, `lohnsystem/hr.html`, `lohnsystem/src/lesen-app.js`, `lohnsystem/lesen.html` (falls nötig), `lohnsystem/src/export.js`
+- Test: `lohnsystem/tests/config.test.js`, `lohnsystem/tests/hr-app.test.js`, `lohnsystem/tests/lesen.test.js`, `lohnsystem/tests/export.test.js`
+
+**Interfaces:**
+- Config: `stufen.<S>.erklaerung` (Text) für Ia «ohne Berufslehre», Ib «ohne Berufslehre, mit Progresso-Abschluss», II «zweijährige Grundbildung (EBA)», IIIa «Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)», IIIb «EFZ plus 6 Tage berufsspezifische Weiterbildung», IV «Berufsprüfung (eidg. Fachausweis)», P «Praktikant/in einer anerkannten Hotelfachschule»; `validateConfig` verlangt die Erklärung für jede Stufe der Mindestlohn-Tabelle. Reiner Helfer `stufeMitErklaerung(config, stufe): string` («Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)»), bei fehlender Erklärung nur «Stufe IIIa».
+- UI: Ergebniszeile («Stufe IIIa, Berufslehre mit EFZ …»), Dropdown «Stufe von Hand wählen» (Option mit Erklärung), Anerkennungszeile, die Hinweise mit Stufennamen; Leseansicht: eigene Spalte «Erklärung» in der Mindestlohn-Tabelle; Excel-Export: Zeile «Stufe» mit Erklärung.
+
+- [ ] **Step 1: Failing tests.** Config: jede Stufe hat eine Erklärung; Validierungsfehler bei fehlender Erklärung; `stufeMitErklaerung` für IIIa, für Praktikum, für unbekannte Stufe; Leseansicht-Modell: Mindestlohn-Zeilen enthalten `erklaerung`; Export: Zeile «Stufe» enthält den Text; Dropdown-Optionen (reiner Helfer) enthalten die Erklärung.
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren.**
+- [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): hr.html und lesen.html zeigen die Erklärungen; 375 px ohne Horizontalscroll; Konsole ohne Fehler.
+- [ ] **Step 5: Commit.** `git add` mit expliziten Pfaden, `git commit -m "feat: Erklaerung bei den Stufen"`
+
 ### Task 6: Konfigurations-Editor, Import und Export, Jahrespflege
 
 **Files:**
