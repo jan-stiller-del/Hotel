@@ -231,3 +231,18 @@ test('berechne: veraltete Tabelle erzeugt Warnung', () => {
   const r = E.berechne(baueConfig(), eingabe({ eintritt: '2029-01-01' }));
   assert.ok(r.warnungen.some((w) => w.code === 'tabelle_veraltet'));
 });
+
+test('rechneBetraege: gewaehlter Lohn, Teilzeit 60 % und Einarbeitung 8 %', () => {
+  const cfg = baueConfig();
+  const b = E.rechneBetraege(cfg, 5040, { beschaeftigungsgrad: 60, einarbeitung: { erlaubt: true, reduktionProzent: 8 } });
+  assert.equal(b.monatslohn, 3024);
+  assert.equal(b.dreizehnter, 251.9);
+  assert.equal(b.totalMonat, 3275.9);
+  assert.equal(b.jahresbrutto, 39310.8);
+  assert.equal(b.stundenansatz, 26.74);
+  assert.equal(b.reduzierterMonatslohn, 2782.1);
+  assert.equal(b.reduzierterTotal, 3013.85);
+  const o = E.rechneBetraege(cfg, 5040, { beschaeftigungsgrad: 100, einarbeitung: { erlaubt: false, reduktionProzent: 8 } });
+  assert.equal(o.reduzierterMonatslohn, null);
+  assert.equal(o.reduzierterTotal, null);
+});

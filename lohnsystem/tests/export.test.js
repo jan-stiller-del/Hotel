@@ -24,7 +24,9 @@ function ergebnis(extra) {
 const kontext = {
   funktionLabel: 'Réception Gästekontakt', eintritt: '2027-01-01', vertragsart: 'Jahresstelle (unbefristet)',
   beschaeftigungsgrad: 80, gewaehlterMonatslohn: 5040, begruendung: 'Begründung: Erfahrung',
-  freigabe: 'HR', datum: '2026-11-13'
+  freigabe: 'HR', datum: '2026-11-13',
+  betraege: { monatslohn: 4032, dreizehnter: 335.85, totalMonat: 4367.85, jahresbrutto: 52414.2, stundenansatz: 28.5,
+    reduzierterMonatslohn: 3709.45, reduzierterTotal: 4018.43 }
 };
 function finde(zeilen, label) { return zeilen.filter(function (z) { return String(z[0]).indexOf(label) === 0; }); }
 
@@ -44,15 +46,17 @@ test('baueExportZeilen: alle Pflichtzeilen, Umlaute unveraendert', () => {
   assert.equal(finde(z, 'Freigabe durch')[0][1], 'HR');
   assert.equal(finde(z, 'Begründung')[0][1], 'Begründung: Erfahrung');
   assert.match(String(finde(z, 'Monatslohn bei')[0][0]), /80 %/);
-  assert.equal(finde(z, '13. Monatslohn')[0][1], 412.75);
-  assert.equal(finde(z, 'Total pro Monat')[0][1], 5367.75);
-  assert.equal(finde(z, 'Jahresbrutto')[0][1], 64413);
-  assert.equal(finde(z, 'Stundenansatz')[0][1], 26.3);
+  assert.equal(finde(z, 'Monatslohn bei')[0][1], 4032);
+  assert.equal(finde(z, '13. Monatslohn')[0][1], 335.85);
+  assert.equal(finde(z, 'Total pro Monat')[0][1], 4367.85);
+  assert.equal(finde(z, 'Jahresbrutto')[0][1], 52414.2);
+  assert.equal(finde(z, 'Stundenansatz')[0][1], 28.5);
   const ent = finde(z, 'Entschädigung');
   assert.ok(ent.length >= 1);
   assert.ok(z.some(r => /nicht Teil des Bruttolohns/.test(String(r[0]) + String(r[1]))));
   assert.equal(finde(z, 'Pauschale')[0][1], 80);
-  assert.equal(finde(z, 'Einarbeitung reduziert')[0][1], 4560);
+  assert.equal(finde(z, 'Einarbeitung reduziert um')[0][1], 3709.45);
+  assert.equal(finde(z, 'Einarbeitung reduziert, Total')[0][1], 4018.43);
   assert.equal(finde(z, 'Voller Lohn ab')[0][1], '01.04.2027');
   assert.ok(z.some(r => String(r[1]).indexOf('Achtung Warnung') >= 0));
 });

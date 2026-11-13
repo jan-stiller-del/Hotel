@@ -313,6 +313,10 @@
       var zeilen = window.LohnExport.baueExportZeilen(letztesErgebnis, {
         funktionLabel: f ? f.label : '', eintritt: $('eintritt').value, vertragsart: vertrag ? vertrag[1] : '',
         beschaeftigungsgrad: $('beschaeftigungsgrad').value,
+        betraege: window.LohnEngine.rechneBetraege(config, wert, {
+          beschaeftigungsgrad: Number($('beschaeftigungsgrad').value),
+          einarbeitung: letztesErgebnis.einarbeitung
+        }),
         gewaehlterMonatslohn: wert, begruendung: $('begruendung').value.trim(), freigabe: p.freigabe,
         datum: new Date().toISOString().slice(0, 10)
       });

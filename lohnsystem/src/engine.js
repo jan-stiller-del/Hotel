@@ -20,6 +20,28 @@
   function runde5(x) { return Math.round(x * 20 + 1e-9) / 20; }
   function runde2(x) { return Math.round(x * 100 + 1e-9) / 100; }
 
+  // Alle Beträge aus einem Vollzeit-Monatslohn; einzige Stelle der Rundungsregeln.
+  // opt: { beschaeftigungsgrad, einarbeitung: { erlaubt, reduktionProzent } | null }
+  function rechneBetraege(config, vollzeitLohn, opt) {
+    var betrieb = config.betrieb;
+    var monatslohn = runde5(vollzeitLohn * opt.beschaeftigungsgrad / 100);
+    var dreizehnter = runde5(monatslohn * betrieb.dreizehnterProzent / 100);
+    var totalMonat = runde2(monatslohn + dreizehnter);
+    var reduzierterMonatslohn = null;
+    var reduzierterTotal = null;
+    var ein = opt.einarbeitung;
+    if (ein && ein.erlaubt) {
+      reduzierterMonatslohn = runde5(monatslohn * (1 - ein.reduktionProzent / 100));
+      reduzierterTotal = runde2(reduzierterMonatslohn + runde5(reduzierterMonatslohn * betrieb.dreizehnterProzent / 100));
+    }
+    return {
+      monatslohn: monatslohn, dreizehnter: dreizehnter, totalMonat: totalMonat,
+      jahresbrutto: runde2(totalMonat * 12),
+      stundenansatz: runde2(vollzeitLohn / (betrieb.wochenstunden * 52 / 12)),
+      reduzierterMonatslohn: reduzierterMonatslohn, reduzierterTotal: reduzierterTotal
+    };
+  }
+
   function bestimmeStufe(input) {
     var warnungen = [];
     var ab = input && input.abschluss;
@@ -241,9 +263,8 @@
       vorschlag = runde5(Math.min(Math.max(summe, bandStart), bandMax));
     }
 
-    var monatslohn = runde5(vorschlag * input.beschaeftigungsgrad / 100);
-    var dreizehnter = runde5(monatslohn * betrieb.dreizehnterProzent / 100);
-    var totalMonat = runde2(monatslohn + dreizehnter);
+    var betraege = rechneBetraege(config, vorschlag, { beschaeftigungsgrad: input.beschaeftigungsgrad, einarbeitung: null });
+    var monatslohn = betraege.monatslohn;
 
     var spanne = null;
     var spanneStufen = null;
@@ -267,9 +288,9 @@
       einarbeitung = { erlaubt: ep.erlaubt, grund: ep.grund, maxMonate: ep.maxMonate, reduktionProzent: rp,
         reduzierterMonatslohn: null, reduzierterTotal: null, volllohnAb: null };
       if (ep.erlaubt) {
-        var reduziert = runde5(monatslohn * (1 - rp / 100));
-        einarbeitung.reduzierterMonatslohn = reduziert;
-        einarbeitung.reduzierterTotal = runde2(reduziert + runde5(reduziert * betrieb.dreizehnterProzent / 100));
+        var eb = rechneBetraege(config, vorschlag, { beschaeftigungsgrad: input.beschaeftigungsgrad, einarbeitung: { erlaubt: true, reduktionProzent: rp } });
+        einarbeitung.reduzierterMonatslohn = eb.reduzierterMonatslohn;
+        einarbeitung.reduzierterTotal = eb.reduzierterTotal;
         einarbeitung.volllohnAb = monateHinzu(input.eintritt, ep.maxMonate);
       }
     }
@@ -277,9 +298,9 @@
     return {
       modus: 'berechnet', stufe: stufe, mindestlohn: mindestlohn, tabelleJahr: tab.tabelle.jahr,
       bandStart: bandStart, bandMax: bandMax, positionen: positionen, vorschlag: vorschlag,
-      monatslohn: monatslohn, dreizehnter: dreizehnter, totalMonat: totalMonat,
-      jahresbrutto: runde2(totalMonat * 12),
-      stundenansatz: runde2(vorschlag / (betrieb.wochenstunden * 52 / 12)),
+      monatslohn: monatslohn, dreizehnter: betraege.dreizehnter, totalMonat: betraege.totalMonat,
+      jahresbrutto: betraege.jahresbrutto,
+      stundenansatz: betraege.stundenansatz,
       entschaedigungen: entschaedigungen, spanne: spanne, spanneStufen: spanneStufen, einarbeitung: einarbeitung,
       warnungen: warnungen, fehler: []
     };
@@ -326,6 +347,7 @@
     bestimmeStufe: bestimmeStufe,
     findeMindestlohnTabelle: findeMindestlohnTabelle,
     berechne: berechne,
+    rechneBetraege: rechneBetraege,
     pruefeEinarbeitung: pruefeEinarbeitung,
     monateHinzu: monateHinzu,
     pruefeAbweichung: pruefeAbweichung

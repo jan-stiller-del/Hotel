@@ -33,11 +33,12 @@
     add('Gewählter Vollzeit-Monatslohn', k.gewaehlterMonatslohn);
     add('Freigabe durch', k.freigabe === 'keine' ? 'keine (Vorschlag übernommen)' : k.freigabe);
     add('Begründung', k.begruendung || '');
-    add('Monatslohn bei ' + prozentText(k.beschaeftigungsgrad) + ' % (auf Basis Vorschlag)', e.monatslohn);
-    add('13. Monatslohn', e.dreizehnter);
-    add('Total pro Monat', e.totalMonat);
-    add('Jahresbrutto', e.jahresbrutto);
-    add('Stundenansatz (Vollzeitbasis)', e.stundenansatz);
+    var b = k.betraege;
+    add('Monatslohn bei ' + prozentText(k.beschaeftigungsgrad) + ' %', b.monatslohn);
+    add('13. Monatslohn', b.dreizehnter);
+    add('Total pro Monat', b.totalMonat);
+    add('Jahresbrutto', b.jahresbrutto);
+    add('Stundenansatz (Vollzeitbasis)', b.stundenansatz);
     if (e.entschaedigungen.length) {
       add('Entschädigungen', 'nicht Teil des Bruttolohns');
       e.entschaedigungen.forEach(function (x) { add(x.label, x.betrag); });
@@ -45,8 +46,8 @@
     if (e.einarbeitung) {
       var ein = e.einarbeitung;
       if (ein.erlaubt) {
-        add('Einarbeitung reduziert um ' + prozentText(ein.reduktionProzent) + ' % (Monatslohn Vollzeit-Basis)', ein.reduzierterMonatslohn);
-        add('Einarbeitung reduziert, Total pro Monat', ein.reduzierterTotal);
+        add('Einarbeitung reduziert um ' + prozentText(ein.reduktionProzent) + ' % (Monatslohn)', b.reduzierterMonatslohn);
+        add('Einarbeitung reduziert, Total pro Monat', b.reduzierterTotal);
         add('Voller Lohn ab', datumDe(ein.volllohnAb));
       } else {
         add('Einarbeitung', 'Keine Reduktion möglich: ' + ein.grund);
