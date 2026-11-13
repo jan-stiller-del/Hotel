@@ -67,6 +67,14 @@
     return input;
   }
 
+  // Zeilen der Sprachen-Auswahl, in der Reihenfolge von config.bausteine.sprachen (Deutsch wie jede andere Sprache).
+  function baueSprachZeilen(config) {
+    var codes = (config && config.bausteine && config.bausteine.sprachen) || [];
+    return codes.map(function (code) {
+      return { code: code, id: 'sprache-' + code, label: SPRACHNAMEN[code] || code };
+    });
+  }
+
   // Welcher Wert bleibt in einem neu gefüllten Select gewählt? Sonst leer («– bitte wählen –»).
   function waehleOption(werte, alt) {
     return (alt && werte.indexOf(alt) >= 0) ? alt : '';
@@ -119,13 +127,14 @@
     for (var h = 0; h <= config.betrieb.maxErfahrungsjahre; h++) {
       option($('erfahrung'), String(h), h + (h === 1 ? ' Jahr' : ' Jahre'));
     }
-    var sprachCodes = (config.bausteine && config.bausteine.sprachen) || [];
-    sprachCodes.forEach(function (code) {
+    var sprachZeilen = baueSprachZeilen(config);
+    var sprachCodes = sprachZeilen.map(function (z) { return z.code; });
+    sprachZeilen.forEach(function (z) {
       var zeile = el('div', 'sprache');
-      var label = el('label', null, SPRACHNAMEN[code] || code);
-      label.htmlFor = 'sprache-' + code;
+      var label = el('label', null, z.label);
+      label.htmlFor = z.id;
       var sel = el('select');
-      sel.id = 'sprache-' + code;
+      sel.id = z.id;
       option(sel, '', '– keine –');
       NIVEAUS.forEach(function (n) { option(sel, n, n); });
       zeile.appendChild(label);
@@ -397,5 +406,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput, waehleOption: waehleOption };
+  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen };
 }));

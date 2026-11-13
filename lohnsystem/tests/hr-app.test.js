@@ -1,7 +1,10 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { formularZuInput, waehleOption } = require('../src/hr-app.js');
+const fs = require('node:fs');
+const path = require('node:path');
+const vm = require('node:vm');
+const { formularZuInput, waehleOption, baueSprachZeilen } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -77,4 +80,26 @@ test('waehleOption behaelt vorhandenen Wert, sonst leer', () => {
   assert.equal(waehleOption(['a', 'b'], 'x'), '');
   assert.equal(waehleOption([], ''), '');
   assert.equal(waehleOption(['a'], undefined), '');
+});
+
+function standardkonfiguration() {
+  const text = fs.readFileSync(path.join(__dirname, '..', 'config', 'config.js'), 'utf8');
+  const sandbox = { window: {} };
+  vm.runInNewContext(text, sandbox);
+  return JSON.parse(JSON.stringify(sandbox.window.LOHN_CONFIG));
+}
+
+test('baueSprachZeilen: Standardkonfiguration enthaelt Deutsch vor EN, FR, IT', () => {
+  assert.deepEqual(baueSprachZeilen(standardkonfiguration()), [
+    { code: 'DE', id: 'sprache-DE', label: 'Deutsch' },
+    { code: 'EN', id: 'sprache-EN', label: 'Englisch' },
+    { code: 'FR', id: 'sprache-FR', label: 'Französisch' },
+    { code: 'IT', id: 'sprache-IT', label: 'Italienisch' }
+  ]);
+});
+
+test('baueSprachZeilen: unbekannter Code nimmt den Code als Beschriftung, leere Liste gibt leeres Array', () => {
+  assert.deepEqual(baueSprachZeilen({ bausteine: { sprachen: ['XX'] } }), [{ code: 'XX', id: 'sprache-XX', label: 'XX' }]);
+  assert.deepEqual(baueSprachZeilen({ bausteine: { sprachen: [] } }), []);
+  assert.deepEqual(baueSprachZeilen({}), []);
 });
