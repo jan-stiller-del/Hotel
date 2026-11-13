@@ -298,7 +298,7 @@ function standardConfig() {
 const SC = standardConfig();
 function stufeFuer(funktionId, abschluss, extra) {
   const r = E.berechne(SC, eingabe(Object.assign({ funktionId, abschluss }, extra || {})));
-  return { stufe: r.stufe, codes: r.warnungen.map((w) => w.code).filter((c) => c !== 'stufe_uebersprungen'), r };
+  return { stufe: r.stufe, codes: r.warnungen.map((w) => w.code), r };
 }
 
 test('Einstufung: Koch EFZ in der Küche ergibt IIIa ohne Warnung', () => {
@@ -323,13 +323,13 @@ test('Einstufung: Koch EFZ im Housekeeping ergibt Ia mit Warnung', () => {
 test('Einstufung: Restaurationsfachfrau EFZ in der Küche ergibt Ia', () => {
   const r = stufeFuer('kueche-koch-efz', 'restaurationsfachmann-efz');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt']);
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'stufe_uebersprungen']);
 });
 
 test('Einstufung: Hotelfachfrau EFZ an der Réception ergibt Ia mit Warnung', () => {
   const r = stufeFuer('reception-receptionist', 'hotelfachmann-efz');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt']);
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'stufe_uebersprungen']);
 });
 
 test('Einstufung: Kaufmann/Kauffrau EFZ an der Réception ergibt IIIa', () => {
@@ -346,7 +346,7 @@ test('Einstufung: Koch EFZ mit Weiterbildung von 6 Tagen im Service ergibt IIIb'
 test('Einstufung: Chefkoch FA im Service ist nicht anerkannt, Ia mit Warnung', () => {
   const r = stufeFuer('service-commis-de-rang', 'chefkoch-fa');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt']);
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'stufe_uebersprungen']);
 });
 
 test('Einstufung: Küchenangestellte EBA im Housekeeping ergibt Ia', () => {
@@ -358,20 +358,20 @@ test('Einstufung: Progresso Allrounder in Küche, Service und Housekeeping ergib
   for (const f of ['kueche-koch-efz', 'service-commis-de-rang', 'housekeeping-zimmermaedchen']) {
     const r = stufeFuer(f, 'progresso-allrounder');
     assert.equal(r.stufe, 'Ib', f);
-    assert.deepEqual(r.codes, [], f);
+    assert.deepEqual(r.codes, f === 'housekeeping-zimmermaedchen' ? [] : ['stufe_uebersprungen'], f);
   }
 });
 
 test('Einstufung: Abschluss im Spa (Bereich nicht geregelt) ergibt Ia mit beiden Warnungen', () => {
   const r = stufeFuer('spa-kosmetiker-efz', 'kaufmann-efz');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes.sort(), ['abschluss_nicht_anerkannt', 'bereich_ungeregelt']);
+  assert.deepEqual(r.codes.slice().sort(), ['abschluss_nicht_anerkannt', 'bereich_ungeregelt', 'stufe_uebersprungen']);
 });
 
 test('Einstufung: kein Abschluss im Spa ergibt Ia ohne Warnung', () => {
   const r = stufeFuer('spa-kosmetiker-efz', 'keiner');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes, []);
+  assert.deepEqual(r.codes, ['stufe_uebersprungen']);
 });
 
 test('Einstufung: stufeManuell überschreibt mit Warnung stufe_manuell', () => {
@@ -469,4 +469,50 @@ test('berechne: Praktikum, Hinweis und Fehler haben stufenvergleich null, keine 
   assert.ok(!p.warnungen.some((x) => x.code === 'stufe_uebersprungen'));
   assert.equal(E.berechne(c, eingabe({ sonderfall: 'unter18' })).stufenvergleich, null);
   assert.equal(E.berechne(c, eingabe({ beschaeftigungsgrad: 0 })).stufenvergleich, null);
+});
+
+test('berechne: Stufe aus der Anerkennungsregel (nicht anerkannt, Ia) ist die Basis, Erfahrung erreicht Ib', () => {
+  const c = JSON.parse(JSON.stringify(SC));
+  const f = c.funktionen.filter((x) => x.id === 'housekeeping-zimmermaedchen')[0];
+  f.erfahrungProJahr = 50;
+  f.bandMax = 4500;
+  const e = E.berechne(c, eingabe({ funktionId: 'housekeeping-zimmermaedchen', abschluss: 'koch-efz', erfahrungJahre: 5 })); // 3735 + 250
+  assert.equal(e.stufe, 'Ia');
+  assert.ok(e.warnungen.some((w) => w.code === 'abschluss_nicht_anerkannt'));
+  assert.equal(e.vorschlag, 3985);
+  assert.equal(e.stufenvergleich.naechsteStufe, 'Ib');
+  assert.equal(e.stufenvergleich.mindestlohnNaechste, 3967);
+  assert.equal(e.stufenvergleich.ueberStufe, 250);
+  assert.equal(e.stufenvergleich.uebersprungen, true);
+  assert.ok(e.warnungen.some((w) => w.code === 'stufe_uebersprungen'));
+});
+
+test('berechne: von Hand gewählte Stufe IIIa vergleicht gegen IIIb', () => {
+  const e = E.berechne(baueConfig(), eingabe({ abschluss: 'keiner', stufeManuell: 'IIIa', erfahrungJahre: 3 })); // 4555 + 150
+  assert.equal(e.stufenvergleich.stufe, 'IIIa');
+  assert.equal(e.stufenvergleich.naechsteStufe, 'IIIb');
+  assert.equal(e.stufenvergleich.ueberStufe, 150);
+  assert.equal(e.stufenvergleich.uebersprungen, true);
+  assert.ok(e.warnungen.some((w) => w.code === 'stufe_manuell'));
+  assert.ok(e.warnungen.some((w) => w.code === 'stufe_uebersprungen'));
+});
+
+test('berechne: Einarbeitung aktiv vergleicht den vollen Vollzeitlohn, nicht den reduzierten', () => {
+  const einarb = { aktiv: true, reduktionProzent: 8, frueheresLGAVMonate: 0, rueckkehrHausUnterbruchMonate: null };
+  const e = E.berechne(baueConfig(), eingabe({ erfahrungJahre: 3, einarbeitung: einarb })); // 4705, reduziert 4328.60
+  assert.equal(e.einarbeitung.erlaubt, true);
+  assert.ok(e.einarbeitung.reduzierterMonatslohn < 4663);
+  assert.equal(e.vorschlag, 4705);
+  assert.equal(e.stufenvergleich.ueberStufe, 150);
+  assert.equal(e.stufenvergleich.uebersprungen, true);
+  const knapp = E.berechne(baueConfig(), eingabe({ erfahrungJahre: 2, einarbeitung: einarb })); // 4655 < 4663
+  assert.equal(knapp.stufenvergleich.uebersprungen, false);
+});
+
+test('berechne: Teilzeit 60 % vergleicht den Vollzeitlohn, nicht den skalierten Monatslohn', () => {
+  const e = E.berechne(baueConfig(), eingabe({ erfahrungJahre: 3, beschaeftigungsgrad: 60 }));
+  assert.equal(e.vorschlag, 4705);
+  assert.equal(e.monatslohn, 2823);
+  assert.equal(e.stufenvergleich.ueberStufe, 150);
+  assert.equal(e.stufenvergleich.uebersprungen, true);
 });
