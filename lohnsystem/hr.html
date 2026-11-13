@@ -66,8 +66,12 @@
     <div id="ergebnisInhalt"></div>
     <div id="wahlBereich" class="wahl" hidden>
       <h3>Gewählter Lohn</h3>
-      <div class="feld"><label for="gewaehlterLohn">Gewählter Vollzeit-Monatslohn (CHF)</label><input type="number" id="gewaehlterLohn" inputmode="decimal" step="0.05"></div>
+      <div class="feld"><label for="gewaehlterLohn">Gewählter Vollzeit-Monatslohn (CHF)</label><input type="number" id="gewaehlterLohn" inputmode="decimal" step="0.05"><p class="hilfe" id="freigabeZeile" aria-live="polite"></p></div>
       <div class="feld"><label for="begruendung">Begründung bei Abweichung</label><textarea id="begruendung" rows="3"></textarea></div>
+      <div class="feld">
+        <button type="button" id="exportKnopf" disabled>Als Excel exportieren</button>
+        <p class="hilfe" id="exportHinweis" aria-live="polite"></p>
+      </div>
     </div>
   </section>
 </main>
@@ -75,6 +79,8 @@
 <script src="config/config.js"></script>
 <script src="src/config.js"></script>
 <script src="src/engine.js"></script>
+<script src="https://cdn.sheetjs.com/xlsx-0.20.3/package/dist/xlsx.full.min.js"></script>
+<script src="src/export.js"></script>
 <script src="src/hr-app.js"></script>
 </body>
 </html>

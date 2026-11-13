@@ -279,6 +279,47 @@
 
     var manuell = false;
     var letzterVorschlag = null;
+    var letztesErgebnis = null;
+
+    // Freigabestufe live anzeigen und Exportknopf nur bei gültiger Wahl freigeben.
+    function pruefeWahl() {
+      var zeile = $('freigabeZeile');
+      var knopf = $('exportKnopf');
+      if (!letztesErgebnis || letztesErgebnis.modus !== 'berechnet') {
+        zeile.textContent = '';
+        knopf.disabled = true;
+        $('exportHinweis').textContent = '';
+        return;
+      }
+      var roh = String($('gewaehlterLohn').value).trim();
+      var wert = roh === '' ? NaN : Number(roh);
+      var p = window.LohnEngine.pruefeAbweichung(letztesErgebnis, wert, $('begruendung').value);
+      if (p.freigabe) {
+        zeile.textContent = 'Freigabe durch: ' + (p.freigabe === 'keine' ? 'keine nötig (Vorschlag)' : p.freigabe);
+      } else {
+        zeile.textContent = p.fehler.join(' ');
+      }
+      knopf.disabled = !p.ok;
+      $('exportHinweis').textContent = p.ok ? '' : p.fehler.join(' ');
+    }
+
+    function exportieren() {
+      if (!letztesErgebnis) { return; }
+      var wert = Number($('gewaehlterLohn').value);
+      var p = window.LohnEngine.pruefeAbweichung(letztesErgebnis, wert, $('begruendung').value);
+      if (!p.ok) { pruefeWahl(); return; }
+      var vertrag = VERTRAGSARTEN.filter(function (v) { return v[0] === $('vertragsart').value; })[0];
+      var f = aktuelleFunktion();
+      var zeilen = window.LohnExport.baueExportZeilen(letztesErgebnis, {
+        funktionLabel: f ? f.label : '', eintritt: $('eintritt').value, vertragsart: vertrag ? vertrag[1] : '',
+        beschaeftigungsgrad: $('beschaeftigungsgrad').value,
+        gewaehlterMonatslohn: wert, begruendung: $('begruendung').value.trim(), freigabe: p.freigabe,
+        datum: new Date().toISOString().slice(0, 10)
+      });
+      var name = 'Einstiegslohn_' + (f ? f.id : 'Lohn') + '_' + $('eintritt').value + '.xlsx';
+      var r = window.LohnExport.exportiereExcel(zeilen, name);
+      $('exportHinweis').textContent = r.ok ? 'Excel-Datei wurde erstellt.' : r.meldung;
+    }
     function wahlLeeren() {
       $('gewaehlterLohn').value = '';
       manuell = false;
@@ -304,9 +345,12 @@
         out.appendChild(el('p', 'leer', 'Noch kein Ergebnis. Bitte angeben: ' + fehlt.join(', ') + '.'));
         $('wahlBereich').hidden = true;
         wahlLeeren();
+        letztesErgebnis = null;
+        pruefeWahl();
         return;
       }
       var ergebnis = window.LohnEngine.berechne(config, formularZuInput(lies()));
+      letztesErgebnis = ergebnis;
       renderErgebnis(ergebnis, { beschaeftigungsgrad: $('beschaeftigungsgrad').value });
       if (ergebnis.modus === 'berechnet') {
         if (ergebnis.vorschlag !== letzterVorschlag || !manuell) {
@@ -317,9 +361,13 @@
       } else {
         wahlLeeren();
       }
+      pruefeWahl();
     }
 
     $('gewaehlterLohn').addEventListener('input', function () { manuell = true; });
+    $('exportKnopf').addEventListener('click', exportieren);
+    $('gewaehlterLohn').addEventListener('input', pruefeWahl);
+    $('begruendung').addEventListener('input', pruefeWahl);
     $('abteilung').addEventListener('change', funktionenFuellen);
     $('formular').addEventListener('input', aktualisieren);
     $('formular').addEventListener('change', aktualisieren);
