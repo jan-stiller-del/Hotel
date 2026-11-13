@@ -57,7 +57,7 @@
     return {
       modus: modus, stufe: null, mindestlohn: null, tabelleJahr: null, bandStart: null, bandMax: null,
       positionen: [], vorschlag: null, monatslohn: null, dreizehnter: null, totalMonat: null,
-      jahresbrutto: null, stundenansatz: null, entschaedigungen: [], spanne: null, einarbeitung: null,
+      jahresbrutto: null, stundenansatz: null, entschaedigungen: [], spanne: null, spanneStufen: null, einarbeitung: null,
       warnungen: warnungen || [], fehler: fehler || []
     };
   }
@@ -86,6 +86,14 @@
     if (!ABSCHLUSS_STUFE[ab] && ab !== 'hf' && ab !== 'hotelfachschule') {
       f.push('Abschluss unbekannt.');
     }
+    var ein = input.einarbeitung;
+    if (ein && ein.aktiv) {
+      var maxProzent = istZahl(config && config.betrieb && config.betrieb.einarbeitungMaxProzent)
+        ? config.betrieb.einarbeitungMaxProzent : 8;
+      if (!istZahl(ein.reduktionProzent) || ein.reduktionProzent < 0 || ein.reduktionProzent > maxProzent) {
+        f.push('Die Einarbeitungsreduktion darf höchstens ' + maxProzent + ' % betragen.');
+      }
+    }
     return f;
   }
 
@@ -101,6 +109,50 @@
       if (NIVEAUS.indexOf(niveau) >= min) { gezaehlt[s.sprache] = true; n++; }
     });
     return Math.min(n, b.maxSprachen === undefined ? n : b.maxSprachen);
+  }
+
+  function monateHinzu(datum, monate) {
+    var j = parseInt(datum.slice(0, 4), 10);
+    var m = parseInt(datum.slice(5, 7), 10) - 1;
+    var t = parseInt(datum.slice(8, 10), 10);
+    var summe = m + monate;
+    var nj = j + Math.floor(summe / 12);
+    var nm = ((summe % 12) + 12) % 12;
+    // Monatsende: Tag auf den letzten Tag des Zielmonats begrenzen (31.8. + 6 Monate = 28.2.)
+    var letzter = new Date(Date.UTC(nj, nm + 1, 0)).getUTCDate();
+    var nt = Math.min(t, letzter);
+    return nj + '-' + ('0' + (nm + 1)).slice(-2) + '-' + ('0' + nt).slice(-2);
+  }
+
+  function pruefeEinarbeitung(config, daten) {
+    var stufe = daten && daten.stufe;
+    var e = (daten && daten.einarbeitung) || {};
+    var frueher = istZahl(e.frueheresLGAVMonate) ? e.frueheresLGAVMonate : 0;
+    var unterbruch = e.rueckkehrHausUnterbruchMonate;
+    function nein(grund) { return { erlaubt: false, maxMonate: 0, grund: grund }; }
+    if (istZahl(unterbruch) && unterbruch < 24) {
+      return nein('Rückkehr ins gleiche Haus mit Unterbruch unter 24 Monaten: keine Einarbeitungsreduktion.');
+    }
+    if (stufe === 'Ia' || stufe === 'Ib') {
+      if (frueher < 4) {
+        return { erlaubt: true, maxMonate: 12, grund: 'Stufe I, nie mindestens 4 Monate in einem L-GAV-Betrieb: bis 12 Monate.' };
+      }
+      return { erlaubt: true, maxMonate: 3, grund: 'Stufe I, bereits mindestens 4 Monate in einem L-GAV-Betrieb: bis 3 Monate.' };
+    }
+    if (stufe === 'II' || stufe === 'IIIa') {
+      if (frueher === 0) {
+        return { erlaubt: true, maxMonate: 3, grund: 'Stufe ' + stufe + ', erste Beschäftigung in einem L-GAV-Betrieb: bis 3 Monate.' };
+      }
+      return nein('Stufe ' + stufe + ': nur bei der ersten Beschäftigung in einem L-GAV-Betrieb.');
+    }
+    return nein('Bei Stufe ' + (stufe === 'P' ? 'Praktikum' : stufe) + ' ist keine Einarbeitungsreduktion zulässig.');
+  }
+
+  function berechneSpanne(vorschlag, prozent, bandStart, bandMax) {
+    return {
+      min: runde5(Math.max(vorschlag * (1 - prozent / 100), bandStart)),
+      max: runde5(Math.min(vorschlag * (1 + prozent / 100), bandMax))
+    };
   }
 
   function berechne(config, input) {
@@ -179,21 +231,89 @@
     var monatslohn = runde5(vorschlag * input.beschaeftigungsgrad / 100);
     var dreizehnter = runde5(monatslohn * betrieb.dreizehnterProzent / 100);
     var totalMonat = runde2(monatslohn + dreizehnter);
+
+    var spanne = null;
+    var spanneStufen = null;
+    var sp = config.stufen && config.stufen[stufe] && config.stufen[stufe].spielraum;
+    if (sonder !== 'praktikum' && sp && istZahl(sp.vorgesetzte) && istZahl(sp.hr) && istZahl(sp.gm)) {
+      spanneStufen = {
+        vorgesetzte: berechneSpanne(vorschlag, sp.vorgesetzte, bandStart, bandMax),
+        hr: berechneSpanne(vorschlag, sp.hr, bandStart, bandMax),
+        gm: berechneSpanne(vorschlag, sp.gm, bandStart, bandMax)
+      };
+      spanne = { min: spanneStufen.gm.min, max: spanneStufen.gm.max };
+    }
+
+    var einarbeitung = null;
+    if (input.einarbeitung && input.einarbeitung.aktiv) {
+      var ep = pruefeEinarbeitung(config, { stufe: stufe, einarbeitung: input.einarbeitung, eintritt: input.eintritt });
+      if (stufe === 'II') {
+        warnungen.push({ code: 'stufe_ii_unsicher', text: 'Einarbeitungsreduktion bei Stufe II: Vertragstext und GastroSuisse-Merkblatt widersprechen sich, bitte bei der Kontrollstelle klären.' });
+      }
+      var rp = input.einarbeitung.reduktionProzent;
+      einarbeitung = { erlaubt: ep.erlaubt, grund: ep.grund, maxMonate: ep.maxMonate, reduktionProzent: rp,
+        reduzierterMonatslohn: null, reduzierterTotal: null, volllohnAb: null };
+      if (ep.erlaubt) {
+        var reduziert = runde5(monatslohn * (1 - rp / 100));
+        einarbeitung.reduzierterMonatslohn = reduziert;
+        einarbeitung.reduzierterTotal = runde2(reduziert + runde5(reduziert * betrieb.dreizehnterProzent / 100));
+        einarbeitung.volllohnAb = monateHinzu(input.eintritt, ep.maxMonate);
+      }
+    }
+
     return {
       modus: 'berechnet', stufe: stufe, mindestlohn: mindestlohn, tabelleJahr: tab.tabelle.jahr,
       bandStart: bandStart, bandMax: bandMax, positionen: positionen, vorschlag: vorschlag,
       monatslohn: monatslohn, dreizehnter: dreizehnter, totalMonat: totalMonat,
       jahresbrutto: runde2(totalMonat * 12),
       stundenansatz: runde2(vorschlag / (betrieb.wochenstunden * 52 / 12)),
-      entschaedigungen: entschaedigungen, spanne: null, einarbeitung: null,
+      entschaedigungen: entschaedigungen, spanne: spanne, spanneStufen: spanneStufen, einarbeitung: einarbeitung,
       warnungen: warnungen, fehler: []
     };
+  }
+
+  function pruefeAbweichung(ergebnis, gewaehlterMonatslohn, begruendung) {
+    var fehler = [];
+    if (!ergebnis || ergebnis.modus !== 'berechnet') {
+      return { ok: false, fehler: ['Kein berechneter Lohn vorhanden.'], freigabe: null };
+    }
+    if (!istZahl(gewaehlterMonatslohn)) {
+      return { ok: false, fehler: ['Gewählter Monatslohn ist keine Zahl.'], freigabe: null };
+    }
+    var eps = 1e-9;
+    if (gewaehlterMonatslohn < ergebnis.mindestlohn - eps) {
+      return { ok: false, fehler: ['Der gewählte Lohn liegt unter dem Mindestlohn.'], freigabe: null };
+    }
+    if (Math.abs(gewaehlterMonatslohn - ergebnis.vorschlag) < eps) {
+      return { ok: true, fehler: [], freigabe: 'keine' };
+    }
+    var st = ergebnis.spanneStufen;
+    var tiers = [['vorgesetzte', 'Vorgesetzte'], ['hr', 'HR'], ['gm', 'GM']];
+    var freigabe = null;
+    if (st) {
+      for (var i = 0; i < tiers.length; i++) {
+        var r = st[tiers[i][0]];
+        if (gewaehlterMonatslohn >= r.min - eps && gewaehlterMonatslohn <= r.max + eps) {
+          freigabe = tiers[i][1];
+          break;
+        }
+      }
+    }
+    if (!freigabe) {
+      return { ok: false, fehler: ['Abweichung ausserhalb des zulässigen Spielraums.'], freigabe: null };
+    }
+    if (freigabe !== 'Vorgesetzte' && !(typeof begruendung === 'string' && begruendung.trim())) {
+      fehler.push('Begründung nötig: Die Abweichung braucht die Freigabe von ' + freigabe + '.');
+    }
+    return { ok: fehler.length === 0, fehler: fehler, freigabe: freigabe };
   }
 
   return {
     runde5: runde5,
     bestimmeStufe: bestimmeStufe,
     findeMindestlohnTabelle: findeMindestlohnTabelle,
-    berechne: berechne
+    berechne: berechne,
+    pruefeEinarbeitung: pruefeEinarbeitung,
+    pruefeAbweichung: pruefeAbweichung
   };
 }));

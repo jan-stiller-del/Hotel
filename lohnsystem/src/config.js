@@ -42,6 +42,19 @@
       });
     });
 
+    var stufenKonfig = (config.stufen && typeof config.stufen === 'object') ? config.stufen : {};
+    STUFEN.forEach(function (s) {
+      var sp = stufenKonfig[s] && stufenKonfig[s].spielraum;
+      var name = 'Spielraum Stufe ' + s;
+      if (!sp || !istZahl(sp.vorgesetzte) || !istZahl(sp.hr) || !istZahl(sp.gm)) {
+        fehler.push(name + ': Werte für Vorgesetzte, HR und GM fehlen oder sind ungültig.');
+      } else if (sp.vorgesetzte < 0 || sp.hr < 0 || sp.gm < 0) {
+        fehler.push(name + ': Werte dürfen nicht negativ sein.');
+      } else if (sp.vorgesetzte > sp.hr || sp.hr > sp.gm) {
+        fehler.push(name + ': Werte müssen aufsteigend sein (Vorgesetzte, HR, GM).');
+      }
+    });
+
     var abteilungIds = {};
     (Array.isArray(config.abteilungen) ? config.abteilungen : []).forEach(function (a) {
       if (a && a.id) { abteilungIds[a.id] = true; }
