@@ -111,7 +111,7 @@ window.LOHN_CONFIG = {
     { "id": "kueche-commis", "abteilung": "kueche", "bereich": "kueche", "label": "Commis de cuisine", "gaestekontakt": false, "bandMin": 4555, "bandMax": 4900, "beispiel": false },
     { "id": "kueche-koch-efz", "abteilung": "kueche", "bereich": "kueche", "label": "Cuisinier", "gaestekontakt": false, "bandMin": 4555, "bandMax": 4900, "beispiel": false },
     { "id": "kueche-patissier", "abteilung": "kueche", "bereich": "kueche", "label": "Pâtissier / Confiseur", "gaestekontakt": false, "bandMin": 4555, "bandMax": 4900, "beispiel": false },
-    { "id": "kueche-demi-chef", "abteilung": "kueche", "bereich": "kueche", "label": "Demi-chef de partie", "gaestekontakt": false, "bandMin": 4663, "bandMax": 5000, "beispiel": false },
+    { "id": "kueche-demi-chef", "abteilung": "kueche", "bereich": "kueche", "label": "Demi-chef de partie", "gaestekontakt": false, "bandMin": 4555, "bandMax": 4900, "beispiel": false },
     { "id": "kueche-chef-de-partie", "abteilung": "kueche", "bereich": "kueche", "label": "Chef de partie", "gaestekontakt": false, "bandMin": 4663, "bandMax": 5000, "beispiel": false },
     { "id": "kueche-sous-chef", "abteilung": "kueche", "bereich": "kueche", "label": "Sous-chef", "gaestekontakt": false, "bandMin": 5325, "bandMax": 5700, "beispiel": false },
     { "id": "kueche-kuechenchef", "abteilung": "kueche", "bereich": "kueche", "label": "Chef de cuisine", "kader": true, "gaestekontakt": false, "bandMin": 5325, "bandMax": 5700, "beispiel": false },

@@ -111,7 +111,7 @@ test('alle Funktionen einer Stufe teilen dasselbe Einstiegsband', () => {
     ['3735-4050', '4094-4450', '4555-4900', '4663-5000', '5325-5700']);
 });
 
-test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Sous-chef und Chef de cuisine bleiben IV', () => {
+test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Demi-chef Band IIIa (4555-4900), Sous-chef und Chef de cuisine bleiben IV', () => {
   const c = ladeStandardkonfiguration();
   const band = (id) => {
     const f = c.funktionen.find((x) => x.id === id);
@@ -123,17 +123,17 @@ test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Sous-chef und 
   }
   assert.deepStrictEqual(band('kueche-sous-chef'), [5325, 5700]);
   assert.deepStrictEqual(band('kueche-kuechenchef'), [5325, 5700]);
-  assert.deepStrictEqual(band('kueche-demi-chef'), [4663, 5000]);
+  assert.deepStrictEqual(band('kueche-demi-chef'), [4555, 4900]);
 });
 
-test('Bandzahl pro Einstiegsband: IIIb 9 Funktionen, IV 19 Funktionen', () => {
+test('Bandzahl pro Einstiegsband: Ia 14, II 7, IIIa 27, IIIb 8, IV 19 Funktionen', () => {
   const c = ladeStandardkonfiguration();
   const zaehl = (min, max) => c.funktionen.filter((f) => f.bandMin === min && f.bandMax === max).length;
-  assert.strictEqual(zaehl(4663, 5000), 9);
+  assert.strictEqual(zaehl(4663, 5000), 8);
   assert.strictEqual(zaehl(5325, 5700), 19);
   assert.strictEqual(zaehl(3735, 4050), 14);
   assert.strictEqual(zaehl(4094, 4450), 7);
-  assert.strictEqual(zaehl(4555, 4900), 26);
+  assert.strictEqual(zaehl(4555, 4900), 27);
 });
 
 test('fehlende Mindestlohn-Stufe wird abgelehnt', () => {
