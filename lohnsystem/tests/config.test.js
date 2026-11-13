@@ -68,10 +68,10 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
     'reception-chauffeur': ['Chauffeur', true, 3735, 4050],
     'reception-guest-relations': ['Guest Relations Agent', true, 4555, 4900],
     'housekeeping-laundry-supervisor': ['Laundry Supervisor', false, 4555, 4900],
-    'kueche-saucier': ['Saucier', false, 5325, 5700],
-    'kueche-entremetier': ['Entremetier', false, 5325, 5700],
-    'kueche-garde-manger': ['Garde-manger', false, 5325, 5700],
-    'kueche-tournant': ['Tournant', false, 5325, 5700],
+    'kueche-saucier': ['Saucier', false, 4663, 5000],
+    'kueche-entremetier': ['Entremetier', false, 4663, 5000],
+    'kueche-garde-manger': ['Garde-manger', false, 4663, 5000],
+    'kueche-tournant': ['Tournant', false, 4663, 5000],
     'kueche-cuisinier-fruehstueck': ['Cuisinier au petit-déjeuner', false, 4555, 4900],
     'service-sommelier': ['Sommelier', true, 4663, 5000],
     'service-chef-de-rang': ['Chef de rang', true, 4663, 5000],
@@ -109,6 +109,31 @@ test('alle Funktionen einer Stufe teilen dasselbe Einstiegsband', () => {
   const paare = new Set(c.funktionen.map((f) => f.bandMin + '-' + f.bandMax));
   assert.deepStrictEqual([...paare].sort(),
     ['3735-4050', '4094-4450', '4555-4900', '4663-5000', '5325-5700']);
+});
+
+test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Sous-chef und Chef de cuisine bleiben IV', () => {
+  const c = ladeStandardkonfiguration();
+  const band = (id) => {
+    const f = c.funktionen.find((x) => x.id === id);
+    assert.ok(f, id);
+    return [f.bandMin, f.bandMax];
+  };
+  for (const id of ['kueche-chef-de-partie', 'kueche-saucier', 'kueche-entremetier', 'kueche-garde-manger', 'kueche-tournant']) {
+    assert.deepStrictEqual(band(id), [4663, 5000], id);
+  }
+  assert.deepStrictEqual(band('kueche-sous-chef'), [5325, 5700]);
+  assert.deepStrictEqual(band('kueche-kuechenchef'), [5325, 5700]);
+  assert.deepStrictEqual(band('kueche-demi-chef'), [4663, 5000]);
+});
+
+test('Bandzahl pro Einstiegsband: IIIb 9 Funktionen, IV 19 Funktionen', () => {
+  const c = ladeStandardkonfiguration();
+  const zaehl = (min, max) => c.funktionen.filter((f) => f.bandMin === min && f.bandMax === max).length;
+  assert.strictEqual(zaehl(4663, 5000), 9);
+  assert.strictEqual(zaehl(5325, 5700), 19);
+  assert.strictEqual(zaehl(3735, 4050), 14);
+  assert.strictEqual(zaehl(4094, 4450), 7);
+  assert.strictEqual(zaehl(4555, 4900), 26);
 });
 
 test('fehlende Mindestlohn-Stufe wird abgelehnt', () => {
