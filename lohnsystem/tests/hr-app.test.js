@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
+const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueWahlAbrechnung, formatDifferenz, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -329,4 +329,112 @@ test('baueAuszahlungZeilen: ohne Pauschale unveraendert (Nicht-Kader)', () => {
   const z = baueAuszahlungZeilen(Object.assign({ ueberstundenpauschale: null, bezeichnungen: null }, ERG),
     { betrieb: { dreizehnterProzent: 8.33 } }, { beschaeftigungsgrad: '100' });
   assert.deepEqual(z.map(r => r.art), ['lohn', 'dreizehnter', 'summe', 'jahr', 'hinweis']);
+});
+
+// ---------- Task 5n: Abrechnung mit gewaehltem Lohn ----------
+const Engine = require('../src/engine.js');
+const WERG = { modus: 'berechnet', vorschlag: 4675, kader: null, einarbeitung: null };
+const wArt = (a, art) => a.zeilen.find(r => r.art === art);
+
+test('baueWahlAbrechnung: Vorschlag 4675, gewaehlt 5000 Vollzeit', () => {
+  const a = baueWahlAbrechnung(standardConfig(), WERG, 5000, { beschaeftigungsgrad: '100' });
+  assert.equal(a.titel, 'Abrechnung mit gewähltem Lohn (CHF 5000.00)');
+  assert.deepEqual(a.zeilen.map(r => r.art), ['lohn', 'dreizehnter', 'summe', 'jahr', 'stundenansatz']);
+  assert.equal(wArt(a, 'lohn').betrag, 5000);
+  assert.equal(wArt(a, 'dreizehnter').betrag, 416.5);
+  assert.equal(wArt(a, 'summe').betrag, 5416.5);
+  assert.equal(wArt(a, 'jahr').betrag, 64998);
+  assert.equal(wArt(a, 'stundenansatz').betrag, 26.53);
+  assert.match(wArt(a, 'stundenansatz').label, /ohne 13\. Monatslohn/);
+  assert.deepEqual(a.differenz, { chf: 325, prozent: 7 });
+  assert.equal(formatDifferenz(a.differenz), 'Differenz zum Vorschlag: +CHF 325.00 (7,0 %)');
+});
+
+test('baueWahlAbrechnung: gleicher Lohn, keine Differenz, Zeilen wie beim Vorschlag', () => {
+  const cfg = standardConfig();
+  const a = baueWahlAbrechnung(cfg, WERG, 4675, { beschaeftigungsgrad: '100' });
+  assert.equal(a.differenz, null);
+  const b = Engine.rechneBetraege(cfg, 4675, { beschaeftigungsgrad: 100, einarbeitung: null, kader: false });
+  const erwartet = baueAuszahlungZeilen(b, cfg, { beschaeftigungsgrad: '100' }).filter(r => r.art !== 'hinweis');
+  assert.deepEqual(a.zeilen.slice(0, erwartet.length), erwartet);
+});
+
+test('baueWahlAbrechnung: Zahlen stimmen exakt mit rechneBetraege ueberein', () => {
+  const cfg = standardConfig();
+  const b = Engine.rechneBetraege(cfg, 4700, { beschaeftigungsgrad: 100, einarbeitung: null, kader: false });
+  const a = baueWahlAbrechnung(cfg, WERG, 4700, { beschaeftigungsgrad: '100' });
+  assert.equal(wArt(a, 'lohn').betrag, b.monatslohn);
+  assert.equal(wArt(a, 'dreizehnter').betrag, b.dreizehnter);
+  assert.equal(wArt(a, 'summe').betrag, b.totalMonat);
+  assert.equal(wArt(a, 'jahr').betrag, b.jahresbrutto);
+  assert.equal(wArt(a, 'stundenansatz').betrag, b.stundenansatz);
+  assert.equal(b.dreizehnter, 391.5);
+  assert.equal(b.totalMonat, 5091.5);
+});
+
+test('baueWahlAbrechnung: Teilzeit 60 %', () => {
+  const cfg = standardConfig();
+  const a = baueWahlAbrechnung(cfg, WERG, 5000, { beschaeftigungsgrad: '60' });
+  const b = Engine.rechneBetraege(cfg, 5000, { beschaeftigungsgrad: 60, einarbeitung: null, kader: false });
+  assert.equal(wArt(a, 'lohn').label, 'Monatslohn brutto bei 60 %');
+  assert.equal(wArt(a, 'lohn').betrag, 3000);
+  assert.equal(wArt(a, 'summe').betrag, b.totalMonat);
+  assert.equal(wArt(a, 'stundenansatz').betrag, 26.53);
+});
+
+test('baueWahlAbrechnung: Kader mit Pauschale, 13. auf Grundlohn plus Pauschale', () => {
+  const cfg = standardConfig();
+  const kader = Object.assign({}, WERG, { vorschlag: 5325, kader: { aktiv: true } });
+  const a = baueWahlAbrechnung(cfg, kader, 5325, { beschaeftigungsgrad: '100' });
+  assert.deepEqual(a.zeilen.map(r => r.art), ['lohn', 'pauschale', 'dreizehnter', 'summe', 'jahr', 'stundenansatz']);
+  assert.equal(wArt(a, 'pauschale').betrag, 795.8);
+  assert.equal(wArt(a, 'pauschale').label, 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)');
+  assert.equal(wArt(a, 'dreizehnter').label, '13. Monatslohn (auf Grundlohn plus Pauschale)');
+  assert.equal(wArt(a, 'dreizehnter').betrag, 509.85);
+  assert.equal(wArt(a, 'summe').betrag, 6630.65);
+  assert.equal(a.differenz, null);
+});
+
+test('baueWahlAbrechnung: Einarbeitung aktiv und erlaubt zeigt reduzierte Betraege', () => {
+  const cfg = standardConfig();
+  const e = Object.assign({}, WERG, { einarbeitung: { erlaubt: true, reduktionProzent: 8 } });
+  const a = baueWahlAbrechnung(cfg, e, 5000, { beschaeftigungsgrad: '100' });
+  const b = Engine.rechneBetraege(cfg, 5000, { beschaeftigungsgrad: 100, einarbeitung: { erlaubt: true, reduktionProzent: 8 }, kader: false });
+  const ein = a.zeilen.filter(r => r.art === 'einarbeitung');
+  assert.equal(ein.length, 2);
+  assert.equal(ein[0].betrag, b.reduzierterMonatslohn);
+  assert.equal(ein[1].betrag, b.reduzierterTotal);
+  assert.match(ein[0].label, /8 %/);
+  const nicht = baueWahlAbrechnung(cfg, Object.assign({}, WERG, { einarbeitung: { erlaubt: false, reduktionProzent: 8 } }), 5000, { beschaeftigungsgrad: '100' });
+  assert.ok(nicht.zeilen.every(r => r.art !== 'einarbeitung'));
+});
+
+test('baueWahlAbrechnung: Einarbeitung bei Kader mit reduzierter Pauschale', () => {
+  const cfg = standardConfig();
+  const e = Object.assign({}, WERG, { vorschlag: 5325, kader: { aktiv: true }, einarbeitung: { erlaubt: true, reduktionProzent: 8 } });
+  const a = baueWahlAbrechnung(cfg, e, 5325, { beschaeftigungsgrad: '100' });
+  const b = Engine.rechneBetraege(cfg, 5325, { beschaeftigungsgrad: 100, einarbeitung: { erlaubt: true, reduktionProzent: 8 }, kader: true });
+  const ein = a.zeilen.filter(r => r.art === 'einarbeitung');
+  assert.deepEqual(ein.map(r => r.betrag), [b.reduzierterMonatslohn, b.reduzierteUeberstundenpauschale, b.reduzierterTotal]);
+});
+
+test('baueWahlAbrechnung: Satz des 13. Monatslohns aus der Konfiguration', () => {
+  const cfg = standardConfig();
+  cfg.betrieb.dreizehnterProzent = 5;
+  const a = baueWahlAbrechnung(cfg, WERG, 5000, { beschaeftigungsgrad: '100' });
+  assert.equal(wArt(a, 'dreizehnter').betrag, 250);
+  assert.match(wArt(a, 'dreizehnter').label, /\(5 %\)/);
+});
+
+test('baueWahlAbrechnung: ungueltiger Lohn oder kein berechnetes Ergebnis gibt null', () => {
+  const cfg = standardConfig();
+  const k = { beschaeftigungsgrad: '100' };
+  [NaN, null, undefined, '', 'abc', 0, -5, Infinity].forEach(w => assert.equal(baueWahlAbrechnung(cfg, WERG, w, k), null));
+  assert.equal(baueWahlAbrechnung(cfg, Object.assign({}, WERG, { modus: 'sonderfall' }), 5000, k), null);
+  assert.equal(baueWahlAbrechnung(cfg, null, 5000, k), null);
+});
+
+test('formatDifferenz: Vorzeichen und Dezimalkomma, Minus bei tieferem Lohn', () => {
+  assert.equal(formatDifferenz({ chf: -50, prozent: -1.1 }), 'Differenz zum Vorschlag: -CHF 50.00 (-1,1 %)');
+  assert.equal(formatDifferenz(null), '');
 });

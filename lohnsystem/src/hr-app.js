@@ -91,6 +91,41 @@
     ]);
   }
 
+  // Abrechnung für den gewählten Vollzeitlohn: dieselben Beträge wie im Excel-Export (Engine.rechneBetraege), dieselben Zeilen wie
+  // «Auszahlung pro Monat», dazu Einarbeitung (falls aktiv und erlaubt) und Stundenansatz ohne 13. Monatslohn.
+  // null bei Sonderfall, Hinweis, Fehler oder ungültigem Lohn. differenz: gewählter Lohn minus Vorschlag, null bei gleichem Lohn.
+  function baueWahlAbrechnung(config, ergebnis, gewaehlterLohn, kontext) {
+    var wert = Number(gewaehlterLohn);
+    if (!ergebnis || ergebnis.modus !== 'berechnet' || gewaehlterLohn === null || gewaehlterLohn === '' || !isFinite(wert) || wert <= 0) { return null; }
+    var Engine = typeof require === 'function' ? require('./engine.js') : window.LohnEngine;
+    var grad = Number(kontext.beschaeftigungsgrad);
+    var ein = ergebnis.einarbeitung && ergebnis.einarbeitung.erlaubt ? ergebnis.einarbeitung : null;
+    var b = Engine.rechneBetraege(config, wert, { beschaeftigungsgrad: grad, einarbeitung: ein, kader: !!ergebnis.kader });
+    var zeilen = baueAuszahlungZeilen(b, config, kontext).filter(function (r) { return r.art !== 'hinweis'; });
+    if (ein) {
+      var rp = String(ein.reduktionProzent).replace('.', ',');
+      zeilen.push({ label: 'Während der Einarbeitung (um ' + rp + ' % reduziert): Monatslohn', betrag: b.reduzierterMonatslohn, art: 'einarbeitung' });
+      if (b.reduzierteUeberstundenpauschale !== null && b.reduzierteUeberstundenpauschale !== undefined) {
+        zeilen.push({ label: 'Überstundenpauschale auf reduziertem Grundlohn', betrag: b.reduzierteUeberstundenpauschale, art: 'einarbeitung' });
+      }
+      zeilen.push({ label: 'Total pro Monat während der Einarbeitung (mit 13. Monatslohn)', betrag: b.reduzierterTotal, art: 'einarbeitung' });
+    }
+    zeilen.push({ label: 'Stundenansatz (Vollzeitbasis, ' + String(config.betrieb.wochenstunden).replace('.', ',') + ' Wochenstunden, ohne 13. Monatslohn)', betrag: b.stundenansatz, art: 'stundenansatz' });
+    var diff = Math.round((wert - ergebnis.vorschlag) * 100) / 100;
+    return {
+      titel: 'Abrechnung mit gewähltem Lohn (CHF ' + wert.toFixed(2) + ')',
+      zeilen: zeilen,
+      differenz: diff === 0 ? null : { chf: diff, prozent: Math.round(diff / ergebnis.vorschlag * 1000) / 10 }
+    };
+  }
+
+  // Text der Differenzzeile mit Vorzeichen und Dezimalkomma; leer ohne Differenz.
+  function formatDifferenz(d) {
+    if (!d) { return ''; }
+    return 'Differenz zum Vorschlag: ' + (d.chf < 0 ? '-' : '+') + 'CHF ' + Math.abs(d.chf).toFixed(2)
+      + ' (' + (d.prozent < 0 ? '-' : '') + Math.abs(d.prozent).toFixed(1).replace('.', ',') + ' %)';
+  }
+
   // Anzeigezeilen {text, art} aus einem Stufenvergleich (Engine); art 'warnung' = hervorgehobene Zeile mit Marker.
   function baueStufenvergleichZeilen(sv) {
     if (!sv) { return []; }
@@ -458,6 +493,20 @@
       window.LohnGrafik.renderGrafik(window.LohnGrafik.baueGrafikModell(letztesErgebnis, wert), ziel);
     }
 
+    // Abrechnung mit dem gewählten Lohn unter dem Feld; leer bei ungültiger oder unzulässiger Wahl.
+    function zeigeWahlAbrechnung(wert) {
+      var box = $('wahlAbrechnung');
+      leeren(box);
+      var a = baueWahlAbrechnung(config, letztesErgebnis, wert, { beschaeftigungsgrad: $('beschaeftigungsgrad').value });
+      box.hidden = !a;
+      if (!a) { return; }
+      box.appendChild(el('h4', null, a.titel));
+      if (a.differenz) { box.appendChild(el('p', 'differenz', formatDifferenz(a.differenz))); }
+      var t = el('table', 'auszahlung');
+      a.zeilen.forEach(function (r) { zeile(t, r.label, chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' ? r.art : null); });
+      box.appendChild(t);
+    }
+
     // Freigabestufe live anzeigen und Exportknopf nur bei gültiger Wahl freigeben.
     function pruefeWahl() {
       zeichneGrafik();
@@ -465,6 +514,7 @@
       var knopf = $('exportKnopf');
       var svBox = $('stufenvergleichWahl');
       leeren(svBox);
+      zeigeWahlAbrechnung(NaN);
       if (!letztesErgebnis || letztesErgebnis.modus !== 'berechnet') {
         zeile.textContent = '';
         knopf.disabled = true;
@@ -480,6 +530,7 @@
       } else {
         zeile.textContent = p.fehler.join(' ');
       }
+      zeigeWahlAbrechnung(p.freigabe ? wert : NaN);
       knopf.disabled = !p.ok;
       $('exportHinweis').textContent = p.ok ? '' : p.fehler.join(' ');
     }
@@ -589,5 +640,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
+  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueWahlAbrechnung: baueWahlAbrechnung, formatDifferenz: formatDifferenz, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
 }));
