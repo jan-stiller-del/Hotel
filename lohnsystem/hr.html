@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Einstiegslohn berechnen – HR</title>
+<link rel="stylesheet" href="src/hr.css">
+</head>
+<body>
+<header class="kopf">
+  <h1>Einstiegslohn berechnen</h1>
+  <p class="untertitel">Bruttolohn pro Monat in CHF nach L-GAV, nur für HR</p>
+</header>
+
+<div id="konfigFehler" class="meldung fehler" hidden></div>
+
+<main id="seite" class="seite" hidden>
+  <form id="formular" class="formular" autocomplete="off" onsubmit="return false">
+    <fieldset>
+      <legend>Stelle</legend>
+      <div class="feld"><label for="abteilung">Abteilung</label><select id="abteilung"></select></div>
+      <div class="feld"><label for="funktion">Funktion</label><select id="funktion"></select></div>
+      <div class="feld"><label for="sonderfall">Sonderfall</label><select id="sonderfall"></select></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Ausbildung und Erfahrung</legend>
+      <div class="feld"><label for="abschluss">Abschluss</label><select id="abschluss"></select></div>
+      <div class="feld" id="wbWrap" hidden>
+        <label class="inline"><input type="checkbox" id="weiterbildung6Tage"> Berufsspezifische Weiterbildung von mindestens 6 Tagen (belegt)</label>
+      </div>
+      <div class="feld" id="hfWrap" hidden><label for="stufeManuell">Stufe bei Höherer Fachschule (von Hand wählen)</label><select id="stufeManuell"></select></div>
+      <div class="feld"><label for="erfahrung">Einschlägige Erfahrung in Jahren</label><select id="erfahrung"></select></div>
+      <div class="feld" id="sprachenWrap">
+        <span class="feldname" id="sprachenTitel">Sprachen (nur bei Gästekontakt)</span>
+        <div id="sprachenListe" role="group" aria-labelledby="sprachenTitel"></div>
+        <p class="hilfe" id="sprachenHilfe"></p>
+      </div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Anstellung</legend>
+      <div class="feld"><label for="beschaeftigungsgrad">Beschäftigungsgrad in %</label><input type="number" id="beschaeftigungsgrad" inputmode="decimal" min="1" max="100" step="any" value="100"></div>
+      <div class="feld"><label for="vertragsart">Vertragsart</label><select id="vertragsart"></select></div>
+      <div class="feld"><label for="eintritt">Eintrittsdatum</label><input type="date" id="eintritt"></div>
+    </fieldset>
+
+    <fieldset id="zusatzWrap" hidden>
+      <legend>Zusatzbausteine</legend>
+      <div id="zusatzListe"></div>
+    </fieldset>
+
+    <fieldset>
+      <legend>Einarbeitungsreduktion</legend>
+      <div class="feld"><label class="inline"><input type="checkbox" id="einarbeitungAktiv"> Einarbeitungsreduktion prüfen (standardmässig aus)</label></div>
+      <div id="einarbeitungFelder" hidden>
+        <div class="feld"><label for="frueherMonate">Frühere Monate in einem L-GAV-Betrieb</label><input type="number" id="frueherMonate" inputmode="decimal" min="0" step="any" required></div>
+        <div class="feld"><label for="unterbruchMonate">Unterbruch seit letzter Anstellung im Waldhaus in Monaten</label><input type="number" id="unterbruchMonate" inputmode="decimal" min="0" step="any"><p class="hilfe">Leer lassen, wenn die Person noch nie im Haus gearbeitet hat.</p></div>
+        <div class="feld"><label for="reduktionProzent">Reduktion in %</label><input type="number" id="reduktionProzent" inputmode="decimal" min="0" step="any"></div>
+      </div>
+    </fieldset>
+  </form>
+
+  <section class="ergebnis" aria-live="polite" aria-labelledby="ergebnisTitel">
+    <h2 id="ergebnisTitel">Ergebnis</h2>
+    <div id="ergebnisInhalt"></div>
+    <div id="wahlBereich" class="wahl" hidden>
+      <h3>Gewählter Lohn</h3>
+      <div class="feld"><label for="gewaehlterLohn">Gewählter Vollzeit-Monatslohn (CHF)</label><input type="number" id="gewaehlterLohn" inputmode="decimal" step="0.05"></div>
+      <div class="feld"><label for="begruendung">Begründung bei Abweichung</label><textarea id="begruendung" rows="3"></textarea></div>
+    </div>
+  </section>
+</main>
+
+<script src="config/config.js"></script>
+<script src="src/config.js"></script>
+<script src="src/engine.js"></script>
+<script src="src/hr-app.js"></script>
+</body>
+</html>
