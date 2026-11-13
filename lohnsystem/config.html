@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Konfiguration pflegen – HR</title>
+<link rel="stylesheet" href="src/hr.css">
+<link rel="stylesheet" href="src/config-editor.css">
+</head>
+<body>
+<header class="kopf">
+  <h1>Konfiguration pflegen</h1>
+  <p class="untertitel">Interne Seite für HR – nicht veröffentlichen</p>
+</header>
+
+<div id="konfigFehler" class="meldung fehler" role="alert" hidden></div>
+
+<main id="seite" class="editor" hidden>
+  <div id="entwurfBanner" class="meldung info" role="region" aria-label="Gespeicherter Entwurf" hidden>
+    <p>In diesem Browser liegt ein gespeicherter Entwurf der Konfiguration.</p>
+    <p class="knoepfe">
+      <button type="button" id="entwurfWeiter">Entwurf weiterbearbeiten</button>
+      <button type="button" id="entwurfVerwerfen">Verwerfen</button>
+    </p>
+  </div>
+
+  <section class="leiste" aria-labelledby="leisteTitel">
+    <h2 id="leisteTitel">Stand und Datei</h2>
+    <div id="status" class="meldung info" role="status" aria-live="polite"></div>
+    <p id="abweichung" class="meldung warnung" hidden>Entwurf unterscheidet sich von der veröffentlichten config/config.js: Datei exportieren und im Ordner config ersetzen.</p>
+    <div class="knoepfe">
+      <button type="button" id="exportKnopf" disabled>Exportieren</button>
+      <label class="datei-knopf" for="importDatei">Importieren</label>
+      <input type="file" id="importDatei" accept=".js,.json,text/javascript,application/json">
+      <button type="button" id="standardKnopf">Standard wiederherstellen</button>
+    </div>
+    <p class="hilfe">Exportieren lädt die Datei config.js herunter. Sie ersetzt die Datei im Ordner config; erst dann rechnen HR-Seite und Leseansicht mit den neuen Zahlen. Importieren nimmt eine .js- oder .json-Datei.</p>
+    <div id="meldung-import" class="meldung fehler" role="alert" hidden></div>
+  </section>
+
+  <section aria-labelledby="betriebTitel">
+    <h2 id="betriebTitel">Betrieb</h2>
+    <div id="meldung-betrieb" class="meldung fehler" role="alert" hidden></div>
+    <div id="betriebFelder"></div>
+  </section>
+
+  <section aria-labelledby="mlTitel">
+    <h2 id="mlTitel">Mindestlöhne und Jahrespflege</h2>
+    <div id="meldung-mindestloehne" class="meldung fehler" role="alert" hidden></div>
+    <form id="jahrForm" class="jahr-neu" autocomplete="off">
+      <h3>Neues Jahr anlegen</h3>
+      <p class="hilfe">Kopiert die letzte Tabelle und erhöht jeden Betrag um die Teuerung, gerundet auf ganze Franken. Die alten Tabellen bleiben.</p>
+      <div class="raster">
+        <div class="feld"><label for="neuesJahr">Jahr</label><input type="number" id="neuesJahr" inputmode="numeric" step="1" min="2000" max="2100"></div>
+        <div class="feld"><label for="teuerung">Teuerung in Prozent</label><input type="number" id="teuerung" inputmode="decimal" step="any" value="0"></div>
+      </div>
+      <div class="feld"><button type="submit">Neues Jahr anlegen</button></div>
+    </form>
+    <div id="tabellen"></div>
+  </section>
+
+  <section aria-labelledby="stufenTitel">
+    <h2 id="stufenTitel">Stufen</h2>
+    <div id="meldung-stufen" class="meldung fehler" role="alert" hidden></div>
+    <p class="hilfe">Erklärung der Stufe und Spielraum für die Freigabe. Die Prozente sind kumulativ: jede Stelle darf bis zu ihrem Wert vom Vorschlag abweichen.</p>
+    <div id="stufenListe"></div>
+  </section>
+
+  <section aria-labelledby="funkTitel">
+    <h2 id="funkTitel">Funktionen und Bänder</h2>
+    <div id="meldung-funktionen" class="meldung fehler" role="alert" hidden></div>
+    <div class="feld filter"><label for="filterAbteilung">Abteilung filtern</label><select id="filterAbteilung"></select></div>
+    <p class="hilfe" id="funktionenAnzahl"></p>
+    <div class="tabelle-scroll" tabindex="0" role="region" aria-label="Tabelle der Funktionen">
+      <table class="funktionen">
+        <thead><tr><th>Bezeichnung</th><th>Abteilung</th><th>Bereich</th><th>Gäste&shy;kontakt</th><th>Kader</th><th class="zahl">Band von</th><th class="zahl">Band bis</th><th><span class="nur-sr">Aktion</span></th></tr></thead>
+        <tbody id="funktionenBody"></tbody>
+      </table>
+    </div>
+    <form id="funktionNeu" class="neu" autocomplete="off">
+    </form>
+  </section>
+
+  <section aria-labelledby="bausteineTitel">
+    <h2 id="bausteineTitel">Bausteine</h2>
+    <div id="meldung-bausteine" class="meldung fehler" role="alert" hidden></div>
+    <div id="bausteineFelder"></div>
+  </section>
+
+  <section aria-labelledby="zusatzTitel">
+    <h2 id="zusatzTitel">Zusatzbausteine</h2>
+    <div id="meldung-zusatz" class="meldung fehler" role="alert" hidden></div>
+    <p class="hilfe">Zusätzliche Beträge, die HR bei einer Anstellung wählen kann. «Lohn» gehört zum Bruttolohn, «Entschädigung» ist kein Lohn (zum Beispiel Spesen oder private IT-Mittel).</p>
+    <p id="zusatzLeer" class="leer">Keine Zusatzbausteine vorhanden.</p>
+    <div class="tabelle-scroll" tabindex="0" role="region" aria-label="Tabelle der Zusatzbausteine">
+      <table id="zusatzTabelle">
+        <thead><tr><th>Bezeichnung</th><th>Art</th><th class="zahl">Betrag</th><th><span class="nur-sr">Aktion</span></th></tr></thead>
+        <tbody id="zusatzBody"></tbody>
+      </table>
+    </div>
+    <form id="zusatzNeu" class="neu" autocomplete="off"></form>
+  </section>
+
+  <section aria-labelledby="festTitel">
+    <h2 id="festTitel">Abschlüsse und Funktionsbereiche (nur lesen)</h2>
+    <p class="meldung info">Diese Tabellen stammen aus dem L-GAV-Kommentar. Änderung nur in der Datei config/config.js.</p>
+    <details>
+      <summary>Funktionsbereiche</summary>
+      <div class="tabelle-scroll" tabindex="0" role="region" aria-label="Tabelle der Funktionsbereiche">
+        <table><thead><tr><th>Bereich</th><th>ID</th></tr></thead><tbody id="bereicheBody"></tbody></table>
+      </div>
+    </details>
+    <details>
+      <summary>Anerkannte Abschlüsse</summary>
+      <div class="tabelle-scroll" tabindex="0" role="region" aria-label="Tabelle der Abschlüsse">
+        <table><thead><tr><th>Abschluss</th><th>Stufe</th><th>Gilt in</th></tr></thead><tbody id="abschluesseBody"></tbody></table>
+      </div>
+    </details>
+  </section>
+</main>
+
+<script src="config/config.js"></script>
+<script src="src/config.js"></script>
+<script src="src/config-editor.js"></script>
+<script src="src/config-editor-app.js"></script>
+</body>
+</html>

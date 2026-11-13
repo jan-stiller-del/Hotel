@@ -1,0 +1,40 @@
+/* Ergänzung zu hr.css für die Konfigurationsseite (intern) */
+.editor { max-width:1100px; margin:0 auto; padding:16px; display:grid; gap:20px; grid-template-columns:minmax(0,1fr); }
+.editor section { min-width:0; }
+.editor h2 { margin:0 0 8px; font-size:1.2rem; }
+.editor h3 { margin:12px 0 4px; font-size:1rem; }
+.raster { display:grid; gap:0 12px; grid-template-columns:repeat(auto-fill, minmax(150px, 1fr)); }
+.raster-3 { grid-template-columns:repeat(3, minmax(0,1fr)); }
+.knoepfe { display:flex; flex-wrap:wrap; gap:8px; margin:8px 0; }
+button, .datei-knopf { font:inherit; padding:8px 14px; border:1px solid var(--akzent); border-radius:6px; background:var(--akzent); color:#fff; cursor:pointer; }
+button:disabled { background:var(--rand); border-color:var(--rand); color:var(--grau); cursor:not-allowed; }
+.datei-knopf { display:inline-block; margin:0; background:#fff; color:var(--akzent); font-size:1rem; }
+#importDatei { position:absolute; width:1px; height:1px; opacity:0; overflow:hidden; }
+#importDatei:focus-visible + button, #importDatei:focus-visible ~ .datei-knopf { outline:3px solid #6aa5e0; }
+.leiste:focus-within .datei-knopf { outline-offset:1px; }
+.knoepfe button:last-child, .knoepfe button#entwurfVerwerfen { background:#fff; color:var(--akzent); }
+.knoepfe #exportKnopf { background:var(--akzent); color:#fff; }
+.knoepfe #exportKnopf:disabled { background:var(--rand); color:var(--grau); }
+input[type=text], input[type=date], select { width:100%; max-width:100%; font:inherit; padding:8px; border:1px solid var(--rand); border-radius:6px; background:#fff; }
+input[aria-invalid=true] { border-color:var(--fehler-rand); border-width:2px; background:var(--fehler-bg); }
+.status-kopf { margin:0; font-weight:600; }
+.status-titel { margin:6px 0 0; font-weight:600; }
+.jahr, .stufe { margin:0 0 12px; }
+.jahr-neu { border:1px dashed var(--rand); border-radius:8px; padding:4px 12px 8px; margin-bottom:12px; }
+.tabelle-scroll { overflow-x:auto; border:1px solid var(--rand); border-radius:6px; max-width:100%; }
+.tabelle-scroll table { min-width:760px; }
+.tabelle-scroll table#zusatzTabelle { min-width:420px; }
+.tabelle-scroll input[type=text], .tabelle-scroll select, .tabelle-scroll input[type=number] { padding:4px 6px; }
+.funktionen td:first-child input { min-width:11rem; }
+.funktionen td.zahl input { min-width:5.5rem; text-align:right; }
+.funktionen td.mitte { text-align:center; }
+.funktionen td.mitte input { margin:0; }
+.funktionen select { min-width:8rem; }
+.neu { margin-top:12px; border:1px dashed var(--rand); border-radius:8px; padding:4px 12px 8px; }
+.neu:empty { display:none; }
+label.kurz { display:inline-flex; margin-right:16px; }
+.nur-sr { position:absolute; width:1px; height:1px; overflow:hidden; clip:rect(0 0 0 0); white-space:nowrap; }
+details { margin:8px 0; }
+summary { cursor:pointer; font-weight:600; padding:4px 0; }
+.leiste .meldung p { margin:0 0 4px; }
+@media (max-width:480px) { .raster-3 { grid-template-columns:repeat(3, minmax(0,1fr)); gap:0 6px; } .editor { padding:12px 16px; } }

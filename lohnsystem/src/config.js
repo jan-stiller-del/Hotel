@@ -171,9 +171,41 @@
     return 'window.LOHN_CONFIG = ' + JSON.stringify(config, null, 2) + ';\n';
   }
 
+  // Entfernt // und /* */ ausserhalb von Strings; null bei unbeendetem Blockkommentar.
+  function ohneKommentare(text) {
+    var aus = '';
+    var i = 0;
+    var n = text.length;
+    while (i < n) {
+      var c = text.charAt(i);
+      var d = text.charAt(i + 1);
+      if (c === '"' || c === "'") {
+        var j = i + 1;
+        while (j < n && text.charAt(j) !== c) {
+          j += text.charAt(j) === '\\' ? 2 : 1;
+        }
+        aus += text.slice(i, j + 1);
+        i = j + 1;
+      } else if (c === '/' && d === '/') {
+        while (i < n && text.charAt(i) !== '\n') { i++; }
+      } else if (c === '/' && d === '*') {
+        var ende = text.indexOf('*/', i + 2);
+        if (ende < 0) { return null; }
+        aus += ' ';
+        i = ende + 2;
+      } else {
+        aus += c;
+        i++;
+      }
+    }
+    return aus;
+  }
+
   function parseConfigDatei(text) {
     var meldung = 'Konfigurationsdatei nicht lesbar';
-    var s = String(text === undefined || text === null ? '' : text).trim();
+    var roh = ohneKommentare(String(text === undefined || text === null ? '' : text));
+    if (roh === null) { throw new Error(meldung); }
+    var s = roh.trim();
     var json = s;
     var i = s.indexOf('=');
     if (i >= 0 && !/^[\[{]/.test(s)) {

@@ -351,3 +351,25 @@ test('stufeMitErklaerung: Stufe mit Erklärung, Praktikum, fehlende Erklärung, 
   assert.strictEqual(stufeErklaerung(ladeStandardkonfiguration(), 'II'), 'zweijährige Grundbildung (EBA)');
   assert.strictEqual(stufeErklaerung(c, 'IIIa'), '');
 });
+
+test('parseConfigDatei liest die ausgelieferte config.js mit Kommentaren', () => {
+  const text = fs.readFileSync(path.join(__dirname, '..', 'config', 'config.js'), 'utf8');
+  assert.ok(/^\s*\/\//m.test(text), 'Testvoraussetzung: Datei enthält Zeilenkommentare');
+  assert.deepStrictEqual(parseConfigDatei(text), ladeStandardkonfiguration());
+});
+
+test('parseConfigDatei entfernt Zeilen- und Blockkommentare ausserhalb von Strings', () => {
+  const text = '// Kopf mit = Zeichen\nwindow.LOHN_CONFIG = {\n  /* Block\n  über Zeilen */\n  "a": 1, // Rest\n  "b": [2, /* mitten */ 3]\n};\n';
+  assert.deepStrictEqual(parseConfigDatei(text), { a: 1, b: [2, 3] });
+});
+
+test('parseConfigDatei lässt // und /* in Strings stehen', () => {
+  const text = 'window.LOHN_CONFIG = { "url": "http://example.ch/x", "k": "a // b /* c */", "q": "mit \\" // Quote" }; // Ende';
+  assert.deepStrictEqual(parseConfigDatei(text),
+    { url: 'http://example.ch/x', k: 'a // b /* c */', q: 'mit " // Quote' });
+});
+
+test('parseConfigDatei: unbeendeter Blockkommentar ist nicht lesbar', () => {
+  assert.throws(() => parseConfigDatei('window.LOHN_CONFIG = {"a":1} /* offen'),
+    /Konfigurationsdatei nicht lesbar/);
+});
