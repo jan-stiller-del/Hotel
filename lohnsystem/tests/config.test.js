@@ -40,18 +40,56 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.strictEqual(c.abteilungen.length, 7);
   assert.deepStrictEqual(c.zusatzbausteine, []);
   assert.strictEqual(c.betrieb.wochenstunden, 43.5);
-  const anzahl = { reception: 9, housekeeping: 8, kueche: 9, service: 11, spa: 6, technik: 6, administration: 8 };
+  const anzahl = { reception: 11, housekeeping: 9, kueche: 14, service: 14, spa: 8, technik: 7, administration: 12 };
   for (const a of c.abteilungen) {
     assert.strictEqual(c.funktionen.filter((f) => f.abteilung === a.id).length, anzahl[a.id], a.id);
   }
-  assert.strictEqual(c.funktionen.length, 57);
-  assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 57);
+  assert.strictEqual(c.funktionen.length, 75);
+  assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 75);
   for (const f of c.funktionen) {
     assert.strictEqual(f.beispiel, true);
     assert.ok(f.id.startsWith(f.abteilung + '-'), f.id);
     assert.ok(f.bandMin < f.bandMax, f.id);
     if (['kueche', 'technik'].includes(f.abteilung)) assert.strictEqual(f.gaestekontakt, false, f.id);
     if (['reception', 'service', 'spa'].includes(f.abteilung)) assert.strictEqual(f.gaestekontakt, true, f.id);
+  }
+  for (const a of c.abteilungen) {
+    const labels = c.funktionen.filter((f) => f.abteilung === a.id).map((f) => f.label);
+    assert.strictEqual(new Set(labels).size, labels.length, 'Labels doppelt in ' + a.id);
+  }
+  const lab = (id) => c.funktionen.find((f) => f.id === id).label;
+  assert.strictEqual(lab('reception-receptionist'), 'Receptionist');
+  assert.strictEqual(lab('kueche-koch-efz'), 'Cuisinier');
+  assert.strictEqual(lab('kueche-kuechenangestellte-eba'), 'Commis de cuisine (Einstieg)');
+  assert.strictEqual(lab('service-restaurationsfachfrau-efz'), 'Demi-chef de rang');
+  assert.strictEqual(lab('technik-leitung'), 'Head of Engineering');
+  const neu = {
+    'reception-chauffeur': ['Chauffeur', true, 3735, 4500],
+    'reception-guest-relations': ['Guest Relations Agent', true, 4555, 5450],
+    'housekeeping-laundry-supervisor': ['Laundry Supervisor', false, 4555, 5450],
+    'kueche-saucier': ['Saucier', false, 5325, 6400],
+    'kueche-entremetier': ['Entremetier', false, 5325, 6400],
+    'kueche-garde-manger': ['Garde-manger', false, 5325, 6400],
+    'kueche-tournant': ['Tournant', false, 5325, 6400],
+    'kueche-cuisinier-fruehstueck': ['Cuisinier au petit-déjeuner', false, 4555, 5450],
+    'service-sommelier': ['Sommelier', true, 4663, 5600],
+    'service-chef-de-rang': ['Chef de rang', true, 4663, 5600],
+    'service-commis-de-bar': ['Commis de bar', true, 4094, 4900],
+    'spa-fitness-trainer': ['Fitness Trainer', true, 4555, 5450],
+    'spa-physiotherapist': ['Physiotherapist', true, 4555, 5450],
+    'technik-electrician': ['Electrician', false, 4555, 5450],
+    'administration-revenue-manager': ['Revenue Manager', false, 5325, 6400],
+    'administration-event-manager': ['Event Manager', true, 5325, 6400],
+    'administration-it-manager': ['IT Manager', false, 5325, 6400],
+    'administration-reservations-manager': ['Reservations Manager', false, 5325, 6400],
+  };
+  for (const [id, [label, g, min, max]] of Object.entries(neu)) {
+    const f = c.funktionen.find((x) => x.id === id);
+    assert.ok(f, id);
+    assert.strictEqual(f.label, label, id);
+    assert.strictEqual(f.gaestekontakt, g, id);
+    assert.strictEqual(f.bandMin, min, id);
+    assert.strictEqual(f.bandMax, max, id);
   }
   const gk = (id) => c.funktionen.find((f) => f.id === id).gaestekontakt;
   assert.strictEqual(gk('housekeeping-hausbursche'), false);
