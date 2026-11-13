@@ -110,3 +110,9 @@ test('zukuenftig: Tabelle noch nicht gueltig ergibt Hinweis mit Datum', () => {
   assert.equal(g.zukuenftig, false);
   assert.equal(g.mindestlohnHinweis, null);
 });
+
+test('Texte: Einstiegslohn ist nicht mehr an das Bandminimum gebunden (strikt nach Stufe)', () => {
+  const m = baueLeseModell(standardConfig(), '2027-02-01');
+  assert.equal(m.texte.berechnung, 'Einstiegslohn = Mindestlohn der Stufe der Person + Zuschläge, höchstens bis zum Ende des Lohnbands der Funktion. Liegt die Stufe der Person tiefer als die typische Stufe der Funktion, kann der Lohn unter dem Lohnband liegen.');
+  assert.equal(m.texte.baender, 'Das Lohnband zeigt den Einstiegsbereich für die typische Stufe der Funktion. Massgebend für den Einstiegslohn ist die Stufe der Person (Abschluss und Funktionsbereich).');
+});

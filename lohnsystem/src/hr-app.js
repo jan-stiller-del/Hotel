@@ -416,7 +416,7 @@
       out.appendChild(el('h3', null, 'Rechenweg'));
       var rw = el('table');
       e.positionen.forEach(function (p) { zeile(rw, p.label, chf(p.betrag)); });
-      zeile(rw, 'Vorschlag Vollzeit (begrenzt auf das Lohnband)', chf(e.vorschlag), 'summe');
+      zeile(rw, 'Vorschlag Vollzeit (höchstens bis Bandende der Funktion)', chf(e.vorschlag), 'summe');
       out.appendChild(rw);
 
       if (e.entschaedigungen.length) {

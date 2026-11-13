@@ -83,6 +83,10 @@
       mindestlohnHinweis: zukuenftig ? 'Diese Mindestlöhne gelten erst ab dem ' + datumCH(tabelle.gueltigAbJahresbetrieb) + '. Bis dahin gelten die bisherigen Mindestlöhne.' : null,
       mindestloehne: mindestloehne,
       baender: baender,
+      texte: {
+        berechnung: 'Einstiegslohn = Mindestlohn der Stufe der Person + Zuschläge, höchstens bis zum Ende des Lohnbands der Funktion. Liegt die Stufe der Person tiefer als die typische Stufe der Funktion, kann der Lohn unter dem Lohnband liegen.',
+        baender: 'Das Lohnband zeigt den Einstiegsbereich für die typische Stufe der Funktion. Massgebend für den Einstiegslohn ist die Stufe der Person (Abschluss und Funktionsbereich).'
+      },
       regeln: {
         erfahrungProJahr: b.erfahrungProJahr,
         maxErfahrungsjahre: betrieb.maxErfahrungsjahre,
@@ -155,7 +159,7 @@
     var s1 = el('section');
     s1.appendChild(el('h2', 'Wie wird der Einstiegslohn berechnet?'));
     s1.appendChild(el('p', 'Alle Beträge sind Bruttolöhne pro Monat in CHF für eine Vollzeitstelle (' + zahl(r.wochenstunden) + ' Stunden pro Woche). Der 13. Monatslohn (' + zahl(r.dreizehnterProzent) + ' %) kommt zusätzlich dazu und wird separat ausgewiesen.'));
-    s1.appendChild(el('p', 'Einstiegslohn = Mindestlohn der Stufe + Zuschläge, innerhalb des Lohnbands der Funktion.'));
+    s1.appendChild(el('p', m.texte.berechnung));
     ziel.appendChild(s1);
 
     var s2 = el('section');
@@ -167,7 +171,7 @@
 
     var s3 = el('section');
     s3.appendChild(el('h2', 'Lohnbänder pro Abteilung und Funktion'));
-    s3.appendChild(el('p', 'Das Lohnband zeigt, in welchem Rahmen der Einstiegslohn einer Funktion liegt. «Gästekontakt» bedeutet, dass bei der Funktion Sprachzuschläge möglich sind.'));
+    s3.appendChild(el('p', m.texte.baender + ' «Gästekontakt» bedeutet, dass bei der Funktion Sprachzuschläge möglich sind.'));
     m.baender.forEach(function (b) {
       var h = el('h3', b.abteilung);
       s3.appendChild(h);
