@@ -304,3 +304,29 @@ test('baueStufenvergleichZeilen: Lohn unter dem Mindestlohn zeigt Minus', () => 
   const z = baueStufenvergleichZeilen(Object.assign({}, SV, { ueberStufe: -50, ueberStufeProzent: -1.1, uebersprungen: false }));
   assert.equal(z[0].text, 'Lohn über Stufen-Mindestlohn: -CHF 50.00 (-1,1 %)');
 });
+
+test('baueAuszahlungZeilen: Kader mit eigener Pauschalenzeile, Reihenfolge und Beschriftung', () => {
+  const cfg = { betrieb: { dreizehnterProzent: 8.33 } };
+  const kader = {
+    monatslohn: 5325, ueberstundenpauschale: 795.8, dreizehnter: 509.9, totalMonat: 6630.7, jahresbrutto: 79568.4,
+    bezeichnungen: {
+      grundlohn: 'Grundlohn (43,5 h)',
+      pauschale: 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)',
+      dreizehnter: '13. Monatslohn (auf Grundlohn plus Pauschale)'
+    }
+  };
+  const z = baueAuszahlungZeilen(kader, cfg, { beschaeftigungsgrad: '100' });
+  assert.deepEqual(z.map(r => r.art), ['lohn', 'pauschale', 'dreizehnter', 'summe', 'jahr', 'hinweis']);
+  assert.equal(z[0].label, 'Grundlohn (43,5 h)');
+  assert.equal(z[0].betrag, 5325);
+  assert.equal(z[1].label, 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)');
+  assert.equal(z[1].betrag, 795.8);
+  assert.equal(z[2].label, '13. Monatslohn (auf Grundlohn plus Pauschale)');
+  assert.equal(z[3].betrag, 6630.7);
+});
+
+test('baueAuszahlungZeilen: ohne Pauschale unveraendert (Nicht-Kader)', () => {
+  const z = baueAuszahlungZeilen(Object.assign({ ueberstundenpauschale: null, bezeichnungen: null }, ERG),
+    { betrieb: { dreizehnterProzent: 8.33 } }, { beschaeftigungsgrad: '100' });
+  assert.deepEqual(z.map(r => r.art), ['lohn', 'dreizehnter', 'summe', 'jahr', 'hinweis']);
+});

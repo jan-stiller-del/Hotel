@@ -29,6 +29,23 @@
       fehler.push('Wochenstunden müssen eine Zahl grösser als 0 sein.');
     }
 
+    var hatKader = (Array.isArray(config.funktionen) ? config.funktionen : []).some(function (f) { return f && f.kader === true; });
+    if (betrieb && (hatKader || betrieb.kaderWochenstunden !== undefined)) {
+      var kws = betrieb.kaderWochenstunden;
+      if (!istZahl(kws) || (istZahl(betrieb.wochenstunden) && kws <= betrieb.wochenstunden) || kws > 50) {
+        fehler.push('Kader-Wochenstunden müssen eine Zahl grösser als die Wochenstunden und höchstens 50 sein.');
+      }
+      if (!istZahl(betrieb.ueberstundenSatz) || betrieb.ueberstundenSatz < 1) {
+        fehler.push('Überstundensatz muss eine Zahl ab 1 sein (1 = 100 %).');
+      }
+      if (!istZahl(betrieb.ueberstundenGrenze6750) || betrieb.ueberstundenGrenze6750 <= 0) {
+        fehler.push('Die Grenze für die Überstundenentschädigung muss eine Zahl grösser als 0 sein.');
+      }
+      if (typeof betrieb.dreizehnterInklPauschale !== 'boolean') {
+        fehler.push('«13. Monatslohn inkl. Pauschale» muss ja oder nein sein.');
+      }
+    }
+
     var tabellen = config.mindestloehne;
     if (!Array.isArray(tabellen) || tabellen.length === 0) {
       fehler.push('Keine Mindestlohn-Tabelle vorhanden.');

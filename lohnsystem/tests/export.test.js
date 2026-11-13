@@ -148,3 +148,27 @@ test('baueExportZeilen: ohne Stufenvergleich keine Vergleichszeilen', () => {
   assert.equal(finde(z, 'Lohn über Stufen-Mindestlohn').length, 0);
   assert.equal(finde(z, 'Nächsthöhere Stufe').length, 0);
 });
+
+test('baueExportZeilen: Kader-Zeilen mit Pauschale als Zahl, aus kontext.betraege', () => {
+  const k = Object.assign({}, kontext, { beschaeftigungsgrad: 100, betraege: {
+    monatslohn: 5325, ueberstundenpauschale: 795.8, dreizehnter: 509.9, totalMonat: 6630.7, jahresbrutto: 79568.4, stundenansatz: 28.25,
+    bezeichnungen: { grundlohn: 'Grundlohn (43,5 h)',
+      pauschale: 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)',
+      dreizehnter: '13. Monatslohn (auf Grundlohn plus Pauschale)' } } });
+  const z = X.baueExportZeilen(ergebnis(), k);
+  const labels = z.map(r => r[0]);
+  const i = labels.indexOf('Auszahlung pro Monat');
+  assert.deepEqual(labels.slice(i + 1, i + 6), ['Grundlohn (43,5 h)',
+    'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)',
+    '13. Monatslohn (auf Grundlohn plus Pauschale)', 'Total pro Monat', 'Jahresbrutto']);
+  assert.equal(z[i + 1][1], 5325);
+  assert.equal(z[i + 2][1], 795.8);
+  assert.equal(typeof z[i + 2][1], 'number');
+  assert.equal(z[i + 3][1], 509.9);
+});
+
+test('baueExportZeilen: ohne Pauschale bleibt der Block wie bisher', () => {
+  const z = X.baueExportZeilen(ergebnis(), kontext);
+  assert.ok(!z.some(r => /Überstundenpauschale/.test(r[0])));
+  assert.equal(finde(z, 'Monatslohn brutto bei 80 %')[0][1], 4032);
+});

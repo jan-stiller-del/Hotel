@@ -257,3 +257,33 @@ test('Abschluss mit ungültiger Stufe oder reservierter Id keiner wird abgelehnt
   d.abschluesse[0].id = 'keiner';
   assert.strictEqual(validateConfig(d).ok, false);
 });
+
+test('Kader-Funktionen und Betriebswerte in der Standardkonfiguration', () => {
+  const c = ladeStandardkonfiguration();
+  assert.strictEqual(c.betrieb.kaderWochenstunden, 50);
+  assert.strictEqual(c.betrieb.ueberstundenSatz, 1);
+  assert.strictEqual(c.betrieb.ueberstundenGrenze6750, 6750);
+  assert.strictEqual(c.betrieb.dreizehnterInklPauschale, true);
+  const kader = c.funktionen.filter((f) => f.kader === true).map((f) => f.label).sort();
+  assert.deepStrictEqual(kader, ['Chef de cuisine', 'Directeur de restaurant', 'Event Manager', 'Executive Housekeeper',
+    'Front Office Manager', 'HR Manager', 'Head of Engineering', 'IT Manager', 'Marketing Manager',
+    'Reservations Manager', 'Revenue Manager', 'Spa Manager']);
+  assert.strictEqual(c.funktionen.find((f) => f.label === 'Chef de partie').kader === true, false);
+});
+
+test('Kader-Werte werden validiert', () => {
+  const fehler = (aendern) => { const c = kopie(); aendern(c.betrieb); return validateConfig(c); };
+  assert.strictEqual(fehler((b) => { b.kaderWochenstunden = 43.5; }).ok, false);
+  assert.strictEqual(fehler((b) => { b.kaderWochenstunden = 51; }).ok, false);
+  assert.strictEqual(fehler((b) => { b.kaderWochenstunden = 'x'; }).ok, false);
+  assert.strictEqual(fehler((b) => { b.ueberstundenSatz = 0.9; }).ok, false);
+  assert.strictEqual(fehler((b) => { b.ueberstundenGrenze6750 = 0; }).ok, false);
+  assert.strictEqual(fehler((b) => { b.dreizehnterInklPauschale = 'ja'; }).ok, false);
+  assert.strictEqual(fehler((b) => { b.kaderWochenstunden = 44; b.ueberstundenSatz = 1.25; }).ok, true);
+  const ohne = kopie();
+  delete ohne.betrieb.kaderWochenstunden;
+  const r = validateConfig(ohne);
+  assert.strictEqual(r.ok, false); // Kader-Funktionen ohne Betriebswerte
+  ohne.funktionen.forEach((f) => { f.kader = false; });
+  assert.strictEqual(validateConfig(ohne).ok, true);
+});

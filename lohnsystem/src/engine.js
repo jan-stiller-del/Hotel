@@ -19,13 +19,39 @@
   function runde5(x) { return Math.round(x * 20 + 1e-9) / 20; }
   function runde2(x) { return Math.round(x * 100 + 1e-9) / 100; }
 
-  // Alle Beträge aus einem Vollzeit-Monatslohn; einzige Stelle der Rundungsregeln.
-  // opt: { beschaeftigungsgrad, einarbeitung: { erlaubt, reduktionProzent } | null }
+  function dezimal(x) { return String(x).replace('.', ','); }
+
+  // Alle Beträge aus einem Vollzeit-Monatslohn (Grundlohn); einzige Stelle der Rundungsregeln.
+  // opt: { beschaeftigungsgrad, einarbeitung: { erlaubt, reduktionProzent } | null, kader: boolean }
+  // Kader: Überstundenpauschale = Stundenansatz (2 Stellen) x Pauschalstunden pro Monat (2 Stellen) x Satz, bei Teilzeit auf den Beschäftigungsgrad skaliert.
   function rechneBetraege(config, vollzeitLohn, opt) {
     var betrieb = config.betrieb;
-    var monatslohn = runde5(vollzeitLohn * opt.beschaeftigungsgrad / 100);
-    var dreizehnter = runde5(monatslohn * betrieb.dreizehnterProzent / 100);
-    var totalMonat = runde2(monatslohn + dreizehnter);
+    var grad = opt.beschaeftigungsgrad;
+    var monatslohn = runde5(vollzeitLohn * grad / 100);
+    var stundenansatz = runde2(vollzeitLohn / (betrieb.wochenstunden * 52 / 12));
+    var kader = !!opt.kader && istZahl(betrieb.kaderWochenstunden);
+    var pauschale = null;
+    var pauschale125 = null;
+    var stundenProMonat = null;
+    var bezeichnungen = null;
+    if (kader) {
+      var satz = istZahl(betrieb.ueberstundenSatz) ? betrieb.ueberstundenSatz : 1;
+      var diff = betrieb.kaderWochenstunden - betrieb.wochenstunden;
+      var vollStunden = runde2(diff * 52 / 12);
+      pauschale = runde5(stundenansatz * vollStunden * satz * grad / 100);
+      pauschale125 = runde5(stundenansatz * vollStunden * 1.25 * grad / 100);
+      stundenProMonat = runde2(vollStunden * grad / 100);
+      var inkl = betrieb.dreizehnterInklPauschale !== false;
+      bezeichnungen = {
+        grundlohn: 'Grundlohn (' + dezimal(betrieb.wochenstunden) + ' h)' + (grad === 100 ? '' : ' bei ' + dezimal(grad) + ' %'),
+        pauschale: 'Überstundenpauschale (' + dezimal(runde2(diff * grad / 100)) + ' h pro Woche, ' + dezimal(stundenProMonat) + ' h pro Monat, ' + dezimal(Math.round(satz * 10000) / 100) + ' %)',
+        dreizehnter: inkl ? '13. Monatslohn (auf Grundlohn plus Pauschale)'
+          : '13. Monatslohn (' + dezimal(betrieb.dreizehnterProzent) + ' %), monatlich ausbezahlt, separat ausgewiesen'
+      };
+    }
+    var basis13 = kader && betrieb.dreizehnterInklPauschale !== false ? monatslohn + pauschale : monatslohn;
+    var dreizehnter = runde5(basis13 * betrieb.dreizehnterProzent / 100);
+    var totalMonat = runde2(monatslohn + (pauschale || 0) + dreizehnter);
     var reduzierterMonatslohn = null;
     var reduzierterTotal = null;
     var ein = opt.einarbeitung;
@@ -36,8 +62,10 @@
     return {
       monatslohn: monatslohn, dreizehnter: dreizehnter, totalMonat: totalMonat,
       jahresbrutto: runde2(totalMonat * 12),
-      stundenansatz: runde2(vollzeitLohn / (betrieb.wochenstunden * 52 / 12)),
-      reduzierterMonatslohn: reduzierterMonatslohn, reduzierterTotal: reduzierterTotal
+      stundenansatz: stundenansatz,
+      reduzierterMonatslohn: reduzierterMonatslohn, reduzierterTotal: reduzierterTotal,
+      ueberstundenpauschale: pauschale, pauschaleStundenProMonat: stundenProMonat, pauschale125: pauschale125,
+      bezeichnungen: bezeichnungen
     };
   }
 
@@ -117,7 +145,7 @@
       modus: modus, stufe: null, mindestlohn: null, tabelleJahr: null, bandStart: null, bandMax: null,
       positionen: [], vorschlag: null, monatslohn: null, dreizehnter: null, totalMonat: null,
       jahresbrutto: null, stundenansatz: null, entschaedigungen: [], spanne: null, spanneStufen: null, einarbeitung: null,
-      stufenvergleich: null,
+      stufenvergleich: null, kader: null, ueberstundenpauschale: null, bezeichnungen: null,
       warnungen: warnungen || [], fehler: fehler || []
     };
   }
@@ -300,7 +328,8 @@
       vorschlag = runde5(Math.min(Math.max(summe, bandStart), bandMax));
     }
 
-    var betraege = rechneBetraege(config, vorschlag, { beschaeftigungsgrad: input.beschaeftigungsgrad, einarbeitung: null });
+    var istKader = sonder !== 'praktikum' && funktion.kader === true && istZahl(betrieb.kaderWochenstunden);
+    var betraege = rechneBetraege(config, vorschlag, { beschaeftigungsgrad: input.beschaeftigungsgrad, einarbeitung: null, kader: istKader });
     var monatslohn = betraege.monatslohn;
 
     var spanne = null;
@@ -338,12 +367,29 @@
         + ' (CHF ' + stufenvergleich.mindestlohnNaechste.toFixed(2) + '). Prüfen, ob die Einstufung stimmt und ob der Lohn gegenüber Mitarbeitenden gleicher Qualifikation begründbar ist.' });
     }
 
+    var kaderErgebnis = null;
+    if (istKader) {
+      var grenze = betrieb.ueberstundenGrenze6750;
+      var unterGrenze = vorschlag < grenze;
+      kaderErgebnis = { aktiv: true, pauschale: betraege.ueberstundenpauschale, pauschale125: betraege.pauschale125,
+        stundenProMonat: betraege.pauschaleStundenProMonat, grundlohnUnterGrenze: unterGrenze };
+      if (unterGrenze && betrieb.ueberstundenSatz < 1.25) {
+        warnungen.push({ code: 'kader_voraussetzungen', text: 'Pauschale zu 100 % nur zulässig bei Arbeitszeiterfassung (Art. 21 L-GAV), monatlicher schriftlicher Saldomitteilung und Auszahlung spätestens mit der letzten Lohnzahlung; sonst 125 % (CHF '
+          + betraege.pauschale125.toFixed(2) + '). Eine 50-Stunden-Normalarbeitszeit ist unter CHF 6\'750 nicht vereinbar, es handelt sich um Überstunden.' });
+      }
+      if (!unterGrenze) {
+        warnungen.push({ code: 'kader_ab_grenze', text: 'Überstundenentschädigung kann schriftlich frei vereinbart werden, Art. 15 Ziff. 7.' });
+      }
+      warnungen.push({ code: 'kader_hoechstarbeitszeit', text: '50 Stunden = gesetzliche Höchstarbeitszeit im Gastgewerbe, Überzeit darüber mit 25 % Zuschlag.' });
+    }
+
     return {
       modus: 'berechnet', stufe: stufe, mindestlohn: mindestlohn, tabelleJahr: tab.tabelle.jahr,
       bandStart: bandStart, bandMax: bandMax, positionen: positionen, vorschlag: vorschlag,
       monatslohn: monatslohn, dreizehnter: betraege.dreizehnter, totalMonat: betraege.totalMonat,
       jahresbrutto: betraege.jahresbrutto,
       stundenansatz: betraege.stundenansatz,
+      ueberstundenpauschale: betraege.ueberstundenpauschale, kader: kaderErgebnis, bezeichnungen: betraege.bezeichnungen,
       entschaedigungen: entschaedigungen, spanne: spanne, spanneStufen: spanneStufen, einarbeitung: einarbeitung,
       stufenvergleich: stufenvergleich,
       warnungen: warnungen, fehler: []

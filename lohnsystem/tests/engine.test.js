@@ -516,3 +516,114 @@ test('berechne: Teilzeit 60 % vergleicht den Vollzeitlohn, nicht den skalierten 
   assert.equal(e.stufenvergleich.ueberStufe, 150);
   assert.equal(e.stufenvergleich.uebersprungen, true);
 });
+
+// ---- Task 5k: Kader mit 50-Stunden-Woche und Ueberstundenpauschale ----
+function kaderConfig(betriebExtra) {
+  const c = baueConfig();
+  Object.assign(c.betrieb, { kaderWochenstunden: 50, ueberstundenSatz: 1.0, ueberstundenGrenze6750: 6750, dreizehnterInklPauschale: true }, betriebExtra || {});
+  c.funktionen.push(
+    FX.funktion({ id: 'chef', abteilung: 'a', label: 'Chef', gaestekontakt: false, bandMin: 5325, bandMax: 5700, kader: true }),
+    FX.funktion({ id: 'chefhoch', abteilung: 'a', label: 'Chef hoch', gaestekontakt: false, bandMin: 6800, bandMax: 7500, kader: true }),
+    FX.funktion({ id: 'chefweit', abteilung: 'a', label: 'Chef weit', gaestekontakt: false, bandMin: 4300, bandMax: 5700, kader: true })
+  );
+  return c;
+}
+const kEin = (extra) => eingabe(Object.assign({ funktionId: 'chef', abschluss: 'berufspruefung' }, extra || {}));
+
+test('Kader 5325: Stundenansatz, Pauschale 100 % und 125 %, 13. Monatslohn und Total', () => {
+  const e = E.berechne(kaderConfig(), kEin());
+  assert.equal(e.stufe, 'IV');
+  assert.equal(e.vorschlag, 5325);
+  assert.equal(e.monatslohn, 5325);
+  assert.equal(e.stundenansatz, 28.25);
+  assert.equal(e.ueberstundenpauschale, 795.8);
+  assert.equal(e.kader.aktiv, true);
+  assert.equal(e.kader.pauschale, 795.8);
+  assert.equal(e.kader.pauschale125, 994.75);
+  assert.equal(e.kader.stundenProMonat, 28.17);
+  assert.equal(e.kader.grundlohnUnterGrenze, true);
+  assert.equal(e.dreizehnter, 509.85); // (5325 + 795.80) x 8,33 %
+  assert.equal(e.totalMonat, 6630.65);
+  assert.equal(e.jahresbrutto, 79567.8);
+});
+
+test('Kader: Mindestlohn, Band und Stufenvergleich bleiben auf dem Grundlohn', () => {
+  const e = E.berechne(kaderConfig(), kEin());
+  assert.equal(e.mindestlohn, 5325);
+  assert.equal(e.bandStart, 5325);
+  assert.equal(e.stufenvergleich.ueberStufe, 0);
+  // Die Pauschale fuellt den Mindestlohn nicht auf: Band darunter wird auf den Mindestlohn angehoben, nicht um die Pauschale gekuerzt
+  const weit = E.berechne(kaderConfig(), kEin({ funktionId: 'chefweit' }));
+  assert.equal(weit.vorschlag, 5325);
+  assert.equal(weit.monatslohn, 5325);
+});
+
+test('Kader: Hinweise unter 6750, alle drei Texte', () => {
+  const e = E.berechne(kaderConfig(), kEin());
+  const v = e.warnungen.find((w) => w.code === 'kader_voraussetzungen');
+  assert.ok(v);
+  assert.equal(v.text, 'Pauschale zu 100 % nur zulässig bei Arbeitszeiterfassung (Art. 21 L-GAV), monatlicher schriftlicher Saldomitteilung und Auszahlung spätestens mit der letzten Lohnzahlung; sonst 125 % (CHF 994.75). Eine 50-Stunden-Normalarbeitszeit ist unter CHF 6\'750 nicht vereinbar, es handelt sich um Überstunden.');
+  const h = e.warnungen.find((w) => w.code === 'kader_hoechstarbeitszeit');
+  assert.equal(h.text, '50 Stunden = gesetzliche Höchstarbeitszeit im Gastgewerbe, Überzeit darüber mit 25 % Zuschlag.');
+  assert.ok(!e.warnungen.some((w) => w.code === 'kader_ab_grenze'));
+});
+
+test('Kader ab 6750 Grundlohn: Hinweis kader_ab_grenze, keine Voraussetzungswarnung', () => {
+  const e = E.berechne(kaderConfig(), kEin({ funktionId: 'chefhoch' }));
+  assert.equal(e.vorschlag, 6800);
+  assert.equal(e.kader.grundlohnUnterGrenze, false);
+  const a = e.warnungen.find((w) => w.code === 'kader_ab_grenze');
+  assert.equal(a.text, 'Überstundenentschädigung kann schriftlich frei vereinbart werden, Art. 15 Ziff. 7.');
+  assert.ok(!e.warnungen.some((w) => w.code === 'kader_voraussetzungen'));
+  assert.ok(e.warnungen.some((w) => w.code === 'kader_hoechstarbeitszeit'));
+});
+
+test('Kader: Grundlohn genau 6750 zaehlt als ab Grenze; Pauschale hilft nicht, die Grenze zu erreichen', () => {
+  const ab = E.berechne(kaderConfig({ ueberstundenGrenze6750: 5325 }), kEin());
+  assert.equal(ab.kader.grundlohnUnterGrenze, false);
+  const unter = E.berechne(kaderConfig({ ueberstundenGrenze6750: 6000 }), kEin()); // Grundlohn 5325 + Pauschale 795.80 > 6000
+  assert.equal(unter.kader.grundlohnUnterGrenze, true);
+});
+
+test('Kader mit Satz 1,25: keine Voraussetzungswarnung', () => {
+  const e = E.berechne(kaderConfig({ ueberstundenSatz: 1.25 }), kEin());
+  assert.equal(e.kader.pauschale, 994.75);
+  assert.ok(!e.warnungen.some((w) => w.code === 'kader_voraussetzungen'));
+});
+
+test('Nicht-Kader: unveraendert, keine Pauschale', () => {
+  const e = E.berechne(kaderConfig(), eingabe({ funktionId: 'koch', abschluss: 'berufspruefung' }));
+  assert.equal(e.kader, null);
+  assert.equal(e.ueberstundenpauschale, null);
+  assert.equal(e.totalMonat, E.berechne(baueConfig(), eingabe({ funktionId: 'koch', abschluss: 'berufspruefung' })).totalMonat);
+  assert.ok(!e.warnungen.some((w) => /^kader_/.test(w.code)));
+});
+
+test('Kader in Teilzeit 80 %: Pauschale skaliert', () => {
+  const e = E.berechne(kaderConfig(), kEin({ beschaeftigungsgrad: 80 }));
+  assert.equal(e.monatslohn, 4260);
+  assert.equal(e.ueberstundenpauschale, 636.65);
+  assert.equal(e.dreizehnter, 407.9);
+  assert.equal(e.totalMonat, 5304.55);
+  assert.equal(e.stundenansatz, 28.25);
+});
+
+test('dreizehnterInklPauschale false: 13. Monatslohn nur auf den Grundlohn', () => {
+  const e = E.berechne(kaderConfig({ dreizehnterInklPauschale: false }), kEin());
+  assert.equal(e.dreizehnter, 443.55);
+  assert.equal(e.totalMonat, 6564.35);
+});
+
+test('rechneBetraege: Kader-Felder und Bezeichnungen', () => {
+  const b = E.rechneBetraege(kaderConfig(), 5325, { beschaeftigungsgrad: 100, einarbeitung: null, kader: true });
+  assert.equal(b.ueberstundenpauschale, 795.8);
+  assert.equal(b.pauschaleStundenProMonat, 28.17);
+  assert.equal(b.pauschale125, 994.75);
+  assert.equal(b.bezeichnungen.grundlohn, 'Grundlohn (43,5 h)');
+  assert.equal(b.bezeichnungen.pauschale, 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)');
+  assert.equal(b.bezeichnungen.dreizehnter, '13. Monatslohn (auf Grundlohn plus Pauschale)');
+  const n = E.rechneBetraege(kaderConfig(), 5325, { beschaeftigungsgrad: 100, einarbeitung: null, kader: false });
+  assert.equal(n.ueberstundenpauschale, null);
+  assert.equal(n.pauschale125, null);
+  assert.equal(n.bezeichnungen, null);
+});

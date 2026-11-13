@@ -50,8 +50,10 @@
     var b = k.betraege;
     // Eigener Block: der 13. Monatslohn steht nie im Rechenweg, sondern hier als eigene, benannte Zeile.
     add('Auszahlung pro Monat', '');
-    add('Monatslohn brutto ' + (Number(k.beschaeftigungsgrad) === 100 ? '(Vollzeit)' : 'bei ' + prozentText(k.beschaeftigungsgrad) + ' %'), b.monatslohn);
-    add('13. Monatslohn (' + prozentText(k.dreizehnterProzent) + ' %), monatlich ausbezahlt, separat ausgewiesen', b.dreizehnter);
+    var kader = b.ueberstundenpauschale !== null && b.ueberstundenpauschale !== undefined && !!b.bezeichnungen;
+    add(kader ? b.bezeichnungen.grundlohn : 'Monatslohn brutto ' + (Number(k.beschaeftigungsgrad) === 100 ? '(Vollzeit)' : 'bei ' + prozentText(k.beschaeftigungsgrad) + ' %'), b.monatslohn);
+    if (kader) { add(b.bezeichnungen.pauschale, b.ueberstundenpauschale); }
+    add(kader ? b.bezeichnungen.dreizehnter : '13. Monatslohn (' + prozentText(k.dreizehnterProzent) + ' %), monatlich ausbezahlt, separat ausgewiesen', b.dreizehnter);
     add('Total pro Monat', b.totalMonat);
     add('Jahresbrutto', b.jahresbrutto);
     add('Hinweis', 'Der Mindestlohnvergleich erfolgt ohne 13. Monatslohn.');

@@ -80,13 +80,15 @@
     var satz = String(config.betrieb.dreizehnterProzent).replace('.', ',');
     var grad = Number(kontext.beschaeftigungsgrad);
     var lohnLabel = grad === 100 ? 'Monatslohn brutto (Vollzeit)' : 'Monatslohn brutto bei ' + String(grad).replace('.', ',') + ' %';
-    return [
-      { label: lohnLabel, betrag: e.monatslohn, art: 'lohn' },
-      { label: '13. Monatslohn (' + satz + ' %), monatlich ausbezahlt, separat ausgewiesen', betrag: e.dreizehnter, art: 'dreizehnter' },
+    var kader = e.ueberstundenpauschale !== null && e.ueberstundenpauschale !== undefined && !!e.bezeichnungen;
+    var zeilen = [{ label: kader ? e.bezeichnungen.grundlohn : lohnLabel, betrag: e.monatslohn, art: 'lohn' }];
+    if (kader) { zeilen.push({ label: e.bezeichnungen.pauschale, betrag: e.ueberstundenpauschale, art: 'pauschale' }); }
+    return zeilen.concat([
+      { label: kader ? e.bezeichnungen.dreizehnter : '13. Monatslohn (' + satz + ' %), monatlich ausbezahlt, separat ausgewiesen', betrag: e.dreizehnter, art: 'dreizehnter' },
       { label: 'Total pro Monat', betrag: e.totalMonat, art: 'summe' },
       { label: 'Jahresbrutto', betrag: e.jahresbrutto, art: 'jahr' },
       { label: 'Hinweis: Der Mindestlohnvergleich erfolgt ohne 13. Monatslohn.', betrag: null, art: 'hinweis' }
-    ];
+    ]);
   }
 
   // Anzeigezeilen {text, art} aus einem Stufenvergleich (Engine); art 'warnung' = hervorgehobene Zeile mit Marker.
@@ -494,7 +496,8 @@
         beschaeftigungsgrad: $('beschaeftigungsgrad').value, dreizehnterProzent: config.betrieb.dreizehnterProzent,
         betraege: window.LohnEngine.rechneBetraege(config, wert, {
           beschaeftigungsgrad: Number($('beschaeftigungsgrad').value),
-          einarbeitung: letztesErgebnis.einarbeitung
+          einarbeitung: letztesErgebnis.einarbeitung,
+          kader: !!letztesErgebnis.kader
         }),
         stufenvergleich: stufenvergleichFuer(letztesErgebnis, wert),
         gewaehlterMonatslohn: wert, begruendung: $('begruendung').value.trim(), freigabe: p.freigabe,
