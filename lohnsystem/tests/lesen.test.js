@@ -100,3 +100,13 @@ test('baenderBestaetigt false fuegt Hinweis hinzu, true nicht', () => {
   assert.equal(zeigeBaenderHinweis(c), true);
   assert.equal(zeigeBaenderHinweis(standardConfig()), false);
 });
+
+test('zukuenftig: Tabelle noch nicht gueltig ergibt Hinweis mit Datum', () => {
+  const m = baueLeseModell(standardConfig(), '2026-11-13');
+  assert.equal(m.zukuenftig, true);
+  assert.ok(m.mindestlohnHinweis.includes('1.1.2027'));
+  assert.ok(m.mindestlohnHinweis.includes('Bis dahin gelten die bisherigen Mindestlöhne.'));
+  const g = baueLeseModell(standardConfig(), '2027-02-01');
+  assert.equal(g.zukuenftig, false);
+  assert.equal(g.mindestlohnHinweis, null);
+});

@@ -49,6 +49,7 @@
     }
     var betrieb = config.betrieb;
     var b = config.bausteine;
+    var zukuenftig = tabelle.gueltigAbJahresbetrieb > datum;
 
     var mindestloehne = STUFEN_REIHENFOLGE.filter(function (st) { return istZahl(tabelle.stufen[st]); }).map(function (st) {
       return { stufe: st, label: stufenLabel(config, st), betrag: tabelle.stufen[st] };
@@ -78,6 +79,8 @@
     return {
       jahr: tabelle.jahr,
       gueltigAb: tabelle.gueltigAbJahresbetrieb,
+      zukuenftig: zukuenftig,
+      mindestlohnHinweis: zukuenftig ? 'Diese Mindestlöhne gelten erst ab dem ' + datumCH(tabelle.gueltigAbJahresbetrieb) + '. Bis dahin gelten die bisherigen Mindestlöhne.' : null,
       mindestloehne: mindestloehne,
       baender: baender,
       regeln: {
@@ -157,6 +160,7 @@
 
     var s2 = el('section');
     s2.appendChild(el('h2', 'Mindestlöhne nach Stufe'));
+    if (m.mindestlohnHinweis) { s2.appendChild(el('p', m.mindestlohnHinweis, 'meldung info')); }
     s2.appendChild(tabelle('Mindestlöhne ' + m.jahr + ' (gültig ab ' + datumCH(m.gueltigAb) + '), brutto pro Monat in CHF', ['Stufe', 'Mindestlohn (CHF)'],
       m.mindestloehne.map(function (x) { return [x.label, chf(x.betrag)]; }), [1]));
     ziel.appendChild(s2);
