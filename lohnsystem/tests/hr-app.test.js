@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
+const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -221,4 +221,61 @@ test('stufeManuellBleibt: nur bei gleichem Abschluss und gleicher Funktion', () 
   assert.equal(stufeManuellBleibt({ abschluss: 'hf', funktionId: 'a' }, { abschluss: 'hf', funktionId: 'a' }), true);
   assert.equal(stufeManuellBleibt({ abschluss: 'hf', funktionId: 'a' }, { abschluss: 'x', funktionId: 'a' }), false);
   assert.equal(stufeManuellBleibt({ abschluss: 'hf', funktionId: 'a' }, { abschluss: 'hf', funktionId: 'b' }), false);
+});
+
+test('baueAnerkennungsZeile: manuelle Stufe bei Abschluss ohne Stufe, Text passt zu ergebnis.stufe', () => {
+  const cfg = standardConfig();
+  const r = baueAnerkennungsZeile(cfg, 'hf', 'service-chef-de-rang', { stufe: 'IV' }, { stufeManuell: 'IV' });
+  assert.equal(r.art, 'warnung');
+  assert.match(r.text, /von Hand gewählt: Stufe IV$/);
+  assert.doesNotMatch(r.text, /Stufe von Hand wählen|Einstufung Ia/);
+});
+
+test('baueAnerkennungsZeile: manuelle Stufe übersteuert nicht anerkannten Fall', () => {
+  const r = baueAnerkennungsZeile(standardConfig(), 'koch-efz', 'housekeeping-zimmermaedchen', { stufe: 'IIIa' }, { stufeManuell: 'IIIa' });
+  assert.equal(r.art, 'warnung');
+  assert.match(r.text, /von Hand gewählt: Stufe IIIa$/);
+  assert.doesNotMatch(r.text, /Einstufung Ia/);
+});
+
+test('baueAnerkennungsZeile: Praktikum ohne Anerkennungsprüfung', () => {
+  const r = baueAnerkennungsZeile(standardConfig(), 'koch-efz', 'housekeeping-zimmermaedchen', { stufe: 'P' }, { sonderfall: 'praktikum' });
+  assert.equal(r.art, 'ok');
+  assert.equal(r.text, 'Praktikum: Stufe P, keine Anerkennungsprüfung');
+  assert.equal(baueAnerkennungsZeile(standardConfig(), '', '', null, { sonderfall: 'praktikum' }).art, 'ok');
+});
+
+test('baueAnerkennungsZeile: unbekannter Abschluss ist offen, nicht «kein Abschluss»', () => {
+  const r = baueAnerkennungsZeile(standardConfig(), 'gibtsnicht', 'service-chef-de-rang', null);
+  assert.equal(r.art, 'offen');
+  assert.doesNotMatch(r.text, /kein Abschluss/);
+});
+
+test('baueAnerkennungsZeile: Stufe im Text entspricht ergebnis.stufe', () => {
+  const E = require('../src/engine.js');
+  const cfg = standardConfig();
+  const faelle = [
+    ['koch-efz', 'service-chef-de-rang', 'keiner', ''],
+    ['koch-efz', 'housekeeping-zimmermaedchen', 'keiner', ''],
+    ['koch-efz', 'housekeeping-zimmermaedchen', 'keiner', 'IIIa'],
+    ['hf', 'service-chef-de-rang', 'keiner', 'IV'],
+    ['koch-efz', 'service-chef-de-rang', 'praktikum', '']
+  ];
+  faelle.forEach(([ab, fu, sonder, man]) => {
+    const e = E.berechne(cfg, formularZuInput(werte({ abschluss: ab, funktionId: fu, sonderfall: sonder, stufeManuell: man })));
+    assert.equal(e.modus, 'berechnet', ab + fu);
+    const t = baueAnerkennungsZeile(cfg, ab, fu, e, { stufeManuell: man, sonderfall: sonder }).text;
+    if (e.stufe === 'Ia') assert.match(t, /Einstufung Ia/);
+    else assert.match(t, new RegExp(e.stufe === 'P' ? 'Stufe P,' : 'Stufe ' + e.stufe + '$'));
+  });
+});
+
+test('zeigeStufeManuell: nur wenn nötig oder schon gewählt', () => {
+  const cfg = standardConfig();
+  assert.equal(zeigeStufeManuell(cfg, 'koch-efz', { warnungen: [] }, ''), false);
+  assert.equal(zeigeStufeManuell(cfg, 'koch-efz', null, ''), false);
+  assert.equal(zeigeStufeManuell(cfg, 'hf', null, ''), true);
+  assert.equal(zeigeStufeManuell(cfg, 'koch-efz', { warnungen: [{ code: 'abschluss_nicht_anerkannt' }] }, ''), true);
+  assert.equal(zeigeStufeManuell(cfg, 'koch-efz', { warnungen: [{ code: 'bereich_ungeregelt' }] }, ''), true);
+  assert.equal(zeigeStufeManuell(cfg, 'koch-efz', { warnungen: [] }, 'IV'), true);
 });

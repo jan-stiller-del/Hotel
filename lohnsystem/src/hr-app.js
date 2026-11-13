@@ -114,23 +114,39 @@
   }
 
   // Vergleichszeile zwischen gelerntem Beruf und neuer Funktion (gleiche Regel wie die Engine: Abschluss zählt nur im anerkannten Bereich).
-  function baueAnerkennungsZeile(config, abschlussId, funktionId, ergebnis) {
+  // optionen: { stufeManuell, sonderfall }; der Text richtet sich nach der tatsächlich gerechneten Stufe.
+  function baueAnerkennungsZeile(config, abschlussId, funktionId, ergebnis, optionen) {
+    optionen = optionen || {};
+    var STUFEN_GUELTIG = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV'];
+    var stufeName = function (s) { return s === 'P' ? 'Praktikum' : s; };
+    if (optionen.sonderfall === 'praktikum') {
+      return { text: 'Praktikum: Stufe P, keine Anerkennungsprüfung', art: 'ok' };
+    }
     var abschluss = abschlussId ? ((config && config.abschluesse) || []).filter(function (x) { return x.id === abschlussId; })[0] || null : null;
     var funktion = funktionId ? ((config && config.funktionen) || []).filter(function (x) { return x.id === funktionId; })[0] || null : null;
     if (!abschlussId || !funktion) {
       return { text: 'Gelernten Beruf und Funktion wählen, dann erscheint hier der Vergleich.', art: 'offen' };
     }
+    if (abschlussId !== 'keiner' && !abschluss) {
+      return { text: 'Gelernter Beruf unbekannt, bitte neu wählen.', art: 'offen' };
+    }
     var bereichText = funktion.bereich ? ' (' + bereichLabel(config, funktion) + ')' : '';
     var neu = ' → Neue Stelle: ' + funktion.label + bereichText + ': ';
-    if (abschlussId === 'keiner' || !abschluss) {
-      return { text: 'Gelernt: kein Abschluss' + neu + 'Einstufung Ia', art: 'ok' };
+    var gelernt = 'Gelernt: kein Abschluss';
+    if (abschluss) {
+      var bereiche = abschluss.bereiche === '*' ? 'alle Bereiche'
+        : (Array.isArray(abschluss.bereiche) ? abschluss.bereiche.map(function (id) {
+          var b = ((config && config.bereiche) || []).filter(function (x) { return x.id === id; })[0];
+          return b ? b.label : id;
+        }).join(', ') : '');
+      gelernt = 'Gelernt: ' + abschluss.label + (bereiche ? ' (' + bereiche + ')' : '');
     }
-    var bereiche = abschluss.bereiche === '*' ? 'alle Bereiche'
-      : (Array.isArray(abschluss.bereiche) ? abschluss.bereiche.map(function (id) {
-        var b = ((config && config.bereiche) || []).filter(function (x) { return x.id === id; })[0];
-        return b ? b.label : id;
-      }).join(', ') : '');
-    var gelernt = 'Gelernt: ' + abschluss.label + (bereiche ? ' (' + bereiche + ')' : '');
+    if (STUFEN_GUELTIG.indexOf(optionen.stufeManuell) >= 0) {
+      return { text: gelernt + neu + 'von Hand gewählt: Stufe ' + optionen.stufeManuell, art: 'warnung' };
+    }
+    if (!abschluss) {
+      return { text: gelernt + neu + 'Einstufung Ia', art: 'ok' };
+    }
     if (abschluss.stufe === null) {
       return { text: gelernt + neu + 'Stufe von Hand wählen', art: 'offen' };
     }
@@ -141,7 +157,17 @@
         + (bereich ? '' : '. Bereich nicht geregelt, Auskunft der Kontrollstelle einholen'), art: 'warnung' };
     }
     var stufe = ergebnis && ergebnis.stufe ? ergebnis.stufe : abschluss.stufe;
-    return { text: gelernt + neu + 'anerkannt, Stufe ' + (stufe === 'P' ? 'Praktikum' : stufe), art: 'ok' };
+    return { text: gelernt + neu + 'anerkannt, Stufe ' + stufeName(stufe), art: 'ok' };
+  }
+
+  // Das Feld «Stufe von Hand wählen» erscheint nur, wenn es gebraucht wird oder schon eine Stufe gewählt ist.
+  function zeigeStufeManuell(config, abschlussId, ergebnis, stufeManuell) {
+    if (stufeManuell) { return true; }
+    var ab = abschlussId ? ((config && config.abschluesse) || []).filter(function (x) { return x.id === abschlussId; })[0] : null;
+    if (ab && ab.stufe === null) { return true; }
+    return !!(ergebnis && Array.isArray(ergebnis.warnungen) && ergebnis.warnungen.some(function (w) {
+      return w.code === 'abschluss_nicht_anerkannt' || w.code === 'bereich_ungeregelt';
+    }));
   }
 
   // Der Hinweis «Lohnbänder sind Beispielwerte» gilt, bis die Bänder freigegeben sind.
@@ -427,7 +453,8 @@
       var f = aktuelleFunktion();
       var zeilen = window.LohnExport.baueExportZeilen(letztesErgebnis, {
         funktionLabel: f ? f.label : '', funktionsbereich: bereichLabel(config, f),
-        anerkennung: baueAnerkennungsZeile(config, $('abschluss').value, $('funktion').value, letztesErgebnis).text,
+        anerkennung: baueAnerkennungsZeile(config, $('abschluss').value, $('funktion').value, letztesErgebnis,
+          { stufeManuell: $('stufeManuell').value, sonderfall: $('sonderfall').value }).text,
         abschlussLabel: abschlussLabel(), eintritt: $('eintritt').value, vertragsart: vertrag ? vertrag[1] : '',
         beschaeftigungsgrad: $('beschaeftigungsgrad').value, dreizehnterProzent: config.betrieb.dreizehnterProzent,
         betraege: window.LohnEngine.rechneBetraege(config, wert, {
@@ -453,7 +480,9 @@
 
     var MARKER = { ok: '✓ ', warnung: '! ', offen: '… ' };
     function zeigeAnerkennung() {
-      var z = baueAnerkennungsZeile(config, $('abschluss').value, $('funktion').value, letztesErgebnis);
+      var z = baueAnerkennungsZeile(config, $('abschluss').value, $('funktion').value, letztesErgebnis,
+        { stufeManuell: $('stufeManuell').value, sonderfall: $('sonderfall').value });
+      $('hfWrap').hidden = !zeigeStufeManuell(config, $('abschluss').value, letztesErgebnis, $('stufeManuell').value);
       var box = $('anerkennung');
       box.className = 'anerkennung ' + z.art;
       box.textContent = MARKER[z.art] + z.text;
@@ -518,5 +547,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen };
+  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen };
 }));

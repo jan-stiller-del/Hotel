@@ -23,15 +23,14 @@
       <div class="feld" id="wbWrap" hidden>
         <label class="inline"><input type="checkbox" id="weiterbildung6Tage"> Berufsspezifische Weiterbildung von mindestens 6 Tagen (belegt)</label>
       </div>
-      <div class="feld" id="hfWrap"><label for="stufeManuell">Stufe von Hand wählen</label><select id="stufeManuell"></select><p class="hilfe">Pflicht bei Höherer Fachschule, ausländischem und anderem Abschluss; sonst nur zum Übersteuern der Einstufung nach Abschluss und Funktionsbereich. Wird beim Wechsel von Abschluss oder Funktion zurückgesetzt.</p></div>
+      <div class="feld" id="hfWrap" hidden><label for="stufeManuell">Stufe von Hand wählen</label><select id="stufeManuell"></select><p class="hilfe">Pflicht bei Höherer Fachschule, ausländischem und anderem Abschluss; sonst nur zum Übersteuern der Einstufung nach Abschluss und Funktionsbereich. Wird beim Wechsel von Abschluss oder Funktion zurückgesetzt.</p></div>
     </fieldset>
-
-    <p id="anerkennung" class="anerkennung offen" role="status" aria-live="polite"></p>
 
     <fieldset>
       <legend>Neue Stelle</legend>
       <div class="feld"><label for="abteilung">Abteilung</label><select id="abteilung"></select></div>
-      <div class="feld"><label for="funktion">Funktion im Waldhaus (neue Stelle)</label><select id="funktion"></select><p class="hilfe" id="funktionsbereich"></p></div>
+      <div class="feld"><label for="funktion">Funktion im Waldhaus (neue Stelle)</label><select id="funktion"></select><p class="hilfe" id="funktionsbereich"></p>
+        <p id="anerkennung" class="anerkennung offen" role="status" aria-live="polite"></p></div>
       <div class="feld"><label for="sonderfall">Sonderfall</label><select id="sonderfall"></select></div>
       <div class="feld"><label for="erfahrung">Einschlägige Erfahrung in dieser Funktion (Jahre)</label><select id="erfahrung"></select><p class="hilfe">Es zählt nur Erfahrung, die in der künftigen Funktion gesammelt wurde, nicht die Zeit im gelernten Beruf.</p></div>
       <div class="feld" id="sprachenWrap">
