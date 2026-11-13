@@ -263,7 +263,7 @@ test('rechneBetraege: gewaehlter Lohn, Teilzeit 60 % und Einarbeitung 8 %', () =
   assert.equal(o.reduzierterTotal, null);
 });
 
-test('Standardkonfiguration: EFZ-Beispiel Réceptionist/in ergibt 4675', () => {
+test('Standardkonfiguration: EFZ-Beispiel Receptionist/in ergibt 4675', () => {
   const fs = require('node:fs');
   const path = require('node:path');
   const vm = require('node:vm');
@@ -275,7 +275,7 @@ test('Standardkonfiguration: EFZ-Beispiel Réceptionist/in ergibt 4675', () => {
   assert.deepEqual(config.bausteine.sprachen, ['DE', 'EN', 'FR', 'IT']);
   assert.equal(config.bausteine.maxSprachen, 4);
   const r = E.berechne(config, eingabe({
-    funktionId: 'reception-mitarbeiter', erfahrungJahre: 4,
+    funktionId: 'reception-receptionist', erfahrungJahre: 4,
     sprachen: [{ sprache: 'DE', niveau: 'B2' }, { sprache: 'EN', niveau: 'B2' }, { sprache: 'FR', niveau: 'C1' }, { sprache: 'IT', niveau: 'B2' }],
   }));
   assert.deepEqual(r.positionen.map((p) => p.betrag), [4555, 40, 80]);

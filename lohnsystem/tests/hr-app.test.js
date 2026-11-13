@@ -5,7 +5,7 @@ const { formularZuInput, waehleOption } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
-    funktionId: 'reception-mitarbeiter', abschluss: 'efz', weiterbildung6Tage: false, stufeManuell: '',
+    funktionId: 'reception-receptionist', abschluss: 'efz', weiterbildung6Tage: false, stufeManuell: '',
     erfahrung: '4', sprachen: {}, beschaeftigungsgrad: '100', vertragsart: 'unbefristet',
     eintritt: '2027-02-01', sonderfall: 'keiner', zusatzIds: [],
     einarbeitung: { aktiv: false, frueherMonate: '', unterbruchMonate: '', reduktionProzent: '8' }
@@ -14,7 +14,7 @@ function werte(extra) {
 
 test('Grundfelder werden uebernommen und Zahlen geparst', () => {
   const i = formularZuInput(werte({ beschaeftigungsgrad: '80' }));
-  assert.equal(i.funktionId, 'reception-mitarbeiter');
+  assert.equal(i.funktionId, 'reception-receptionist');
   assert.equal(i.abschluss, 'efz');
   assert.equal(i.beschaeftigungsgrad, 80);
   assert.equal(i.erfahrungJahre, 4);

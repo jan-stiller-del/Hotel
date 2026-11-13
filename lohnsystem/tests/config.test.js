@@ -40,14 +40,29 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.strictEqual(c.abteilungen.length, 7);
   assert.deepStrictEqual(c.zusatzbausteine, []);
   assert.strictEqual(c.betrieb.wochenstunden, 43.5);
+  const anzahl = { reception: 9, housekeeping: 8, kueche: 9, service: 11, spa: 6, technik: 6, administration: 8 };
   for (const a of c.abteilungen) {
-    assert.strictEqual(c.funktionen.filter((f) => f.abteilung === a.id).length, 2);
+    assert.strictEqual(c.funktionen.filter((f) => f.abteilung === a.id).length, anzahl[a.id], a.id);
   }
+  assert.strictEqual(c.funktionen.length, 57);
+  assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 57);
   for (const f of c.funktionen) {
     assert.strictEqual(f.beispiel, true);
-    const ohne = f.abteilung === 'kueche' || f.abteilung === 'technik';
-    assert.strictEqual(f.gaestekontakt, !ohne);
+    assert.ok(f.id.startsWith(f.abteilung + '-'), f.id);
+    assert.ok(f.bandMin < f.bandMax, f.id);
+    if (['kueche', 'technik'].includes(f.abteilung)) assert.strictEqual(f.gaestekontakt, false, f.id);
+    if (['reception', 'service', 'spa'].includes(f.abteilung)) assert.strictEqual(f.gaestekontakt, true, f.id);
   }
+  const gk = (id) => c.funktionen.find((f) => f.id === id).gaestekontakt;
+  assert.strictEqual(gk('housekeeping-hausbursche'), false);
+  assert.strictEqual(gk('housekeeping-lingerie'), false);
+  assert.strictEqual(gk('housekeeping-gouvernante'), true);
+  assert.strictEqual(gk('administration-sales-marketing'), true);
+  assert.strictEqual(gk('administration-marketingfachperson'), true);
+  assert.strictEqual(gk('administration-buchhalter'), false);
+  const rec = c.funktionen.find((f) => f.id === 'reception-receptionist');
+  assert.strictEqual(rec.bandMin, 4555);
+  assert.strictEqual(rec.bandMax, 5450);
 });
 
 test('fehlende Mindestlohn-Stufe wird abgelehnt', () => {
@@ -93,9 +108,9 @@ test('wochenstunden <= 0 wird abgelehnt', () => {
   }
 });
 
-test('bandMin unter Mindestlohn IIIa: nur Warnung', () => {
+test('bandMin unter Mindestlohn Ia: nur Warnung', () => {
   const c = kopie();
-  c.funktionen[0].bandMin = 4000;
+  c.funktionen[0].bandMin = 3500;
   c.funktionen[0].bandMax = 6000;
   const r = validateConfig(c);
   assert.strictEqual(r.ok, true);
@@ -103,14 +118,12 @@ test('bandMin unter Mindestlohn IIIa: nur Warnung', () => {
   assert.strictEqual(r.warnungen.length, 1);
 });
 
-test('bandMax unter Mindestlohn IV: nur Warnung', () => {
+test('Band einer Stufe Ia (3735 bis 4500) ist ohne Warnung', () => {
   const c = kopie();
-  c.funktionen[0].bandMin = 4600;
-  c.funktionen[0].bandMax = 5000;
+  c.funktionen[0].bandMin = 3735;
+  c.funktionen[0].bandMax = 4500;
   const r = validateConfig(c);
-  assert.strictEqual(r.ok, true);
-  assert.deepStrictEqual(r.fehler, []);
-  assert.strictEqual(r.warnungen.length, 1);
+  assert.deepStrictEqual(r.warnungen, []);
 });
 
 test('Nicht-Objekt wird mit Fehler abgelehnt, ohne Absturz', () => {

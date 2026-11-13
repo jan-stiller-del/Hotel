@@ -85,12 +85,8 @@
       tabellen.forEach(function (t) {
         var stufen = (t && t.stufen) || {};
         var jahr = t && t.jahr !== undefined ? t.jahr : '?';
-        if (istZahl(stufen.IIIa) && f.bandMin < stufen.IIIa) {
-          warnungen.push(name + ': Bandminimum liegt unter dem Mindestlohn der Stufe IIIa (Tabelle '
-            + jahr + ').');
-        }
-        if (istZahl(stufen.IV) && f.bandMax < stufen.IV) {
-          warnungen.push(name + ': Bandmaximum liegt unter dem Mindestlohn der Stufe IV (Tabelle '
+        if (istZahl(stufen.Ia) && f.bandMin < stufen.Ia) {
+          warnungen.push(name + ': Bandminimum liegt unter dem Mindestlohn der Stufe Ia (Tabelle '
             + jahr + ').');
         }
       });
