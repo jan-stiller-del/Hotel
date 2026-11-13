@@ -16,7 +16,7 @@
 - Mindestlöhne 2027: Ia 3735, Ib 3967, II 4094, IIIa 4555, IIIb 4663, IV 5325, Praktikum 2404.
 - 13. Monatslohn monatlich ausbezahlt: 8,33 %, separat ausgewiesen; Mindestlohnvergleich ohne 13.-Anteil.
 - Wochenstunden Vorgabe 43,5 (Betriebswert, konfigurierbar); Stundenansatz = Monatslohn / (Wochenstunden × 52 / 12), also 188,5 Stunden pro Monat.
-- Erfahrung: nur einschlägig, halbe Jahre erlaubt, höchstens 10 Jahre, CHF-Betrag pro Jahr aus der Konfiguration.
+- Erfahrung: nur einschlägig, nur ganze Jahre (0 bis 10), CHF-Betrag pro Jahr aus der Konfiguration (Entscheid von Jan, ersetzt «halbe Jahre erlaubt»).
 - Sprache: Deutsch, Englisch, Französisch, Italienisch ab B2 (Muttersprache zählt gleich), CHF 20 pro Sprache, nur bei Funktionen mit Gästekontakt, `maxSprachen` 4 (keine wirksame Obergrenze). Erfahrung CHF 10 pro Jahr. (Entscheid von Jan, ersetzt «Deutsch ohne Zuschlag».)
 - Einarbeitungsreduktion: höchstens 8 %, standardmässig aus; Stufe Ia/Ib bis 12 Monate (wenn nie mindestens 4 Monate in einem L-GAV-Betrieb gearbeitet), sonst 3 Monate; Stufe II/IIIa nur 3 Monate und nur bei erster L-GAV-Stelle; nie bei IIIb, IV, Praktikum; nie bei Rückkehr ins gleiche Haus mit Unterbruch unter 24 Monaten.
 - Der Mindestlohn schlägt das Band-Maximum (mit Warnung). Wirksamer Bandstart = Maximum aus Bandminimum und Stufen-Mindestlohn.
@@ -140,6 +140,80 @@ Konfigurationsform (alle Zahlen aus der Spec):
 - [ ] **Step 3: Implementieren und unter der Spielraum-Tabelle in `hr.html` einbinden.** Die Grafik aktualisiert sich live beim Ändern von `gewaehlterLohn`, zeigt die Freigabe-Beschriftung am Balken und ist bei 375 px lesbar.
 - [ ] **Step 4: Im Browser prüfen** (Server auf Port 8765, nicht starten oder stoppen): EFZ-Beispiel, gewählter Lohn 5040 steht im HR-Band, 5200 ausserhalb; Konsole ohne Fehler.
 - [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: Spielraum grafisch darstellen"`
+
+### Task 5d: 13. Monatslohn immer separat ausweisen (Wunsch von Jan)
+
+**Files:**
+- Modify: `lohnsystem/hr.html`, `lohnsystem/src/hr-app.js`, `lohnsystem/src/hr.css`, `lohnsystem/src/export.js`
+- Test: `lohnsystem/tests/export.test.js`, `lohnsystem/tests/hr-app.test.js`
+
+**Interfaces:**
+- Produces: Block «Auszahlung pro Monat» in der HR-Ansicht und im Excel-Export mit den Zeilen Monatslohn brutto (Vollzeit bzw. bei X %), «13. Monatslohn (8,33 %), monatlich ausbezahlt, separat ausgewiesen» (Satz aus `betrieb.dreizehnterProzent`), Total pro Monat, Jahresbrutto, Hinweis «Mindestlohnvergleich ohne 13. Monatslohn»; die 13.-Zeile steht nie im Rechenweg.
+
+- [ ] **Step 1: Failing tests.** `baueExportZeilen` enthält den Block in dieser Reihenfolge mit der 13.-Zeile als eigene, mit Bezeichnung hervorgehobene Zeile; der Rechenweg im Export und im Rechner enthält keine 13.-Zeile mehr; der Satz kommt aus der Konfiguration (nicht fest «8,33»); bei Teilzeit zeigt der Block Beträge für den Beschäftigungsgrad; Stundenansatz steht ausserhalb des Blocks und ohne 13.-Anteil.
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren** (Oberfläche mit textContent, Zahlen als Zahlen im Export, 13.-Zeile visuell abgesetzt, nicht nur durch Farbe).
+- [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen), auch bei 375 px; Konsole ohne Fehler.
+- [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: 13. Monatslohn separat ausweisen"`
+
+### Task 5e: Anerkennung der Abschlüsse je Funktionsbereich (L-GAV-Kommentar zu Art. 10, S. 26–27)
+
+Der L-GAV stuft nach Abschluss **und** ausgeübter Tätigkeit ein: «Die Ausbildung muss sich auf die ausgeübte Tätigkeit im Gastgewerbe beziehen.» Ein Abschluss ist nur in den im Kommentar angekreuzten Funktionsbereichen anerkannt, sonst gilt Stufe Ia (im Streitfall entscheidet die Paritätische Aufsichtskommission). Quelle und Tabellen: Kommentar zum L-GAV, 3. Auflage 2024, S. 26–27. Die Wortlaute vor Verwendung im Original prüfen.
+
+**Files:**
+- Modify: `lohnsystem/config/config.js`, `lohnsystem/src/config.js` (Validierung), `lohnsystem/src/engine.js`, `lohnsystem/src/hr-app.js`, `lohnsystem/hr.html`, `lohnsystem/src/export.js`
+- Test: `lohnsystem/tests/config.test.js`, `lohnsystem/tests/engine.test.js`, `lohnsystem/tests/hr-app.test.js`, `lohnsystem/tests/export.test.js`
+
+**Interfaces:**
+- Config neu: `bereiche: [{id,label}]` mit `kueche` (Küche), `restauration` (Restauration), `hotellerie` (Hotellerie/Hauswirtschaft), `hotelempfang` (Hotelempfang), `backoffice` (Kaufmännisches Backoffice), `hotelkommunikation` (Hotelkommunikation); `abschluesse: [{id,label,stufe:'Ib'|'II'|'IIIa'|'IV'|null,bereiche:string[]|'*'}]` (`stufe:null` = Stufe von Hand, z. B. HF, Hotelfachschule); jede Funktion bekommt `bereich: string|null` (null = nicht in den Tabellen geregelt: Spa, Technischer Dienst, Kinderbetreuung, Sicherheit u. a.).
+- Engine: `input.abschluss` bleibt, wird aber als Id aus `config.abschluesse` gelesen (plus `'keiner'` = Stufe Ia). `bestimmeStufe(config, input)`: Abschluss ist anerkannt, wenn die Funktion ein `bereich` hat und es in `abschluss.bereiche` steht (oder `'*'`); dann gilt `abschluss.stufe`; bei `stufe` IIIa und `weiterbildung6Tage` gilt IIIb. Nicht anerkannt (anderer Bereich oder `bereich` null) → Stufe Ia mit Warnung `abschluss_nicht_anerkannt` («Abschluss in diesem Bereich nicht anerkannt, Einstufung Ia; Gleichwertigkeit prüft im Streitfall die Paritätische Aufsichtskommission; HR kann die Stufe von Hand wählen»). Funktion ohne `bereich` zusätzlich Warnung `bereich_ungeregelt` («Für diesen Bereich enthält der L-GAV-Kommentar keine Anerkennungstabelle; Auskunft der Kontrollstelle einholen»). `stufeManuell` überschreibt immer, mit Warnung `stufe_manuell`.
+
+Daten für `abschluesse` (Kommentar S. 26–27; K = kueche, R = restauration, H = hotellerie, E = hotelempfang, B = backoffice, C = hotelkommunikation):
+- Ib (Progresso): Küchenmitarbeiter/in [K]; Restaurationsmitarbeiter/in [R]; Hotelleriemitarbeiter/in [H]; Progresso Allrounder [K,R,H].
+- II (EBA): Küchenangestellte/r EBA [K]; Restaurationsangestellte/r EBA [R]; Hotellerieangestellte/r EBA [H]; Hauswirtschaftspraktiker/in EBA [H].
+- IIIa (EFZ): Koch/Köchin EFZ [K,R]; Servicefachangestellte/r EFZ [R]; Hotelfachassistent/in EFZ [H]; Gastronomiefachassistent/in EFZ (Doppellehre) [R,H] (E nur mit Zusatzausbildung Gästeempfangsassistent/in HGA: eigener Eintrag «… mit Zusatz HGA» [R,H,E]); Restaurationsfachmann/-frau EFZ [R]; Hotelfachmann/-frau EFZ [H]; Fachmann/Fachfrau Hauswirtschaft EFZ [H]; Kaufmann/Kauffrau HGT EFZ [E,B]; Kaufmann/Kauffrau EFZ [E,B]; Hotelkommunikationsfachfrau/-mann [R,H,E,C].
+- IV (Fachausweis): Gastronomiekoch/-köchin FA [K]; Koch/Köchin der Spital-, Heim- und Gemeinschaftsgastronomie FA [K]; Chefkoch/Chefköchin FA [K]; Restaurationsleiter/in FA [R]; Bereichsleiter/in Restauration FA [R]; Hauswirtschaftsleiter/in FA [H]; Bereichsleiter/in Hotellerie–Hauswirtschaft FA [H]; Hotelempfangs- und Administrationsleiter/in FA [E,B]; Chef de réception FA [E,B]; Gastrobetriebsleiter/in FA [K,R].
+- Ohne Stufe (von Hand): Höhere Fachschule (HF) / Hotelfachschule; Ausländischer Abschluss, 2 Jahre (wie EBA, SBFI-Gleichwertigkeit prüfen); Ausländischer Abschluss, 3 Jahre (wie EFZ, SBFI-Gleichwertigkeit prüfen); Anderer Abschluss (Gleichwertigkeit offen).
+- `keiner`: Stufe Ia, in allen Bereichen.
+- Funktionen: jeder Funktion der Standardliste ein `bereich` zuordnen (Küche → `kueche`; Restaurant und Bankett → `restauration`; Housekeeping → `hotellerie`; Réception inklusive Concierge, Night Auditor, Reservation → `hotelempfang`; Administration Buchhaltung und HR → `backoffice`; Sales und Marketing → `backoffice`; Spa und Wellness sowie Technischer Dienst → `null`).
+
+- [ ] **Step 1: Failing tests.** Config: `validateConfig` akzeptiert die Standardkonfiguration; Fehler bei `abschluss.bereiche` mit unbekannter Bereich-Id, bei Funktion mit unbekanntem `bereich`, bei doppelter Abschluss-Id. Engine (je ein Test): Koch EFZ in Küche → IIIa; Koch EFZ in Service → IIIa; Koch EFZ in Housekeeping → Ia mit `abschluss_nicht_anerkannt`; Restaurationsfachfrau EFZ in Küche → Ia; Hotelfachfrau EFZ an der Réception → Ia mit Warnung; Kaufmann/Kauffrau EFZ an der Réception → IIIa; Koch EFZ plus `weiterbildung6Tage` im Service → IIIb; Chefkoch FA im Service → Ia mit Warnung (nicht anerkannt); Küchenangestellte EBA im Housekeeping → Ia; Progresso Allrounder in allen drei Bereichen → Ib; Kosmetiker-Abschluss («Anderer Abschluss») im Spa → Ia mit `bereich_ungeregelt`; `stufeManuell: 'IIIa'` überschreibt mit `stufe_manuell`; HF ohne `stufeManuell` → wie bisher `modus:'fehler'` («Stufe wählen»).
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren** (Config-Daten, Validierung, `bestimmeStufe`, Abschluss-Dropdown und Bereichsanzeige im Rechner aus der Konfiguration, Warnungen sichtbar, Export-Zeilen «Abschluss», «Funktionsbereich», «Einstufungshinweis»).
+- [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): Koch EFZ im Service → IIIa; Koch EFZ im Housekeeping → Ia mit Warnung; Konsole ohne Fehler.
+- [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: Einstufung nach Abschluss und Funktionsbereich"`
+
+### Task 5h: Hinweis bei übersprungener Lohnstufe (Wunsch von Jan)
+
+Zweck: Niemand soll unbemerkt mehr verdienen, als es seiner Stufe entspricht. Erreicht oder übersteigt der Lohn durch Erfahrung und Sprachzuschläge den Mindestlohn der nächsthöheren Stufe, zeigt der Rechner das an.
+
+**Files:**
+- Modify: `lohnsystem/src/engine.js`, `lohnsystem/src/hr-app.js`, `lohnsystem/src/hr.css`, `lohnsystem/src/export.js`
+- Test: `lohnsystem/tests/engine.test.js`, `lohnsystem/tests/hr-app.test.js`, `lohnsystem/tests/export.test.js`
+
+**Interfaces:**
+- Produces: `pruefeStufenvergleich(config, tabelle, stufe, vollzeitLohn): { stufe, mindestlohn, ueberStufe: number, ueberStufeProzent: number, naechsteStufe: string|null, mindestlohnNaechste: number|null, uebersprungen: boolean }`. Reihenfolge der Stufen: Ia, Ib, II, IIIa, IIIb, IV (Praktikum ausgenommen: `null`); `uebersprungen` ist wahr, wenn `vollzeitLohn >= mindestlohnNaechste`. `Ergebnis.stufenvergleich` ist das Ergebnis für den Vorschlag (`null` bei Praktikum, Hinweis, Fehler); Warnung `stufe_uebersprungen` («Der Lohn liegt auf oder über dem Mindestlohn der nächsthöheren Stufe X (CHF Y). Prüfen, ob die Einstufung stimmt und ob der Lohn gegenüber Mitarbeitenden gleicher Qualifikation begründbar ist.»). Im Rechner wird zusätzlich der **gewählte** Lohn verglichen (er kann bis zur GM-Grenze über dem Vorschlag liegen).
+
+- [ ] **Step 1: Failing tests.** Engine: Stufe IIIa (Mindestlohn 4555), nächste Stufe IIIb (4663): Vorschlag 4675 → `uebersprungen` wahr, `ueberStufe` 120, Warnung `stufe_uebersprungen`; Vorschlag 4655 → nicht übersprungen; genau 4663 → übersprungen (Gleichheit zählt); Stufe IV → `naechsteStufe` null, nie übersprungen; Stufe Ia mit Ib 3967; Praktikum → `stufenvergleich` null; Tabelle ohne die nächste Stufe → nicht übersprungen ohne Absturz. hr-app: ein reiner Helfer erzeugt aus `stufenvergleich` die Anzeigezeilen («Lohn über Stufen-Mindestlohn: +CHF X (Y %)», bei `uebersprungen` eine hervorgehobene Zeile), getestet auch für den gewählten Lohn. Export: Zeilen «Mindestlohn der Stufe», «Lohn über Stufen-Mindestlohn» (CHF und Prozent), «Nächsthöhere Stufe übersprungen: ja/nein» (mit Stufe und Betrag), jeweils für den **gewählten** Lohn.
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren** (Anzeige im Ergebnisbereich unter dem Mindestlohn, Warnung farblich und mit Text, live beim Ändern des gewählten Lohns, nur sichtbar bei `modus:'berechnet'`).
+- [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): EFZ, 10 Jahre Erfahrung, Deutsch, Englisch, Französisch und Italienisch ergibt 4555 + 100 + 80 = 4735, die Warnung erscheint (IIIb 4663); mit 0 Jahren und ohne Sprachen erscheint sie nicht; Konsole ohne Fehler.
+- [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: Hinweis bei uebersprungener Lohnstufe"`
+
+### Task 5i: Beschriftung gelernter Beruf / neue Funktion, Erfahrung, Beispiel-Hinweis (Wünsche von Jan)
+
+**Files:**
+- Modify: `lohnsystem/config/config.js`, `lohnsystem/src/config.js` (nur falls das Flag validiert wird), `lohnsystem/src/hr-app.js`, `lohnsystem/hr.html`, `lohnsystem/src/hr.css`, `lohnsystem/src/export.js`
+- Test: `lohnsystem/tests/config.test.js`, `lohnsystem/tests/hr-app.test.js`, `lohnsystem/tests/export.test.js`
+
+**Interfaces:**
+- Produces: (a) Beschriftungen «Gelernter Beruf / Abschluss» (bisher «Abschluss») und «Funktion im Waldhaus (neue Stelle)»; (b) reine Funktion `baueAnerkennungsZeile(config, abschlussId, funktionId, ergebnis): { text: string, art: 'ok'|'warnung'|'offen' }` erzeugt die Vergleichszeile zwischen den beiden Feldern, zum Beispiel «Gelernt: Koch/Köchin EFZ (Küche, Restauration) → Neue Stelle: Chef de rang (Restauration): anerkannt, Stufe IIIa»; bei nicht anerkanntem Abschluss «… nicht anerkannt, Einstufung Ia»; ohne Abschluss oder Funktion `art:'offen'`; (c) Erfahrung: Label «Einschlägige Erfahrung in dieser Funktion (Jahre)» mit Hilfetext «Es zählt nur Erfahrung, die in der künftigen Funktion gesammelt wurde, nicht die Zeit im gelernten Beruf.»; (d) die Kennzeichnung «(Beispiel)» hinter den Funktionen entfällt (`beispiel` bei allen Funktionen auf `false` oder entfernt, Konfigurationstests passen sich an); stattdessen zeigt die Seite oben einen einzigen Hinweis «Lohnbänder sind Beispielwerte, bis sie freigegeben sind.», solange `betrieb.baenderBestaetigt` nicht `true` ist (Standardkonfiguration: `false`); (e) Excel-Export: getrennte Zeilen «Gelernter Beruf / Abschluss» und «Funktion im Waldhaus» sowie die Anerkennungszeile.
+
+- [ ] **Step 1: Failing tests.** `baueAnerkennungsZeile`: Koch EFZ → Chef de rang → `ok` mit Stufe IIIa; Koch EFZ → Room Attendant → `warnung` mit «nicht anerkannt, Einstufung Ia»; kein Abschluss gewählt → `offen`; Spa-Funktion → Hinweis «Bereich nicht geregelt». Config: kein `beispiel: true` mehr an Funktionen, `betrieb.baenderBestaetigt === false`. HR: der Hinweis erscheint nur, wenn das Flag nicht `true` ist (reine Hilfsfunktion `zeigeBaenderHinweis(config)`). Export: Zeilen vorhanden und getrennt.
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren** (Beschriftungen, Zeile live zwischen den Feldern, Hilfetext, Hinweis oben, Export).
+- [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): Zeile für Koch EFZ → Chef de rang und → Room Attendant; kein «(Beispiel)» hinter den Funktionen; Hinweis oben sichtbar; Konsole ohne Fehler; 375 px ohne Horizontalscroll.
+- [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: gelernter Beruf und neue Funktion getrennt, Beispiel-Hinweis zentral"`
 
 ### Task 6: Konfigurations-Editor, Import und Export, Jahrespflege
 

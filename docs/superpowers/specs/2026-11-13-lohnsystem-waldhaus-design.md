@@ -73,10 +73,11 @@ Funktionen mit Gästekontakt (Sprachbaustein aktiv): alle ausser Technischer Die
 3. **Bausteine** (jeder mit Name, Regel, Betrag, Art):
    - **Erfahrung:** CHF pro Jahr einschlägiger Erfahrung, höchstens 10 Jahre. Nur einschlägige Erfahrung (gleiche oder verwandte Funktion) zählt.
    - **Sprache (von Jan festgelegt):** CHF 20 pro nachgewiesener Sprache, es zählen genau vier Sprachen: Deutsch, Englisch, Französisch, Italienisch, jeweils ab B2, nur bei Funktionen mit Gästekontakt, keine Obergrenze (höchstens CHF 80). Muttersprachliche Kenntnisse zählen gleich wie erlernte.
-   - **Erfahrung (von Jan festgelegt):** CHF 10 pro Jahr einschlägiger Erfahrung, höchstens 10 Jahre.
+   - **Erfahrung (von Jan festgelegt):** CHF 10 pro Jahr einschlägiger Erfahrung, höchstens 10 Jahre. Es zählt nur Erfahrung, die in der künftigen Funktion gesammelt wurde, nicht die Zeit im gelernten Beruf (Beispiel: Ein gelernter Koch mit 8 Jahren Küche, der Chef de rang wird, hat 0 Jahre einschlägige Erfahrung).
+   - **Gelernter Beruf und neue Funktion:** Die Maske trennt «Gelernter Beruf / Abschluss» und «Funktion im Waldhaus (neue Stelle)» und zeigt den Vergleich der beiden (Anerkennung, siehe 5a).
    - **Weiterbildung (über die L-GAV-Stufe hinaus):** vorerst keine zusätzlichen Beträge, ausser HR definiert später einen Baustein.
 4. **Ergebnis:** Basis plus Bausteine, begrenzt auf das Lohnband der Funktion.
-5. **Spielraum als Freigabestufen (von Jan bestätigt):** pro Stufe in Prozent vom Vorschlag, kumulativ in drei Stufen: Vorgesetzte bis p1, HR bis p2, GM bis p3 (Platzhalter 1 / 2 / 3 %; die Werte legt Jan fest). Der Rechner zeigt, wer den gewählten Lohn freigeben muss. Begründung ist erst oberhalb der Grenze der Vorgesetzten Pflicht. Ausserhalb der GM-Grenze ist der Lohn nicht zulässig. Der Spielraum ist nur in der HR-Ansicht sichtbar. Der Rechner zeigt den Vorschlag und die erlaubte Spanne. Der Lohn fällt nie unter den Mindestlohn, ausser bei der zulässigen Einarbeitungsreduktion und bei den Sonderfällen (Punkt 6 und 7). Abweichungen vom Vorschlag brauchen eine kurze Begründung, die im Export mitläuft.
+5. **Spielraum als Freigabestufen (von Jan bestätigt):** pro Stufe in Prozent vom Vorschlag, kumulativ in drei Stufen: Vorgesetzte bis p1, HR bis p2, GM bis p3 (von Jan bestätigt: 1 / 2 / 3 % für alle Stufen). Der Rechner zeigt, wer den gewählten Lohn freigeben muss. Begründung ist erst oberhalb der Grenze der Vorgesetzten Pflicht. Ausserhalb der GM-Grenze ist der Lohn nicht zulässig. Der Spielraum ist nur in der HR-Ansicht sichtbar. Der Rechner zeigt den Vorschlag und die erlaubte Spanne. Der Lohn fällt nie unter den Mindestlohn, ausser bei der zulässigen Einarbeitungsreduktion und bei den Sonderfällen (Punkt 6 und 7). Abweichungen vom Vorschlag brauchen eine kurze Begründung, die im Export mitläuft.
 6. **Einarbeitungsreduktion (Funktion vorhanden, standardmässig aus):** höchstens 8 %, nur schriftlich im Einzelarbeitsvertrag.
    - Stufe I: bis 12 Monate, wenn die Person nie mindestens 4 Monate in einem L-GAV-Betrieb gearbeitet hat, sonst bis 3 Monate.
    - Stufe II und IIIa: höchstens 3 Monate und nur bei der ersten Beschäftigung in einem L-GAV-Betrieb (bei Stufe II widersprechen sich Vertragstext und GastroSuisse-Merkblatt, zuerst bei der Kontrollstelle klären).
@@ -94,6 +95,10 @@ HR fügt neue Bausteine über die Konfiguration hinzu, ohne den Rechner zu ände
 - Ausgabe: Monatslohn brutto, 13.-Anteil (8,33 %), Total pro Monat, Jahresbrutto, Stundenansatz.
 - Grundlage ist die Annahme eines **Saisonbetriebs mit 43,5 Wochenstunden** (188,5 Stunden pro Monat, 43,5 × 52 / 12). Ferien- und Feiertagsentschädigung sind **nicht** im Stundenansatz enthalten.
 - Teilzeit: anteilig nach Beschäftigungsgrad.
+
+## 5a. Anerkennung der Abschlüsse je Funktionsbereich (Nachtrag)
+
+Der L-GAV-Kommentar zu Art. 10 (S. 26–27) bindet die Einstufung an Abschluss **und** ausgeübte Tätigkeit: «Die Ausbildung muss sich auf die ausgeübte Tätigkeit im Gastgewerbe beziehen.» Anerkennungstabellen legen pro Abschluss fest, in welchen Funktionsbereichen er gilt (Küche, Restauration, Hotellerie/Hauswirtschaft, Hotelempfang, kaufmännisches Backoffice, Hotelkommunikation). Beispiele: Koch EFZ gilt in Küche und Restauration (Koch im Service: IIIa), Restaurationsfachperson EFZ nur im Service (in der Küche Ia), Hotelfachperson EFZ nicht am Empfang (dort Ia, unsicher), Kaufmann/Kauffrau EFZ am Empfang und im Backoffice (IIIa). Für Spa, Technischen Dienst und Kinderbetreuung gibt es keine Tabelle. Der Rechner stuft deshalb nach Abschluss und Funktionsbereich ein, zeigt bei Nichtanerkennung Ia mit Hinweis, und HR kann die Stufe von Hand wählen (Aufsichtskommission im Streitfall). IIIb und IV gelten nur, wenn der EFZ-Abschluss beziehungsweise Fachausweis im Bereich anerkannt ist; die 6 Tage Weiterbildung müssen berufsspezifisch sein. Die Umsetzung ist Task 5e im Plan. Offen (bei der Kontrollstelle klären): Hotelfachperson am Empfang, Mischfunktionen, Haustechnik, Spa, Rückstufung beim Abteilungswechsel (Arbeitsrecht, Änderungskündigung).
 
 ## 6. Jährliche Aktualisierung
 
@@ -117,7 +122,7 @@ Eigenständiges Browser-Programm in einer HTML-Datei, nach dem Muster des besteh
 
 ## 10. Meine Entscheide beim Schreiben (Claude, nicht abgestimmt, bitte prüfen)
 
-- **Erfahrung:** ein einheitlicher CHF-Betrag pro Jahr, optional pro Funktion überschreibbar. Halbe Jahre sind erlaubt, es wird nicht gerundet. Höchstens 10 Jahre.
+- **Erfahrung:** ein einheitlicher CHF-Betrag pro Jahr, optional pro Funktion überschreibbar. Nur ganze Jahre (Entscheid von Jan, ersetzt «halbe Jahre erlaubt»). Höchstens 10 Jahre.
 - **Lohnband:** eine Spanne pro Funktion (nicht pro Funktion und Stufe). Die Stufe unterscheidet sich über den Mindestlohn als Basis. Der wirksame Bandstart ist das Maximum aus Bandminimum und Stufen-Mindestlohn. **Der Mindestlohn schlägt das Band-Maximum.** Liegt er darüber, zeigt der Rechner eine Warnung, dass das Band für diese Stufe zu eng ist.
 - **Funktionsliste:** Jan liefert sie. Ich baue eine klar als «Beispiel» gekennzeichnete Platzhalterliste, damit nichts Erfundenes als echte Lohnpolitik wirkt.
 - **Praktikum:** wählbare Stufe mit eigenem Mindestlohn, ohne Erfahrungs- und Sprachbaustein. Unter 18, Vollzeitstudierende und Wiedereingliederung: nur Hinweis ohne Berechnung, weil der L-GAV dafür keinen Mindestlohn nennt.
