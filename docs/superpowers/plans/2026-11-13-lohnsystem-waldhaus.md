@@ -17,7 +17,7 @@
 - 13. Monatslohn monatlich ausbezahlt: 8,33 %, separat ausgewiesen; Mindestlohnvergleich ohne 13.-Anteil.
 - Wochenstunden Vorgabe 43,5 (Betriebswert, konfigurierbar); Stundenansatz = Monatslohn / (Wochenstunden × 52 / 12), also 188,5 Stunden pro Monat.
 - Erfahrung: nur einschlägig, halbe Jahre erlaubt, höchstens 10 Jahre, CHF-Betrag pro Jahr aus der Konfiguration.
-- Sprache: Englisch, Französisch, Italienisch ab B2 (Muttersprache zählt gleich), nur bei Funktionen mit Gästekontakt, Obergrenze `maxSprachen`; Deutsch ohne Zuschlag.
+- Sprache: Deutsch, Englisch, Französisch, Italienisch ab B2 (Muttersprache zählt gleich), CHF 20 pro Sprache, nur bei Funktionen mit Gästekontakt, `maxSprachen` 4 (keine wirksame Obergrenze). Erfahrung CHF 10 pro Jahr. (Entscheid von Jan, ersetzt «Deutsch ohne Zuschlag».)
 - Einarbeitungsreduktion: höchstens 8 %, standardmässig aus; Stufe Ia/Ib bis 12 Monate (wenn nie mindestens 4 Monate in einem L-GAV-Betrieb gearbeitet), sonst 3 Monate; Stufe II/IIIa nur 3 Monate und nur bei erster L-GAV-Stelle; nie bei IIIb, IV, Praktikum; nie bei Rückkehr ins gleiche Haus mit Unterbruch unter 24 Monaten.
 - Der Mindestlohn schlägt das Band-Maximum (mit Warnung). Wirksamer Bandstart = Maximum aus Bandminimum und Stufen-Mindestlohn.
 - Beträge auf 5 Rappen runden.
@@ -123,6 +123,23 @@ Konfigurationsform (alle Zahlen aus der Spec):
 - [ ] **Step 3: `export.js` implementieren, im HR-Formular Felder `gewaehlterLohn` und `begruendung` einbinden.** Exportknopf bleibt gesperrt, solange `pruefeAbweichung` einen Fehler meldet; Fehlertext steht neben dem Knopf. SheetJS-Skript von cdnjs mit fester Version.
 - [ ] **Step 4: Run:** `node --test lohnsystem/tests` → PASS; im Browser eine Excel-Datei exportieren und die Umlaute und Zahlen kontrollieren.
 - [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: Abweichung mit Begruendung und Excel-Export"`
+
+### Task 5b: Grafische Darstellung des Spielraums (Wunsch von Jan)
+
+**Files:**
+- Modify: `lohnsystem/hr.html`, `lohnsystem/src/hr-app.js`, `lohnsystem/src/hr.css`
+- Create: `lohnsystem/src/spielraum-grafik.js` (UMD, Browser `window.LohnGrafik`)
+- Test: `lohnsystem/tests/spielraum-grafik.test.js`
+
+**Interfaces:**
+- Consumes: `Ergebnis` (`vorschlag`, `mindestlohn`, `bandStart`, `bandMax`, `spanne`, `spanneStufen`), gewählter Vollzeit-Lohn aus `gewaehlterLohn`.
+- Produces: `baueGrafikModell(ergebnis, gewaehlterLohn: number|null): { achse:{min,max}, baender:[{name:'GM'|'HR'|'Vorgesetzte', von, bis, vonProzent, bisProzent}], marken:[{art:'vorschlag'|'gewaehlt'|'mindestlohn'|'bandMax', wert, prozent, label}], freigabe:string|null } | null` (Positionen in Prozent der Achsenbreite; `null` wenn `spanneStufen` null, also Praktikum, Hinweis, Fehler); `renderGrafik(modell, zielElement): void` (SVG oder CSS-Balken, Text per `textContent`, nicht nur Farbe als Signal: Beschriftung und Muster).
+
+- [ ] **Step 1: Failing tests schreiben.** `baueGrafikModell` mit dem EFZ-Beispiel (Vorschlag 4955, Stufen 1/2/3 %): drei Bänder in der Reihenfolge GM (aussen), HR, Vorgesetzte (innen), alle innerhalb der Achse; Marke «vorschlag» bei 4955; Marke «gewaehlt» springt mit dem gewählten Lohn, bei `null` fehlt sie; Marke «mindestlohn» nur sichtbar, wenn sie innerhalb der Achse liegt; gewählter Lohn ausserhalb des GM-Bandes wird am Achsenrand mit Hinweis «ausserhalb» angezeigt statt abgeschnitten; `band_zu_eng` (min = max = Mindestlohn) ergibt ein Modell ohne Division durch null; `null` für Praktikum.
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren und unter der Spielraum-Tabelle in `hr.html` einbinden.** Die Grafik aktualisiert sich live beim Ändern von `gewaehlterLohn`, zeigt die Freigabe-Beschriftung am Balken und ist bei 375 px lesbar.
+- [ ] **Step 4: Im Browser prüfen** (Server auf Port 8765, nicht starten oder stoppen): EFZ-Beispiel, gewählter Lohn 5040 steht im HR-Band, 5200 ausserhalb; Konsole ohne Fehler.
+- [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: Spielraum grafisch darstellen"`
 
 ### Task 6: Konfigurations-Editor, Import und Export, Jahrespflege
 
