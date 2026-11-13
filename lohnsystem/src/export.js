@@ -30,6 +30,7 @@
     var hinweise = e.warnungen.filter(function (w) { return EINSTUFUNG_CODES.indexOf(w.code) >= 0; });
     if (hinweise.length) { add('Einstufungshinweis', hinweise.map(function (w) { return w.text; }).join(' ')); }
     add('Mindestlohn (Tabelle ' + e.tabelleJahr + ')', e.mindestlohn);
+    if (e.funktionsband) { add('Lohnband der Funktion (von bis)', e.funktionsband.min + ' bis ' + e.funktionsband.max); }
     e.positionen.forEach(function (p) { add(p.label, p.betrag); });
     add('Vorschlag Vollzeit pro Monat', e.vorschlag);
     if (e.spanneStufen) {

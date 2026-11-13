@@ -323,13 +323,15 @@ test('Einstufung: Koch EFZ im Housekeeping ergibt Ia mit Warnung', () => {
 test('Einstufung: Restaurationsfachfrau EFZ in der Küche ergibt Ia', () => {
   const r = stufeFuer('kueche-koch-efz', 'restaurationsfachmann-efz');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'stufe_uebersprungen']);
+  assert.equal(r.r.vorschlag, 3735);
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'unter_funktionsband']);
 });
 
 test('Einstufung: Hotelfachfrau EFZ an der Réception ergibt Ia mit Warnung', () => {
   const r = stufeFuer('reception-receptionist', 'hotelfachmann-efz');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'stufe_uebersprungen']);
+  assert.equal(r.r.vorschlag, 3735);
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'unter_funktionsband']);
 });
 
 test('Einstufung: Kaufmann/Kauffrau EFZ an der Réception ergibt IIIa', () => {
@@ -346,7 +348,8 @@ test('Einstufung: Koch EFZ mit Weiterbildung von 6 Tagen im Service ergibt IIIb'
 test('Einstufung: Chefkoch FA im Service ist nicht anerkannt, Ia mit Warnung', () => {
   const r = stufeFuer('service-commis-de-rang', 'chefkoch-fa');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'stufe_uebersprungen']);
+  assert.equal(r.r.vorschlag, 3735);
+  assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'unter_funktionsband']);
 });
 
 test('Einstufung: Küchenangestellte EBA im Housekeeping ergibt Ia', () => {
@@ -358,20 +361,21 @@ test('Einstufung: Progresso Allrounder in Küche, Service und Housekeeping ergib
   for (const f of ['kueche-koch-efz', 'service-commis-de-rang', 'housekeeping-zimmermaedchen']) {
     const r = stufeFuer(f, 'progresso-allrounder');
     assert.equal(r.stufe, 'Ib', f);
-    assert.deepEqual(r.codes, f === 'housekeeping-zimmermaedchen' ? [] : ['stufe_uebersprungen'], f);
+    assert.deepEqual(r.codes, f === 'housekeeping-zimmermaedchen' ? [] : ['unter_funktionsband'], f);
+    assert.equal(r.r.vorschlag, 3967, f);
   }
 });
 
 test('Einstufung: Abschluss im Spa (Bereich nicht geregelt) ergibt Ia mit beiden Warnungen', () => {
   const r = stufeFuer('spa-kosmetiker-efz', 'kaufmann-efz');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes.slice().sort(), ['abschluss_nicht_anerkannt', 'bereich_ungeregelt', 'stufe_uebersprungen']);
+  assert.deepEqual(r.codes.slice().sort(), ['abschluss_nicht_anerkannt', 'bereich_ungeregelt', 'unter_funktionsband']);
 });
 
 test('Einstufung: kein Abschluss im Spa ergibt Ia ohne Warnung', () => {
   const r = stufeFuer('spa-kosmetiker-efz', 'keiner');
   assert.equal(r.stufe, 'Ia');
-  assert.deepEqual(r.codes, ['stufe_uebersprungen']);
+  assert.deepEqual(r.codes, ['unter_funktionsband']);
 });
 
 test('Einstufung: stufeManuell überschreibt mit Warnung stufe_manuell', () => {
@@ -552,7 +556,7 @@ test('Kader: Mindestlohn, Band und Stufenvergleich bleiben auf dem Grundlohn', (
   assert.equal(e.mindestlohn, 5325);
   assert.equal(e.bandStart, 5325);
   assert.equal(e.stufenvergleich.ueberStufe, 0);
-  // Die Pauschale fuellt den Mindestlohn nicht auf: Band darunter wird auf den Mindestlohn angehoben, nicht um die Pauschale gekuerzt
+  // Die Pauschale fuellt den Mindestlohn nicht auf: Der Grundlohn ist der Stufen-Mindestlohn (das Funktionsband 4300 hebt nicht an), nicht um die Pauschale gekuerzt
   const weit = E.berechne(kaderConfig(), kEin({ funktionId: 'chefweit' }));
   assert.equal(weit.vorschlag, 5325);
   assert.equal(weit.monatslohn, 5325);
@@ -569,8 +573,11 @@ test('Kader: Hinweise unter 6750, alle drei Texte', () => {
 });
 
 test('Kader ab 6750 Grundlohn: Hinweis kader_ab_grenze, keine Voraussetzungswarnung', () => {
-  const e = E.berechne(kaderConfig(), kEin({ funktionId: 'chefhoch' }));
-  assert.equal(e.vorschlag, 6800);
+  // Das Funktionsband hebt nicht mehr an: Der Grundlohn 6825 entsteht aus Fachausweis IV (5325) plus einer Zulage von 1500.
+  const c = kaderConfig();
+  c.zusatzbausteine.push({ id: 'zg', label: 'Grosse Zulage', art: 'lohn', betrag: 1500 });
+  const e = E.berechne(c, kEin({ funktionId: 'chefhoch', zusatzIds: ['zg'] }));
+  assert.equal(e.vorschlag, 6825);
   assert.equal(e.kader.grundlohnUnterGrenze, false);
   const a = e.warnungen.find((w) => w.code === 'kader_ab_grenze');
   assert.equal(a.text, 'Überstundenentschädigung kann schriftlich frei vereinbart werden, Art. 15 Ziff. 7.');
@@ -653,4 +660,73 @@ test('Kader mit Einarbeitung 8 %: reduzierte Pauschale, 13. und Total', () => {
   assert.equal(e.einarbeitung.reduzierterTotal, 5218.05);
   const n = E.berechne(kaderConfig(), eingabe({ funktionId: 'koch', abschluss: 'efz', einarbeitung: einarb }));
   assert.equal(n.einarbeitung.reduzierteUeberstundenpauschale, null);
+});
+
+// ---- Task 5l: strikt nach Stufe, das Funktionsband hebt nicht mehr an ----
+const hotelfachAnRezeption = (extra) => E.berechne(SC, eingabe(Object.assign({ funktionId: 'reception-receptionist', abschluss: 'hotelfachmann-efz' }, extra || {})));
+const codesVon = (r) => r.warnungen.map((w) => w.code);
+
+test('strikt: Hotelfachfrau (Ia) als Receptionist bekommt 3735, nicht das Funktionsband 4555', () => {
+  const r = hotelfachAnRezeption();
+  assert.equal(r.stufe, 'Ia');
+  assert.equal(r.mindestlohn, 3735);
+  assert.equal(r.bandStart, 3735);
+  assert.equal(r.bandMax, 4900);
+  assert.deepEqual(r.funktionsband, { min: 4555, max: 4900 });
+  assert.equal(r.vorschlag, 3735);
+  assert.equal(r.monatslohn, 3735);
+  assert.deepEqual(codesVon(r), ['abschluss_nicht_anerkannt', 'unter_funktionsband']);
+  const w = r.warnungen.find((x) => x.code === 'unter_funktionsband');
+  assert.equal(w.text, 'Der Lohn liegt unter dem Lohnband der Funktion (CHF 4555.00 bis 4900.00), weil die Einstufung der Person (Stufe Ia) tiefer ist als die typische Stufe der Funktion. Einstufung und Anerkennung des Abschlusses prüfen.');
+});
+
+test('strikt: Hotelfachfrau als Receptionist mit 5 Jahren Erfahrung 3785, weiterhin unter dem Funktionsband', () => {
+  const r = hotelfachAnRezeption({ erfahrungJahre: 5 });
+  assert.equal(r.vorschlag, 3785);
+  assert.equal(r.bandStart, 3735);
+  assert.deepEqual(codesVon(r), ['abschluss_nicht_anerkannt', 'unter_funktionsband']);
+});
+
+test('strikt: Kaufmann HGT EFZ (IIIa) als Receptionist 4555, kein Hinweis unter_funktionsband', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'reception-receptionist', abschluss: 'kaufmann-efz' }));
+  assert.equal(r.stufe, 'IIIa');
+  assert.equal(r.vorschlag, 4555);
+  assert.deepEqual(r.funktionsband, { min: 4555, max: 4900 });
+  assert.ok(!codesVon(r).includes('unter_funktionsband'));
+});
+
+test('strikt: Gastronomiekoch FA (IV) in Funktion mit Band 4555-4900: Mindestlohn 5325 schlägt das Bandmaximum', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-koch-efz', abschluss: 'gastronomiekoch-fa' }));
+  assert.equal(r.stufe, 'IV');
+  assert.equal(r.vorschlag, 5325);
+  assert.equal(r.bandStart, 5325);
+  assert.equal(r.bandMax, 5325);
+  assert.deepEqual(r.funktionsband, { min: 4555, max: 4900 });
+  assert.deepEqual(codesVon(r), ['band_zu_eng']);
+});
+
+test('strikt: Spielraum und Freigabe beginnen für Ia bei 3735, nicht beim Funktionsband', () => {
+  const r = hotelfachAnRezeption();
+  ['vorgesetzte', 'hr', 'gm'].forEach((t) => assert.equal(r.spanneStufen[t].min, 3735, t));
+  assert.equal(r.spanne.min, 3735);
+  assert.ok(r.spanneStufen.gm.max > 3735 && r.spanneStufen.gm.max <= 4900);
+  assert.equal(E.pruefeAbweichung(r, 3735, '').freigabe, 'keine');
+  const unter = E.pruefeAbweichung(r, 3734.95, '');
+  assert.equal(unter.ok, false);
+  assert.deepEqual(unter.fehler, ['Der gewählte Lohn liegt unter dem Mindestlohn.']);
+});
+
+test('strikt: Praktikum unverändert, kein Funktionsband und kein Hinweis', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'reception-receptionist', abschluss: 'keiner', sonderfall: 'praktikum' }));
+  assert.equal(r.stufe, 'P');
+  assert.equal(r.vorschlag, r.mindestlohn);
+  assert.equal(r.bandStart, null);
+  assert.equal(r.bandMax, null);
+  assert.equal(r.funktionsband, null);
+  assert.ok(!codesVon(r).includes('unter_funktionsband'));
+});
+
+test('strikt: Hinweis unter_funktionsband nicht bei Hinweis- und Fehlermodus', () => {
+  assert.equal(E.berechne(SC, eingabe({ funktionId: 'reception-receptionist', abschluss: 'keiner', sonderfall: 'unter18' })).funktionsband, null);
+  assert.equal(E.berechne(SC, eingabe({ funktionId: 'gibtsnicht' })).funktionsband, null);
 });

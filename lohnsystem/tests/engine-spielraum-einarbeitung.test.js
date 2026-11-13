@@ -160,8 +160,10 @@ test('spanne: mit GM-Limit 3 %', () => {
 test('spanne: begrenzt durch Band', () => {
   const r = E.berechne(cfg, eingabe({ funktionId: 'schmal' }));
   assert.equal(r.vorschlag, 4755);
-  assert.deepEqual(r.spanne, { min: 4750, max: 4800 });
-  assert.deepEqual(r.spanneStufen.vorgesetzte, { min: 4750, max: 4800 });
+  // Untergrenze ist der Stufen-Mindestlohn IIIa (4555), nicht das Funktionsband (4750); die Obergrenze 4800 begrenzt weiterhin.
+  assert.deepEqual(r.spanne, { min: 4612.35, max: 4800 });
+  assert.deepEqual(r.spanneStufen.vorgesetzte, { min: 4707.45, max: 4800 });
+  assert.deepEqual(r.spanneStufen.hr, { min: 4659.9, max: 4800 });
 });
 
 test('spanne: nie unter dem Mindestlohn', () => {

@@ -180,3 +180,17 @@ test('baueExportZeilen: Einarbeitung bei Kader mit reduzierter Pauschale', () =>
   assert.equal(finde(z, 'Einarbeitung reduziert, Total pro Monat')[0][1], 5218.05);
   assert.ok(!X.baueExportZeilen(ergebnis(), kontext).some(r => /Einarbeitung reduziert, Überstunden/.test(r[0])));
 });
+
+test('Export: Zeile «Lohnband der Funktion» neben dem Mindestlohn, entfällt ohne Funktionsband', () => {
+  const z = X.baueExportZeilen(ergebnis({ funktionsband: { min: 4555, max: 4900 } }), kontext);
+  const i = z.findIndex((r) => r[0] === 'Mindestlohn (Tabelle 2027)');
+  assert.deepEqual(z[i + 1], ['Lohnband der Funktion (von bis)', '4555 bis 4900']);
+  assert.equal(finde(baueOhne(), 'Lohnband der Funktion').length, 0);
+  function baueOhne() { return X.baueExportZeilen(ergebnis({ funktionsband: null }), kontext); }
+});
+
+test('Export: Hinweis unter_funktionsband steht als Warnung', () => {
+  const text = 'Der Lohn liegt unter dem Lohnband der Funktion (CHF 4555.00 bis 4900.00), weil ...';
+  const z = X.baueExportZeilen(ergebnis({ funktionsband: { min: 4555, max: 4900 }, warnungen: [{ code: 'unter_funktionsband', text }] }), kontext);
+  assert.deepEqual(finde(z, 'Warnung'), [['Warnung', text]]);
+});

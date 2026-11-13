@@ -378,7 +378,7 @@
       out.appendChild(kopf);
       out.appendChild(el('p', 'hilfe', 'Stufe ' + (e.stufe === 'P' ? 'Praktikum' : e.stufe)
         + ', Mindestlohn CHF ' + chf(e.mindestlohn) + ' (Tabelle ' + e.tabelleJahr + ')'
-        + (e.bandStart !== null ? ', Lohnband CHF ' + chf(e.bandStart) + ' bis ' + chf(e.bandMax) : '')));
+        + (e.funktionsband ? ', Lohnband der Funktion CHF ' + chf(e.funktionsband.min) + ' bis ' + chf(e.funktionsband.max) : '')));
       zeigeStufenzeilen(out, e.stufenvergleich);
 
       if (e.spanneStufen) {

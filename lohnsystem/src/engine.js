@@ -155,7 +155,7 @@
 
   function leeresErgebnis(modus, warnungen, fehler) {
     return {
-      modus: modus, stufe: null, mindestlohn: null, tabelleJahr: null, bandStart: null, bandMax: null,
+      modus: modus, stufe: null, mindestlohn: null, tabelleJahr: null, bandStart: null, bandMax: null, funktionsband: null,
       positionen: [], vorschlag: null, monatslohn: null, dreizehnter: null, totalMonat: null,
       jahresbrutto: null, stundenansatz: null, entschaedigungen: [], spanne: null, spanneStufen: null, einarbeitung: null,
       stufenvergleich: null, kader: null, ueberstundenpauschale: null, bezeichnungen: null,
@@ -316,6 +316,7 @@
     var vorschlag;
     var bandStart = null;
     var bandMax = null;
+    var funktionsband = null;
 
     if (sonder === 'praktikum') {
       vorschlag = mindestlohn;
@@ -332,7 +333,9 @@
       positionen = positionen.concat(zusatz);
 
       var summe = positionen.reduce(function (s, p) { return s + p.betrag; }, 0);
-      bandStart = Math.max(funktion.bandMin, mindestlohn);
+      // Strikt nach Stufe: Untergrenze ist der Mindestlohn der Stufe, das Funktionsband hebt nicht an.
+      bandStart = mindestlohn;
+      funktionsband = { min: funktion.bandMin, max: funktion.bandMax };
       bandMax = funktion.bandMax;
       if (bandMax < mindestlohn) {
         warnungen.push({ code: 'band_zu_eng', text: 'Das Bandmaximum liegt unter dem Mindestlohn; der Mindestlohn gilt.' });
@@ -381,6 +384,11 @@
         + ' (CHF ' + stufenvergleich.mindestlohnNaechste.toFixed(2) + '). Prüfen, ob die Einstufung stimmt und ob der Lohn gegenüber Mitarbeitenden gleicher Qualifikation begründbar ist.' });
     }
 
+    if (funktionsband && vorschlag < funktionsband.min) {
+      warnungen.push({ code: 'unter_funktionsband', text: 'Der Lohn liegt unter dem Lohnband der Funktion (CHF ' + funktionsband.min.toFixed(2) + ' bis ' + funktionsband.max.toFixed(2)
+        + '), weil die Einstufung der Person (Stufe ' + stufe + ') tiefer ist als die typische Stufe der Funktion. Einstufung und Anerkennung des Abschlusses prüfen.' });
+    }
+
     var kaderErgebnis = null;
     if (istKader) {
       var grenze = betrieb.ueberstundenGrenze6750;
@@ -399,7 +407,7 @@
 
     return {
       modus: 'berechnet', stufe: stufe, mindestlohn: mindestlohn, tabelleJahr: tab.tabelle.jahr,
-      bandStart: bandStart, bandMax: bandMax, positionen: positionen, vorschlag: vorschlag,
+      bandStart: bandStart, bandMax: bandMax, funktionsband: funktionsband, positionen: positionen, vorschlag: vorschlag,
       monatslohn: monatslohn, dreizehnter: betraege.dreizehnter, totalMonat: betraege.totalMonat,
       jahresbrutto: betraege.jahresbrutto,
       stundenansatz: betraege.stundenansatz,
