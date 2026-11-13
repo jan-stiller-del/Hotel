@@ -34,10 +34,13 @@
     add('Freigabe durch', k.freigabe === 'keine' ? 'keine (Vorschlag übernommen)' : k.freigabe);
     add('Begründung', k.begruendung || '');
     var b = k.betraege;
-    add('Monatslohn bei ' + prozentText(k.beschaeftigungsgrad) + ' %', b.monatslohn);
-    add('13. Monatslohn', b.dreizehnter);
+    // Eigener Block: der 13. Monatslohn steht nie im Rechenweg, sondern hier als eigene, benannte Zeile.
+    add('Auszahlung pro Monat', '');
+    add('Monatslohn brutto ' + (Number(k.beschaeftigungsgrad) === 100 ? '(Vollzeit)' : 'bei ' + prozentText(k.beschaeftigungsgrad) + ' %'), b.monatslohn);
+    add('13. Monatslohn (' + prozentText(k.dreizehnterProzent) + ' %), monatlich ausbezahlt, separat ausgewiesen', b.dreizehnter);
     add('Total pro Monat', b.totalMonat);
     add('Jahresbrutto', b.jahresbrutto);
+    add('Hinweis', 'Der Mindestlohnvergleich erfolgt ohne 13. Monatslohn.');
     add('Stundenansatz (Vollzeitbasis)', b.stundenansatz);
     if (e.entschaedigungen.length) {
       add('Entschädigungen', 'nicht Teil des Bruttolohns');

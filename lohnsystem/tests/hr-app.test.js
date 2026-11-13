@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { formularZuInput, waehleOption, baueSprachZeilen } = require('../src/hr-app.js');
+const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -102,4 +102,28 @@ test('baueSprachZeilen: unbekannter Code nimmt den Code als Beschriftung, leere 
   assert.deepEqual(baueSprachZeilen({ bausteine: { sprachen: ['XX'] } }), [{ code: 'XX', id: 'sprache-XX', label: 'XX' }]);
   assert.deepEqual(baueSprachZeilen({ bausteine: { sprachen: [] } }), []);
   assert.deepEqual(baueSprachZeilen({}), []);
+});
+
+const ERG = { monatslohn: 2805, dreizehnter: 233.65, totalMonat: 3038.65, jahresbrutto: 36463.8, stundenansatz: 24.8 };
+
+test('baueAuszahlungZeilen: Reihenfolge, Arten, Satz aus der Konfiguration, Teilzeit', () => {
+  const cfg = { betrieb: { dreizehnterProzent: 8.33 } };
+  const z = baueAuszahlungZeilen(ERG, cfg, { beschaeftigungsgrad: '60' });
+  assert.deepEqual(z.map(r => r.art), ['lohn', 'dreizehnter', 'summe', 'jahr', 'hinweis']);
+  assert.equal(z[0].label, 'Monatslohn brutto bei 60 %');
+  assert.equal(z[0].betrag, 2805);
+  assert.equal(z[1].label, '13. Monatslohn (8,33 %), monatlich ausbezahlt, separat ausgewiesen');
+  assert.equal(z[1].betrag, 233.65);
+  assert.equal(z[2].label, 'Total pro Monat');
+  assert.equal(z[2].betrag, 3038.65);
+  assert.equal(z[3].betrag, 36463.8);
+  assert.match(z[4].label, /Mindestlohnvergleich erfolgt ohne 13\. Monatslohn/);
+  assert.equal(z[4].betrag, null);
+});
+
+test('baueAuszahlungZeilen: Vollzeit, anderer Satz, kein Stundenansatz im Block', () => {
+  const z = baueAuszahlungZeilen(ERG, { betrieb: { dreizehnterProzent: 5 } }, { beschaeftigungsgrad: '100' });
+  assert.equal(z[0].label, 'Monatslohn brutto (Vollzeit)');
+  assert.match(z[1].label, /\(5 %\)/);
+  assert.ok(z.every(r => !/Stundenansatz/.test(r.label)));
 });

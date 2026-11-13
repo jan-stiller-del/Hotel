@@ -58,3 +58,8 @@ tr.summe td { font-weight:700; }
 .sg-flagge-text { display:inline-block; min-width:20px; text-align:center; font-weight:700; border:2px solid var(--text); border-radius:4px; background:#fff; }
 .sg-muster { display:inline-block; width:20px; height:12px; vertical-align:middle; position:static; border:1px solid #1f4e79; }
 .sg-freigabe { margin:8px 0 0; font-weight:700; }
+
+/* Block «Auszahlung pro Monat»: 13. Monatslohn abgesetzt durch Rand links, Kursivschrift und eigene Bezeichnung (nicht nur Farbe) */
+table.auszahlung tr.dreizehnter td { font-style:italic; background:#fff; }
+table.auszahlung tr.dreizehnter td:first-child { border-left:5px solid var(--akzent); padding-left:8px; }
+.stundenansatz { margin:8px 0 0; font-size:.9rem; color:var(--grau); }

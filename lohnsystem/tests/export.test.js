@@ -23,7 +23,7 @@ function ergebnis(extra) {
 }
 const kontext = {
   funktionLabel: 'Réception Gästekontakt', eintritt: '2027-01-01', vertragsart: 'Jahresstelle (unbefristet)',
-  beschaeftigungsgrad: 80, gewaehlterMonatslohn: 5040, begruendung: 'Begründung: Erfahrung',
+  beschaeftigungsgrad: 80, dreizehnterProzent: 8.33, gewaehlterMonatslohn: 5040, begruendung: 'Begründung: Erfahrung',
   freigabe: 'HR', datum: '2026-11-13',
   betraege: { monatslohn: 4032, dreizehnter: 335.85, totalMonat: 4367.85, jahresbrutto: 52414.2, stundenansatz: 28.5,
     reduzierterMonatslohn: 3709.45, reduzierterTotal: 4018.43 }
@@ -45,8 +45,8 @@ test('baueExportZeilen: alle Pflichtzeilen, Umlaute unveraendert', () => {
   assert.equal(finde(z, 'Gewählter Vollzeit-Monatslohn')[0][1], 5040);
   assert.equal(finde(z, 'Freigabe durch')[0][1], 'HR');
   assert.equal(finde(z, 'Begründung')[0][1], 'Begründung: Erfahrung');
-  assert.match(String(finde(z, 'Monatslohn bei')[0][0]), /80 %/);
-  assert.equal(finde(z, 'Monatslohn bei')[0][1], 4032);
+  assert.match(String(finde(z, 'Monatslohn brutto')[0][0]), /80 %/);
+  assert.equal(finde(z, 'Monatslohn brutto')[0][1], 4032);
   assert.equal(finde(z, '13. Monatslohn')[0][1], 335.85);
   assert.equal(finde(z, 'Total pro Monat')[0][1], 4367.85);
   assert.equal(finde(z, 'Jahresbrutto')[0][1], 52414.2);
@@ -66,6 +66,41 @@ test('baueExportZeilen: Einarbeitung null und Spanne null entfallen', () => {
   assert.equal(finde(z, 'Einarbeitung').length, 0);
   assert.equal(finde(z, 'Voller Lohn ab').length, 0);
   assert.equal(finde(z, 'Spielraum').length, 0);
+});
+
+function index(z, label) { return z.findIndex(function (r) { return String(r[0]).indexOf(label) === 0; }); }
+
+test('Export: Block Auszahlung pro Monat in fester Reihenfolge, 13. als eigene Zeile', () => {
+  const z = X.baueExportZeilen(ergebnis(), kontext);
+  const i = index(z, 'Auszahlung pro Monat');
+  assert.ok(i >= 0);
+  assert.match(String(z[i + 1][0]), /^Monatslohn brutto bei 80 %/);
+  assert.equal(z[i + 1][1], 4032);
+  assert.equal(z[i + 2][0], '13. Monatslohn (8,33 %), monatlich ausbezahlt, separat ausgewiesen');
+  assert.equal(z[i + 2][1], 335.85);
+  assert.equal(z[i + 3][0], 'Total pro Monat');
+  assert.equal(z[i + 3][1], 4367.85);
+  assert.equal(z[i + 4][0], 'Jahresbrutto');
+  assert.equal(z[i + 4][1], 52414.2);
+  assert.equal(z[i + 5][0], 'Hinweis');
+  assert.match(z[i + 5][1], /Mindestlohnvergleich erfolgt ohne 13\. Monatslohn/);
+});
+
+test('Export: 13. Monatslohn steht nicht im Rechenweg, Stundenansatz ausserhalb des Blocks', () => {
+  const z = X.baueExportZeilen(ergebnis(), kontext);
+  const block = index(z, 'Auszahlung pro Monat');
+  assert.ok(index(z, 'Vorschlag Vollzeit pro Monat') < block);
+  assert.ok(z.slice(0, block).every(r => String(r[0]).indexOf('13. Monatslohn') !== 0));
+  assert.equal(z.filter(r => String(r[0]).indexOf('13. Monatslohn') === 0).length, 1);
+  const st = index(z, 'Stundenansatz');
+  assert.ok(st > index(z, 'Hinweis'));
+  assert.equal(z[st][1], 28.5);
+});
+
+test('Export: Satz kommt aus der Konfiguration, Vollzeit ohne Prozentangabe', () => {
+  const z = X.baueExportZeilen(ergebnis(), Object.assign({}, kontext, { dreizehnterProzent: 4.5, beschaeftigungsgrad: 100 }));
+  assert.equal(finde(z, '13. Monatslohn')[0][0], '13. Monatslohn (4,5 %), monatlich ausbezahlt, separat ausgewiesen');
+  assert.equal(finde(z, 'Monatslohn brutto')[0][0], 'Monatslohn brutto (Vollzeit)');
 });
 
 test('exportiereExcel: ohne SheetJS keine Ausnahme, deutsche Meldung', () => {

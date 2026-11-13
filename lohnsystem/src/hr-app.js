@@ -75,6 +75,20 @@
     });
   }
 
+  // Block «Auszahlung pro Monat»: Zeilen {label, betrag, art}; der 13. Monatslohn steht immer als eigene Zeile.
+  function baueAuszahlungZeilen(e, config, kontext) {
+    var satz = String(config.betrieb.dreizehnterProzent).replace('.', ',');
+    var grad = Number(kontext.beschaeftigungsgrad);
+    var lohnLabel = grad === 100 ? 'Monatslohn brutto (Vollzeit)' : 'Monatslohn brutto bei ' + String(grad).replace('.', ',') + ' %';
+    return [
+      { label: lohnLabel, betrag: e.monatslohn, art: 'lohn' },
+      { label: '13. Monatslohn (' + satz + ' %), monatlich ausbezahlt, separat ausgewiesen', betrag: e.dreizehnter, art: 'dreizehnter' },
+      { label: 'Total pro Monat', betrag: e.totalMonat, art: 'summe' },
+      { label: 'Jahresbrutto', betrag: e.jahresbrutto, art: 'jahr' },
+      { label: 'Hinweis: Der Mindestlohnvergleich erfolgt ohne 13. Monatslohn.', betrag: null, art: 'hinweis' }
+    ];
+  }
+
   // Welcher Wert bleibt in einem neu gefüllten Select gewählt? Sonst leer («– bitte wählen –»).
   function waehleOption(werte, alt) {
     return (alt && werte.indexOf(alt) >= 0) ? alt : '';
@@ -254,16 +268,21 @@
         out.appendChild(grafik);
       }
 
+      out.appendChild(el('h3', null, 'Auszahlung pro Monat'));
+      var az = el('table', 'auszahlung');
+      var azHinweis = [];
+      baueAuszahlungZeilen(e, config, kontext).forEach(function (r) {
+        if (r.art === 'hinweis') { azHinweis.push(r.label); return; }
+        zeile(az, r.label, chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' ? r.art : null);
+      });
+      out.appendChild(az);
+      azHinweis.forEach(function (t) { out.appendChild(el('p', 'hilfe', t)); });
+      out.appendChild(el('p', 'stundenansatz', 'Stundenansatz (Vollzeitbasis, ' + String(config.betrieb.wochenstunden).replace('.', ',') + ' Wochenstunden, ohne 13. Monatslohn): CHF ' + chf(e.stundenansatz)));
+
       out.appendChild(el('h3', null, 'Rechenweg'));
       var rw = el('table');
       e.positionen.forEach(function (p) { zeile(rw, p.label, chf(p.betrag)); });
       zeile(rw, 'Vorschlag Vollzeit (begrenzt auf das Lohnband)', chf(e.vorschlag), 'summe');
-      var grad = Number(kontext.beschaeftigungsgrad);
-      zeile(rw, 'Monatslohn bei ' + String(grad).replace('.', ',') + ' %', chf(e.monatslohn));
-      zeile(rw, '13. Monatslohn (' + prozent(config.betrieb.dreizehnterProzent) + ')', chf(e.dreizehnter));
-      zeile(rw, 'Total pro Monat', chf(e.totalMonat), 'summe');
-      zeile(rw, 'Jahresbrutto', chf(e.jahresbrutto));
-      zeile(rw, 'Stundenansatz (Vollzeitbasis, ' + String(config.betrieb.wochenstunden).replace('.', ',') + ' Wochenstunden)', chf(e.stundenansatz));
       out.appendChild(rw);
 
       if (e.entschaedigungen.length) {
@@ -334,7 +353,7 @@
       var f = aktuelleFunktion();
       var zeilen = window.LohnExport.baueExportZeilen(letztesErgebnis, {
         funktionLabel: f ? f.label : '', eintritt: $('eintritt').value, vertragsart: vertrag ? vertrag[1] : '',
-        beschaeftigungsgrad: $('beschaeftigungsgrad').value,
+        beschaeftigungsgrad: $('beschaeftigungsgrad').value, dreizehnterProzent: config.betrieb.dreizehnterProzent,
         betraege: window.LohnEngine.rechneBetraege(config, wert, {
           beschaeftigungsgrad: Number($('beschaeftigungsgrad').value),
           einarbeitung: letztesErgebnis.einarbeitung
@@ -406,5 +425,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen };
+  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAuszahlungZeilen: baueAuszahlungZeilen };
 }));
