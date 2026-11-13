@@ -26,7 +26,7 @@
     if (k.anerkennung) { add('Anerkennung', k.anerkennung); }
     add('Eintrittsdatum', datumDe(k.eintritt));
     add('Vertragsart', k.vertragsart);
-    add('Stufe', e.stufe === 'P' ? 'Praktikum' : e.stufe);
+    add('Stufe', k.stufeText || (e.stufe === 'P' ? 'Praktikum' : e.stufe));
     var hinweise = e.warnungen.filter(function (w) { return EINSTUFUNG_CODES.indexOf(w.code) >= 0; });
     if (hinweise.length) { add('Einstufungshinweis', hinweise.map(function (w) { return w.text; }).join(' ')); }
     add('Mindestlohn (Tabelle ' + e.tabelleJahr + ')', e.mindestlohn);
@@ -44,7 +44,7 @@
     if (sv) {
       add('Mindestlohn der Stufe', sv.mindestlohn);
       add('Lohn über Stufen-Mindestlohn', (sv.ueberStufe < 0 ? '-' : '') + 'CHF ' + Math.abs(sv.ueberStufe).toFixed(2) + ' (' + prozentText(sv.ueberStufeProzent.toFixed(1)) + ' %)');
-      add('Nächsthöhere Stufe übersprungen', sv.uebersprungen ? 'ja (' + sv.naechsteStufe + ', CHF ' + sv.mindestlohnNaechste.toFixed(2) + ')' : 'nein');
+      add('Nächsthöhere Stufe übersprungen', sv.uebersprungen ? 'ja (' + (k.naechsteStufeText || sv.naechsteStufe) + ', CHF ' + sv.mindestlohnNaechste.toFixed(2) + ')' : 'nein');
     }
     add('Freigabe durch', k.freigabe === 'keine' ? 'keine (Vorschlag übernommen)' : k.freigabe);
     add('Begründung', k.begruendung || '');

@@ -194,3 +194,13 @@ test('Export: Hinweis unter_funktionsband steht als Warnung', () => {
   const z = X.baueExportZeilen(ergebnis({ funktionsband: { min: 4555, max: 4900 }, warnungen: [{ code: 'unter_funktionsband', text }] }), kontext);
   assert.deepEqual(finde(z, 'Warnung'), [['Warnung', text]]);
 });
+
+test('baueExportZeilen: Zeile «Stufe» mit Erklärung, nächsthöhere Stufe mit Erklärung', () => {
+  const sv = { stufe: 'IIIa', mindestlohn: 4555, ueberStufe: 120, ueberStufeProzent: 2.6, naechsteStufe: 'IIIb', mindestlohnNaechste: 4663, uebersprungen: true };
+  const k = Object.assign({}, kontext, { stufenvergleich: sv, stufeText: 'Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)',
+    naechsteStufeText: 'Stufe IIIb, EFZ plus 6 Tage berufsspezifische Weiterbildung' });
+  const z = X.baueExportZeilen(ergebnis(), k);
+  assert.equal(finde(z, 'Stufe')[0][1], 'Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)');
+  assert.equal(finde(z, 'Mindestlohn der Stufe')[0][1], 4555);
+  assert.equal(finde(z, 'Nächsthöhere Stufe übersprungen')[0][1], 'ja (Stufe IIIb, EFZ plus 6 Tage berufsspezifische Weiterbildung, CHF 4663.00)');
+});

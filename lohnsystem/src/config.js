@@ -63,6 +63,10 @@
 
     var stufenKonfig = (config.stufen && typeof config.stufen === 'object') ? config.stufen : {};
     STUFEN.forEach(function (s) {
+      var erkl = stufenKonfig[s] && stufenKonfig[s].erklaerung;
+      if (typeof erkl !== 'string' || erkl.trim() === '') {
+        fehler.push('Erklärung der Stufe ' + s + ' fehlt (Feld erklaerung).');
+      }
       var sp = stufenKonfig[s] && stufenKonfig[s].spielraum;
       var name = 'Spielraum Stufe ' + s;
       if (!sp || !istZahl(sp.vorgesetzte) || !istZahl(sp.hr) || !istZahl(sp.gm)) {
@@ -187,8 +191,29 @@
     return wert;
   }
 
+  // Erklärungstext einer Stufe oder '' (Leseansicht und Eingabeseite dürfen ohne Erklärung weiterlaufen).
+  function stufeErklaerung(config, stufe) {
+    var s = config && config.stufen && config.stufen[stufe];
+    return (s && typeof s.erklaerung === 'string') ? s.erklaerung.trim() : '';
+  }
+
+  // Name der Stufe wie in der Konfiguration («Stufe IIIa», «Praktikum»), sonst «Stufe X».
+  function stufeName(config, stufe) {
+    var s = config && config.stufen && config.stufen[stufe];
+    return (s && s.label) || 'Stufe ' + stufe;
+  }
+
+  // «Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)»; ohne Erklärung nur «Stufe IIIa».
+  function stufeMitErklaerung(config, stufe) {
+    var erkl = stufeErklaerung(config, stufe);
+    return stufeName(config, stufe) + (erkl ? ', ' + erkl : '');
+  }
+
   return {
     STUFEN: STUFEN,
+    stufeErklaerung: stufeErklaerung,
+    stufeName: stufeName,
+    stufeMitErklaerung: stufeMitErklaerung,
     validateConfig: validateConfig,
     parseConfigDatei: parseConfigDatei,
     serializeConfig: serializeConfig,

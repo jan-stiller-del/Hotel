@@ -4,7 +4,8 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueWahlAbrechnung, formatDifferenz, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
+const { stufeMitErklaerung } = require('../src/config.js');
+const { baueStufeManuellOptionen, formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueWahlAbrechnung, formatDifferenz, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -172,12 +173,12 @@ test('baueAnerkennungsZeile: anerkannt mit Stufe aus dem Ergebnis', () => {
   const cfg = standardConfig();
   const r = baueAnerkennungsZeile(cfg, 'koch-efz', 'service-chef-de-rang', { modus: 'berechnet', stufe: 'IIIa', warnungen: [] });
   assert.equal(r.art, 'ok');
-  assert.equal(r.text, 'Gelernt: Koch/Köchin EFZ (Küche, Restauration) → Neue Stelle: Chef de rang (Restauration): anerkannt, Stufe IIIa');
+  assert.equal(r.text, 'Gelernt: Koch/Köchin EFZ (Küche, Restauration) → Neue Stelle: Chef de rang (Restauration): anerkannt, Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)');
 });
 
 test('baueAnerkennungsZeile: Stufe aus der Konfiguration ohne Ergebnis', () => {
   const r = baueAnerkennungsZeile(standardConfig(), 'koch-efz', 'service-chef-de-rang', null);
-  assert.match(r.text, /anerkannt, Stufe IIIa$/);
+  assert.ok(r.text.endsWith('anerkannt, Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)'));
 });
 
 test('baueAnerkennungsZeile: nicht anerkannt, Einstufung Ia', () => {
@@ -227,21 +228,21 @@ test('baueAnerkennungsZeile: manuelle Stufe bei Abschluss ohne Stufe, Text passt
   const cfg = standardConfig();
   const r = baueAnerkennungsZeile(cfg, 'hf', 'service-chef-de-rang', { stufe: 'IV' }, { stufeManuell: 'IV' });
   assert.equal(r.art, 'warnung');
-  assert.match(r.text, /von Hand gewählt: Stufe IV$/);
+  assert.ok(r.text.endsWith('von Hand gewählt: Stufe IV, Berufsprüfung (eidg. Fachausweis)'));
   assert.doesNotMatch(r.text, /Stufe von Hand wählen|Einstufung Ia/);
 });
 
 test('baueAnerkennungsZeile: manuelle Stufe übersteuert nicht anerkannten Fall', () => {
   const r = baueAnerkennungsZeile(standardConfig(), 'koch-efz', 'housekeeping-zimmermaedchen', { stufe: 'IIIa' }, { stufeManuell: 'IIIa' });
   assert.equal(r.art, 'warnung');
-  assert.match(r.text, /von Hand gewählt: Stufe IIIa$/);
+  assert.ok(r.text.endsWith('von Hand gewählt: Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)'));
   assert.doesNotMatch(r.text, /Einstufung Ia/);
 });
 
 test('baueAnerkennungsZeile: Praktikum ohne Anerkennungsprüfung', () => {
   const r = baueAnerkennungsZeile(standardConfig(), 'koch-efz', 'housekeeping-zimmermaedchen', { stufe: 'P' }, { sonderfall: 'praktikum' });
   assert.equal(r.art, 'ok');
-  assert.equal(r.text, 'Praktikum: Stufe P, keine Anerkennungsprüfung');
+  assert.equal(r.text, 'Praktikum, Praktikant/in einer anerkannten Hotelfachschule: keine Anerkennungsprüfung');
   assert.equal(baueAnerkennungsZeile(standardConfig(), '', '', null, { sonderfall: 'praktikum' }).art, 'ok');
 });
 
@@ -266,7 +267,8 @@ test('baueAnerkennungsZeile: Stufe im Text entspricht ergebnis.stufe', () => {
     assert.equal(e.modus, 'berechnet', ab + fu);
     const t = baueAnerkennungsZeile(cfg, ab, fu, e, { stufeManuell: man, sonderfall: sonder }).text;
     if (e.stufe === 'Ia') assert.match(t, /Einstufung Ia/);
-    else assert.match(t, new RegExp(e.stufe === 'P' ? 'Stufe P,' : 'Stufe ' + e.stufe + '$'));
+    else if (e.stufe === 'P') assert.ok(t.startsWith('Praktikum, '));
+    else assert.ok(t.endsWith(stufeMitErklaerung(cfg, e.stufe)), t);
   });
 });
 
@@ -437,4 +439,24 @@ test('baueWahlAbrechnung: ungueltiger Lohn oder kein berechnetes Ergebnis gibt n
 test('formatDifferenz: Vorzeichen und Dezimalkomma, Minus bei tieferem Lohn', () => {
   assert.equal(formatDifferenz({ chf: -50, prozent: -1.1 }), 'Differenz zum Vorschlag: -CHF 50.00 (-1,1 %)');
   assert.equal(formatDifferenz(null), '');
+});
+
+test('baueStufeManuellOptionen: erste Option leer, danach Stufe mit Erklärung', () => {
+  const o = baueStufeManuellOptionen(standardConfig());
+  assert.deepEqual(o[0], { value: '', label: '– bitte wählen –' });
+  assert.deepEqual(o.map((x) => x.value), ['', 'Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV']);
+  assert.equal(o[4].label, 'IIIa – Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)');
+  assert.equal(o[1].label, 'Ia – ohne Berufslehre');
+});
+
+test('baueStufeManuellOptionen: ohne Erklärung nur die Stufe, ohne Konfiguration leer', () => {
+  const c = standardConfig();
+  delete c.stufen.II.erklaerung;
+  assert.equal(baueStufeManuellOptionen(c)[3].label, 'II');
+  assert.equal(baueStufeManuellOptionen(null).length, 7);
+});
+
+test('baueStufenvergleichZeilen: nächsthöhere Stufe mit Erklärung, wenn die Konfiguration übergeben wird', () => {
+  const z = baueStufenvergleichZeilen(SV, standardConfig());
+  assert.equal(z[1].text, '⚠ Nächsthöhere Stufe IIIb, EFZ plus 6 Tage berufsspezifische Weiterbildung (CHF 4663.00) erreicht oder überschritten');
 });

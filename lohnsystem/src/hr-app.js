@@ -24,6 +24,16 @@
   ];
   var VERTRAGSARTEN = [['unbefristet', 'Jahresstelle (unbefristet)'], ['saison', 'Saisonstelle']];
   var STUFEN_MANUELL = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV'];
+
+  var Cfg = typeof require === 'function' ? require('./config.js') : window.LohnConfig;
+
+  // Optionen für «Stufe von Hand wählen»: Stufe mit Erklärung («IIIa – Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)»).
+  function baueStufeManuellOptionen(config) {
+    return [{ value: '', label: '– bitte wählen –' }].concat(STUFEN_MANUELL.map(function (s) {
+      var erkl = Cfg.stufeErklaerung(config, s);
+      return { value: s, label: erkl ? s + ' – ' + erkl : s };
+    }));
+  }
   var NIVEAUS = ['A1', 'A2', 'B1', 'B2', 'C1', 'C2', 'Muttersprache'];
   var SPRACHNAMEN = { EN: 'Englisch', FR: 'Französisch', IT: 'Italienisch', DE: 'Deutsch' };
 
@@ -127,7 +137,7 @@
   }
 
   // Anzeigezeilen {text, art} aus einem Stufenvergleich (Engine); art 'warnung' = hervorgehobene Zeile mit Marker.
-  function baueStufenvergleichZeilen(sv) {
+  function baueStufenvergleichZeilen(sv, config) {
     if (!sv) { return []; }
     var d = Number(sv.ueberStufe);
     var zeilen = [{
@@ -137,7 +147,7 @@
     }];
     if (sv.uebersprungen) {
       zeilen.push({
-        text: '⚠ Nächsthöhere Stufe ' + sv.naechsteStufe + ' (CHF ' + Number(sv.mindestlohnNaechste).toFixed(2) + ') erreicht oder überschritten',
+        text: '⚠ Nächsthöhere ' + Cfg.stufeMitErklaerung(config, sv.naechsteStufe) + ' (CHF ' + Number(sv.mindestlohnNaechste).toFixed(2) + ') erreicht oder überschritten',
         art: 'warnung'
       });
     }
@@ -173,9 +183,8 @@
   function baueAnerkennungsZeile(config, abschlussId, funktionId, ergebnis, optionen) {
     optionen = optionen || {};
     var STUFEN_GUELTIG = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV'];
-    var stufeName = function (s) { return s === 'P' ? 'Praktikum' : s; };
     if (optionen.sonderfall === 'praktikum') {
-      return { text: 'Praktikum: Stufe P, keine Anerkennungsprüfung', art: 'ok' };
+      return { text: Cfg.stufeMitErklaerung(config, 'P') + ': keine Anerkennungsprüfung', art: 'ok' };
     }
     var abschluss = abschlussId ? ((config && config.abschluesse) || []).filter(function (x) { return x.id === abschlussId; })[0] || null : null;
     var funktion = funktionId ? ((config && config.funktionen) || []).filter(function (x) { return x.id === funktionId; })[0] || null : null;
@@ -197,7 +206,7 @@
       gelernt = 'Gelernt: ' + abschluss.label + (bereiche ? ' (' + bereiche + ')' : '');
     }
     if (STUFEN_GUELTIG.indexOf(optionen.stufeManuell) >= 0) {
-      return { text: gelernt + neu + 'von Hand gewählt: Stufe ' + optionen.stufeManuell, art: 'warnung' };
+      return { text: gelernt + neu + 'von Hand gewählt: ' + Cfg.stufeMitErklaerung(config, optionen.stufeManuell), art: 'warnung' };
     }
     if (!abschluss) {
       return { text: gelernt + neu + 'Einstufung Ia', art: 'ok' };
@@ -212,7 +221,7 @@
         + (bereich ? '' : '. Bereich nicht geregelt, Auskunft der Kontrollstelle einholen'), art: 'warnung' };
     }
     var stufe = ergebnis && ergebnis.stufe ? ergebnis.stufe : abschluss.stufe;
-    return { text: gelernt + neu + 'anerkannt, Stufe ' + stufeName(stufe), art: 'ok' };
+    return { text: gelernt + neu + 'anerkannt, ' + Cfg.stufeMitErklaerung(config, stufe), art: 'ok' };
   }
 
   // Das Feld «Stufe von Hand wählen» erscheint nur, wenn es gebraucht wird oder schon eine Stufe gewählt ist.
@@ -289,7 +298,7 @@
     SONDERFAELLE.forEach(function (a) { option($('sonderfall'), a[0], a[1]); });
     VERTRAGSARTEN.forEach(function (a) { option($('vertragsart'), a[0], a[1]); });
     option($('stufeManuell'), '', '– bitte wählen –');
-    STUFEN_MANUELL.forEach(function (s) { option($('stufeManuell'), s, config.stufen[s] ? config.stufen[s].label : s); });
+    baueStufeManuellOptionen(config).slice(1).forEach(function (o) { option($('stufeManuell'), o.value, o.label); });
     for (var h = 0; h <= config.betrieb.maxErfahrungsjahre; h++) {
       option($('erfahrung'), String(h), h + (h === 1 ? ' Jahr' : ' Jahre'));
     }
@@ -387,7 +396,7 @@
 
     // Zeilen des Stufenvergleichs in einen Container schreiben (Marker im Text, nicht nur Farbe).
     function zeigeStufenzeilen(ziel, sv) {
-      baueStufenvergleichZeilen(sv).forEach(function (z) {
+      baueStufenvergleichZeilen(sv, config).forEach(function (z) {
         ziel.appendChild(el('p', 'stufenzeile ' + z.art, z.text));
       });
     }
@@ -411,7 +420,7 @@
       var kopf = el('p', 'vorschlag', 'CHF ' + chf(e.vorschlag) + ' ');
       kopf.appendChild(el('small', null, 'Vollzeit, Vorschlag pro Monat'));
       out.appendChild(kopf);
-      out.appendChild(el('p', 'hilfe', 'Stufe ' + (e.stufe === 'P' ? 'Praktikum' : e.stufe)
+      out.appendChild(el('p', 'hilfe', Cfg.stufeMitErklaerung(config, e.stufe)
         + ', Mindestlohn CHF ' + chf(e.mindestlohn) + ' (Tabelle ' + e.tabelleJahr + ')'
         + (e.funktionsband ? ', Lohnband der Funktion CHF ' + chf(e.funktionsband.min) + ' bis ' + chf(e.funktionsband.max) : '')));
       zeigeStufenzeilen(out, e.stufenvergleich);
@@ -542,6 +551,7 @@
       if (!p.ok) { pruefeWahl(); return; }
       var vertrag = VERTRAGSARTEN.filter(function (v) { return v[0] === $('vertragsart').value; })[0];
       var f = aktuelleFunktion();
+      var svExport = stufenvergleichFuer(letztesErgebnis, wert);
       var zeilen = window.LohnExport.baueExportZeilen(letztesErgebnis, {
         funktionLabel: f ? f.label : '', funktionsbereich: bereichLabel(config, f),
         anerkennung: baueAnerkennungsZeile(config, $('abschluss').value, $('funktion').value, letztesErgebnis,
@@ -553,7 +563,9 @@
           einarbeitung: letztesErgebnis.einarbeitung,
           kader: !!letztesErgebnis.kader
         }),
-        stufenvergleich: stufenvergleichFuer(letztesErgebnis, wert),
+        stufenvergleich: svExport,
+        stufeText: Cfg.stufeMitErklaerung(config, letztesErgebnis.stufe),
+        naechsteStufeText: svExport ? Cfg.stufeMitErklaerung(config, svExport.naechsteStufe) : '',
         gewaehlterMonatslohn: wert, begruendung: $('begruendung').value.trim(), freigabe: p.freigabe,
         datum: new Date().toISOString().slice(0, 10)
       });
@@ -640,5 +652,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueWahlAbrechnung: baueWahlAbrechnung, formatDifferenz: formatDifferenz, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
+  return { baueStufeManuellOptionen: baueStufeManuellOptionen, formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueWahlAbrechnung: baueWahlAbrechnung, formatDifferenz: formatDifferenz, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
 }));

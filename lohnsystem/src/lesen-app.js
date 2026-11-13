@@ -11,6 +11,8 @@
   var SPRACHNAMEN = { DE: 'Deutsch', EN: 'Englisch', FR: 'Französisch', IT: 'Italienisch' };
   var BAENDER_HINWEIS = 'Lohnbänder sind Beispielwerte, bis sie freigegeben sind.';
 
+  var Cfg = typeof require === 'function' ? require('./config.js') : window.LohnConfig;
+
   function istZahl(x) { return typeof x === 'number' && isFinite(x); }
   function liste(x) { return Array.isArray(x) ? x : []; }
 
@@ -52,7 +54,7 @@
     var zukuenftig = tabelle.gueltigAbJahresbetrieb > datum;
 
     var mindestloehne = STUFEN_REIHENFOLGE.filter(function (st) { return istZahl(tabelle.stufen[st]); }).map(function (st) {
-      return { stufe: st, label: stufenLabel(config, st), betrag: tabelle.stufen[st] };
+      return { stufe: st, label: stufenLabel(config, st), betrag: tabelle.stufen[st], erklaerung: Cfg.stufeErklaerung(config, st) };
     });
 
     var baender = config.abteilungen.map(function (a) {
@@ -70,7 +72,7 @@
       var einzelfall = a.stufe === null || a.stufe === undefined;
       return {
         abschluss: a.label,
-        stufe: einzelfall ? null : stufenLabel(config, a.stufe),
+        stufe: einzelfall ? null : Cfg.stufeMitErklaerung(config, a.stufe),
         einzelfall: einzelfall,
         bereiche: liste(a.bereiche).map(function (id) { return bereichLabels[id] || id; })
       };
@@ -165,8 +167,8 @@
     var s2 = el('section');
     s2.appendChild(el('h2', 'Mindestlöhne nach Stufe'));
     if (m.mindestlohnHinweis) { s2.appendChild(el('p', m.mindestlohnHinweis, 'meldung info')); }
-    s2.appendChild(tabelle('Mindestlöhne ' + m.jahr + ' (gültig ab ' + datumCH(m.gueltigAb) + '), brutto pro Monat in CHF', ['Stufe', 'Mindestlohn (CHF)'],
-      m.mindestloehne.map(function (x) { return [x.label, chf(x.betrag)]; }), [1]));
+    s2.appendChild(tabelle('Mindestlöhne ' + m.jahr + ' (gültig ab ' + datumCH(m.gueltigAb) + '), brutto pro Monat in CHF', ['Stufe', 'Erklärung', 'Mindestlohn (CHF)'],
+      m.mindestloehne.map(function (x) { return [x.label, x.erklaerung || '–', chf(x.betrag)]; }), [2]));
     ziel.appendChild(s2);
 
     var s3 = el('section');

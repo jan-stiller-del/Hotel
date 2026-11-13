@@ -287,3 +287,42 @@ test('Kader-Werte werden validiert', () => {
   ohne.funktionen.forEach((f) => { f.kader = false; });
   assert.strictEqual(validateConfig(ohne).ok, true);
 });
+
+const { stufeMitErklaerung, stufeErklaerung } = require('../src/config.js');
+
+test('Standardkonfiguration: jede Stufe hat die vorgegebene Erklärung', () => {
+  const c = ladeStandardkonfiguration();
+  assert.deepStrictEqual(STUFEN.map((s) => c.stufen[s].erklaerung), [
+    'ohne Berufslehre',
+    'ohne Berufslehre, mit Progresso-Abschluss',
+    'zweijährige Grundbildung (EBA)',
+    'Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)',
+    'EFZ plus 6 Tage berufsspezifische Weiterbildung',
+    'Berufsprüfung (eidg. Fachausweis)',
+    'Praktikant/in einer anerkannten Hotelfachschule',
+  ]);
+});
+
+test('validateConfig: fehlende Erklärung einer Stufe ist ein Fehler', () => {
+  const c = kopie();
+  delete c.stufen.IIIa.erklaerung;
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.fehler.some((f) => /Erklärung/.test(f) && /IIIa/.test(f)));
+  const c2 = kopie();
+  c2.stufen.P.erklaerung = '  ';
+  assert.ok(validateConfig(c2).fehler.some((f) => /Erklärung/.test(f) && /\bP\b/.test(f)));
+});
+
+test('stufeMitErklaerung: Stufe mit Erklärung, Praktikum, fehlende Erklärung, unbekannte Stufe', () => {
+  const c = ladeStandardkonfiguration();
+  assert.strictEqual(stufeMitErklaerung(c, 'IIIa'), 'Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)');
+  assert.strictEqual(stufeMitErklaerung(c, 'P'), 'Praktikum, Praktikant/in einer anerkannten Hotelfachschule');
+  delete c.stufen.IIIa.erklaerung;
+  assert.strictEqual(stufeMitErklaerung(c, 'IIIa'), 'Stufe IIIa');
+  assert.strictEqual(stufeMitErklaerung(c, 'X'), 'Stufe X');
+  assert.strictEqual(stufeMitErklaerung({}, 'IIIa'), 'Stufe IIIa');
+  assert.strictEqual(stufeMitErklaerung(null, 'IIIa'), 'Stufe IIIa');
+  assert.strictEqual(stufeErklaerung(ladeStandardkonfiguration(), 'II'), 'zweijährige Grundbildung (EBA)');
+  assert.strictEqual(stufeErklaerung(c, 'IIIa'), '');
+});

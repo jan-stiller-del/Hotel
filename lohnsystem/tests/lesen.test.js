@@ -61,7 +61,7 @@ test('HR-interne Schluessel kommen nirgends im Modell vor', () => {
 test('Anerkennung: Koch/Koechin EFZ mit Kueche und Restauration, Stufe IIIa', () => {
   const m = baueLeseModell(standardConfig(), '2027-02-01');
   const koch = m.anerkennung.filter((a) => a.abschluss === 'Koch/Köchin EFZ')[0];
-  assert.equal(koch.stufe, 'Stufe IIIa');
+  assert.equal(koch.stufe, 'Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)');
   assert.deepEqual(koch.bereiche, ['Küche', 'Restauration']);
 });
 
@@ -115,4 +115,16 @@ test('Texte: Einstiegslohn ist nicht mehr an das Bandminimum gebunden (strikt na
   const m = baueLeseModell(standardConfig(), '2027-02-01');
   assert.equal(m.texte.berechnung, 'Einstiegslohn = Mindestlohn der Stufe der Person + Zuschläge, höchstens bis zum Ende des Lohnbands der Funktion. Liegt die Stufe der Person tiefer als die typische Stufe der Funktion, kann der Lohn unter dem Lohnband liegen.');
   assert.equal(m.texte.baender, 'Das Lohnband zeigt den Einstiegsbereich für die typische Stufe der Funktion. Massgebend für den Einstiegslohn ist die Stufe der Person (Abschluss und Funktionsbereich).');
+});
+
+test('Mindestloehne enthalten die Erklärung der Stufe; ohne Erklärung nur die Bezeichnung', () => {
+  const m = baueLeseModell(standardConfig(), '2027-02-01');
+  assert.equal(m.mindestloehne.filter((x) => x.stufe === 'IIIa')[0].erklaerung, 'Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)');
+  assert.equal(m.mindestloehne.filter((x) => x.stufe === 'P')[0].erklaerung, 'Praktikant/in einer anerkannten Hotelfachschule');
+  const c = standardConfig();
+  delete c.stufen.II.erklaerung;
+  const m2 = baueLeseModell(c, '2027-02-01');
+  const ii = m2.mindestloehne.filter((x) => x.stufe === 'II')[0];
+  assert.equal(ii.label, 'Stufe II');
+  assert.equal(ii.erklaerung, '');
 });

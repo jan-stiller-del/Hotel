@@ -22,13 +22,13 @@ window.LOHN_CONFIG = {
     }
   ],
   "stufen": {
-    "Ia":   { "label": "Stufe Ia",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
-    "Ib":   { "label": "Stufe Ib",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
-    "II":   { "label": "Stufe II",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
-    "IIIa": { "label": "Stufe IIIa", "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
-    "IIIb": { "label": "Stufe IIIb", "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
-    "IV":   { "label": "Stufe IV",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
-    "P":    { "label": "Praktikum",  "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" }
+    "Ia":   { "label": "Stufe Ia", "erklaerung": "ohne Berufslehre",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "Ib":   { "label": "Stufe Ib", "erklaerung": "ohne Berufslehre, mit Progresso-Abschluss",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "II":   { "label": "Stufe II", "erklaerung": "zweijährige Grundbildung (EBA)",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "IIIa": { "label": "Stufe IIIa", "erklaerung": "Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)", "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "IIIb": { "label": "Stufe IIIb", "erklaerung": "EFZ plus 6 Tage berufsspezifische Weiterbildung", "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "IV":   { "label": "Stufe IV", "erklaerung": "Berufsprüfung (eidg. Fachausweis)",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "P":    { "label": "Praktikum", "erklaerung": "Praktikant/in einer anerkannten Hotelfachschule",  "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" }
   },
   "abteilungen": [
     { "id": "reception", "label": "Réception und Reservation" },
