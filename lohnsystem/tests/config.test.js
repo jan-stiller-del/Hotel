@@ -44,10 +44,11 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   for (const a of c.abteilungen) {
     assert.strictEqual(c.funktionen.filter((f) => f.abteilung === a.id).length, anzahl[a.id], a.id);
   }
+  assert.strictEqual(c.betrieb.baenderBestaetigt, false);
   assert.strictEqual(c.funktionen.length, 75);
   assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 75);
   for (const f of c.funktionen) {
-    assert.strictEqual(f.beispiel, true);
+    assert.notStrictEqual(f.beispiel, true, f.id);
     assert.ok(f.id.startsWith(f.abteilung + '-'), f.id);
     assert.ok(f.bandMin < f.bandMax, f.id);
     if (['kueche', 'technik'].includes(f.abteilung)) assert.strictEqual(f.gaestekontakt, false, f.id);

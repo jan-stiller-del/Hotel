@@ -101,11 +101,57 @@
     return gruppen;
   }
 
-  // Schreibgeschützte Anzeige des Funktionsbereichs der gewählten Funktion.
-  function funktionsbereichText(config, funktion) {
+  // Bezeichnung des Funktionsbereichs aus config.bereiche; ohne Bereich «nicht geregelt», ohne Funktion leer.
+  function bereichLabel(config, funktion) {
     if (!funktion) { return ''; }
     var b = ((config && config.bereiche) || []).filter(function (x) { return x.id === funktion.bereich; })[0];
-    return 'Funktionsbereich: ' + (funktion.bereich && b ? b.label : 'nicht geregelt');
+    return funktion.bereich && b ? b.label : 'nicht geregelt';
+  }
+
+  // Schreibgeschützte Anzeige des Funktionsbereichs der gewählten Funktion.
+  function funktionsbereichText(config, funktion) {
+    return funktion ? 'Funktionsbereich: ' + bereichLabel(config, funktion) : '';
+  }
+
+  // Vergleichszeile zwischen gelerntem Beruf und neuer Funktion (gleiche Regel wie die Engine: Abschluss zählt nur im anerkannten Bereich).
+  function baueAnerkennungsZeile(config, abschlussId, funktionId, ergebnis) {
+    var abschluss = abschlussId ? ((config && config.abschluesse) || []).filter(function (x) { return x.id === abschlussId; })[0] || null : null;
+    var funktion = funktionId ? ((config && config.funktionen) || []).filter(function (x) { return x.id === funktionId; })[0] || null : null;
+    if (!abschlussId || !funktion) {
+      return { text: 'Gelernten Beruf und Funktion wählen, dann erscheint hier der Vergleich.', art: 'offen' };
+    }
+    var bereichText = funktion.bereich ? ' (' + bereichLabel(config, funktion) + ')' : '';
+    var neu = ' → Neue Stelle: ' + funktion.label + bereichText + ': ';
+    if (abschlussId === 'keiner' || !abschluss) {
+      return { text: 'Gelernt: kein Abschluss' + neu + 'Einstufung Ia', art: 'ok' };
+    }
+    var bereiche = abschluss.bereiche === '*' ? 'alle Bereiche'
+      : (Array.isArray(abschluss.bereiche) ? abschluss.bereiche.map(function (id) {
+        var b = ((config && config.bereiche) || []).filter(function (x) { return x.id === id; })[0];
+        return b ? b.label : id;
+      }).join(', ') : '');
+    var gelernt = 'Gelernt: ' + abschluss.label + (bereiche ? ' (' + bereiche + ')' : '');
+    if (abschluss.stufe === null) {
+      return { text: gelernt + neu + 'Stufe von Hand wählen', art: 'offen' };
+    }
+    var bereich = funktion.bereich || null;
+    var anerkannt = !!bereich && (abschluss.bereiche === '*' || (Array.isArray(abschluss.bereiche) && abschluss.bereiche.indexOf(bereich) >= 0));
+    if (!anerkannt) {
+      return { text: gelernt + neu + 'nicht anerkannt, Einstufung Ia'
+        + (bereich ? '' : '. Bereich nicht geregelt, Auskunft der Kontrollstelle einholen'), art: 'warnung' };
+    }
+    var stufe = ergebnis && ergebnis.stufe ? ergebnis.stufe : abschluss.stufe;
+    return { text: gelernt + neu + 'anerkannt, Stufe ' + (stufe === 'P' ? 'Praktikum' : stufe), art: 'ok' };
+  }
+
+  // Der Hinweis «Lohnbänder sind Beispielwerte» gilt, bis die Bänder freigegeben sind.
+  function zeigeBaenderHinweis(config) {
+    return !(config && config.betrieb && config.betrieb.baenderBestaetigt === true);
+  }
+
+  // Eine von Hand gewählte Stufe gilt nur für genau diese Kombination aus Abschluss und Funktion.
+  function stufeManuellBleibt(alt, neu) {
+    return !!alt && !!neu && alt.abschluss === neu.abschluss && alt.funktionId === neu.funktionId;
   }
 
   // Welcher Wert bleibt in einem neu gefüllten Select gewählt? Sonst leer («– bitte wählen –»).
@@ -148,6 +194,7 @@
       return;
     }
     $('seite').hidden = false;
+    $('baenderHinweis').hidden = !zeigeBaenderHinweis(config);
 
     // Dropdowns aus der Konfiguration füllen
     config.abteilungen.forEach(function (a) { option($('abteilung'), a.id, a.label); });
@@ -205,7 +252,7 @@
       config.funktionen.forEach(function (f) {
         if (f.abteilung === $('abteilung').value) {
           ids.push(f.id);
-          option(sel, f.id, f.label + (f.beispiel ? ' (Beispiel)' : ''));
+          option(sel, f.id, f.label);
         }
       });
       sel.value = waehleOption(ids, alt);
@@ -379,7 +426,8 @@
       var vertrag = VERTRAGSARTEN.filter(function (v) { return v[0] === $('vertragsart').value; })[0];
       var f = aktuelleFunktion();
       var zeilen = window.LohnExport.baueExportZeilen(letztesErgebnis, {
-        funktionLabel: f ? f.label : '', funktionsbereich: f ? funktionsbereichText(config, f).replace('Funktionsbereich: ', '') : '',
+        funktionLabel: f ? f.label : '', funktionsbereich: bereichLabel(config, f),
+        anerkennung: baueAnerkennungsZeile(config, $('abschluss').value, $('funktion').value, letztesErgebnis).text,
         abschlussLabel: abschlussLabel(), eintritt: $('eintritt').value, vertragsart: vertrag ? vertrag[1] : '',
         beschaeftigungsgrad: $('beschaeftigungsgrad').value, dreizehnterProzent: config.betrieb.dreizehnterProzent,
         betraege: window.LohnEngine.rechneBetraege(config, wert, {
@@ -403,10 +451,21 @@
       letzterVorschlag = null;
     }
 
+    var MARKER = { ok: '✓ ', warnung: '! ', offen: '… ' };
+    function zeigeAnerkennung() {
+      var z = baueAnerkennungsZeile(config, $('abschluss').value, $('funktion').value, letztesErgebnis);
+      var box = $('anerkennung');
+      box.className = 'anerkennung ' + z.art;
+      box.textContent = MARKER[z.art] + z.text;
+    }
+    var letzterSchluessel = null;
     function aktualisieren() {
       var f = aktuelleFunktion();
       var abschluss = $('abschluss').value;
       var sonder = $('sonderfall').value;
+      var schluessel = { abschluss: abschluss, funktionId: $('funktion').value };
+      if (!stufeManuellBleibt(letzterSchluessel, schluessel)) { $('stufeManuell').value = ''; }
+      letzterSchluessel = schluessel;
       $('wbWrap').hidden = !(aktuellerAbschluss() && aktuellerAbschluss().stufe === 'IIIa');
       $('funktionsbereich').textContent = funktionsbereichText(config, f);
       $('sprachenWrap').hidden = !(f && f.gaestekontakt);
@@ -423,11 +482,13 @@
         $('wahlBereich').hidden = true;
         wahlLeeren();
         letztesErgebnis = null;
+        zeigeAnerkennung();
         pruefeWahl();
         return;
       }
       var ergebnis = window.LohnEngine.berechne(config, formularZuInput(lies()));
       letztesErgebnis = ergebnis;
+      zeigeAnerkennung();
       renderErgebnis(ergebnis, { beschaeftigungsgrad: $('beschaeftigungsgrad').value });
       if (ergebnis.modus === 'berechnet') {
         if (ergebnis.vorschlag !== letzterVorschlag || !manuell) {
@@ -457,5 +518,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, baueAuszahlungZeilen: baueAuszahlungZeilen };
+  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen };
 }));

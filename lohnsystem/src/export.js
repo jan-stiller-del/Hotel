@@ -20,9 +20,10 @@
     var z = [];
     function add(label, wert) { z.push([label, wert === undefined || wert === null ? '' : wert]); }
     add('Einstiegslohn Hotel Waldhaus Flims', 'Erstellt am ' + datumDe(k.datum));
-    add('Funktion', k.funktionLabel);
+    add('Gelernter Beruf / Abschluss', k.abschlussLabel);
+    add('Funktion im Waldhaus', k.funktionLabel);
     add('Funktionsbereich', k.funktionsbereich);
-    add('Abschluss', k.abschlussLabel);
+    if (k.anerkennung) { add('Anerkennung', k.anerkennung); }
     add('Eintrittsdatum', datumDe(k.eintritt));
     add('Vertragsart', k.vertragsart);
     add('Stufe', e.stufe === 'P' ? 'Praktikum' : e.stufe);

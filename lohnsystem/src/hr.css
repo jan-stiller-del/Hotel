@@ -63,3 +63,9 @@ tr.summe td { font-weight:700; }
 table.auszahlung tr.dreizehnter td { font-style:italic; background:#fff; }
 table.auszahlung tr.dreizehnter td:first-child { border-left:5px solid var(--akzent); padding-left:8px; }
 .stundenansatz { margin:8px 0 0; font-size:.9rem; color:var(--grau); }
+
+.anerkennung { margin:0 0 12px; padding:8px 12px; border-left:6px solid; border-radius:4px; font-size:.9rem; overflow-wrap:anywhere; }
+.anerkennung.ok { background:var(--info-bg); border-color:var(--info-rand); }
+.anerkennung.warnung { background:var(--warn-bg); border-color:var(--warn-rand); }
+.anerkennung.offen { background:transparent; border-color:var(--rand); color:var(--grau); }
+.baender-hinweis { margin:8px 12px; }

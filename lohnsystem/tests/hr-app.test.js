@@ -4,7 +4,7 @@ const assert = require('node:assert/strict');
 const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
-const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueAbschlussGruppen, funktionsbereichText } = require('../src/hr-app.js');
+const { formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -158,4 +158,67 @@ test('funktionsbereichText: Bereich aus der Konfiguration oder «nicht geregelt�
   assert.equal(funktionsbereichText(cfg, f('kueche-koch-efz')), 'Funktionsbereich: Küche');
   assert.equal(funktionsbereichText(cfg, f('spa-masseur')), 'Funktionsbereich: nicht geregelt');
   assert.equal(funktionsbereichText(cfg, null), '');
+});
+
+test('bereichLabel: direkter Nachschlag in config.bereiche', () => {
+  const cfg = standardConfig();
+  const f = (id) => cfg.funktionen.find(x => x.id === id);
+  assert.equal(bereichLabel(cfg, f('kueche-koch-efz')), 'Küche');
+  assert.equal(bereichLabel(cfg, f('spa-masseur')), 'nicht geregelt');
+  assert.equal(bereichLabel(cfg, null), '');
+});
+
+test('baueAnerkennungsZeile: anerkannt mit Stufe aus dem Ergebnis', () => {
+  const cfg = standardConfig();
+  const r = baueAnerkennungsZeile(cfg, 'koch-efz', 'service-chef-de-rang', { modus: 'berechnet', stufe: 'IIIa', warnungen: [] });
+  assert.equal(r.art, 'ok');
+  assert.equal(r.text, 'Gelernt: Koch/Köchin EFZ (Küche, Restauration) → Neue Stelle: Chef de rang (Restauration): anerkannt, Stufe IIIa');
+});
+
+test('baueAnerkennungsZeile: Stufe aus der Konfiguration ohne Ergebnis', () => {
+  const r = baueAnerkennungsZeile(standardConfig(), 'koch-efz', 'service-chef-de-rang', null);
+  assert.match(r.text, /anerkannt, Stufe IIIa$/);
+});
+
+test('baueAnerkennungsZeile: nicht anerkannt, Einstufung Ia', () => {
+  const r = baueAnerkennungsZeile(standardConfig(), 'koch-efz', 'housekeeping-zimmermaedchen', null);
+  assert.equal(r.art, 'warnung');
+  assert.match(r.text, /Neue Stelle: Room Attendant \(Hotellerie\/Hauswirtschaft\): nicht anerkannt, Einstufung Ia/);
+});
+
+test('baueAnerkennungsZeile: Bereich nicht geregelt', () => {
+  const r = baueAnerkennungsZeile(standardConfig(), 'koch-efz', 'spa-spa-assistenz', null);
+  assert.equal(r.art, 'warnung');
+  assert.match(r.text, /nicht anerkannt, Einstufung Ia/);
+  assert.match(r.text, /Bereich nicht geregelt, Auskunft der Kontrollstelle einholen/);
+});
+
+test('baueAnerkennungsZeile: ohne Abschluss oder Funktion offen', () => {
+  const cfg = standardConfig();
+  assert.equal(baueAnerkennungsZeile(cfg, '', 'service-chef-de-rang', null).art, 'offen');
+  assert.equal(baueAnerkennungsZeile(cfg, 'koch-efz', '', null).art, 'offen');
+});
+
+test('baueAnerkennungsZeile: Stufe von Hand und alle Bereiche', () => {
+  const cfg = { bereiche: [{ id: 'a', label: 'A' }], funktionen: [{ id: 'f', label: 'F', bereich: 'a' }],
+    abschluesse: [{ id: 'hf', label: 'HF', stufe: null, bereiche: [] }, { id: 'x', label: 'X', stufe: 'II', bereiche: '*' }] };
+  const hf = baueAnerkennungsZeile(cfg, 'hf', 'f', null);
+  assert.equal(hf.art, 'offen');
+  assert.match(hf.text, /Stufe von Hand wählen/);
+  const x = baueAnerkennungsZeile(cfg, 'x', 'f', null);
+  assert.match(x.text, /Gelernt: X \(alle Bereiche\)/);
+  assert.match(x.text, /anerkannt, Stufe II$/);
+});
+
+test('zeigeBaenderHinweis: nur wenn das Flag nicht true ist', () => {
+  assert.equal(zeigeBaenderHinweis({ betrieb: { baenderBestaetigt: false } }), true);
+  assert.equal(zeigeBaenderHinweis({ betrieb: {} }), true);
+  assert.equal(zeigeBaenderHinweis({ betrieb: { baenderBestaetigt: true } }), false);
+  assert.equal(zeigeBaenderHinweis(standardConfig()), true);
+});
+
+test('stufeManuellBleibt: nur bei gleichem Abschluss und gleicher Funktion', () => {
+  assert.equal(stufeManuellBleibt({ abschluss: 'hf', funktionId: 'a' }, { abschluss: 'hf', funktionId: 'a' }), true);
+  assert.equal(stufeManuellBleibt({ abschluss: 'hf', funktionId: 'a' }, { abschluss: 'x', funktionId: 'a' }), false);
+  assert.equal(stufeManuellBleibt({ abschluss: 'hf', funktionId: 'a' }, { abschluss: 'hf', funktionId: 'b' }), false);
 });

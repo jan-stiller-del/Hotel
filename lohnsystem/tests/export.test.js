@@ -24,7 +24,7 @@ function ergebnis(extra) {
 const kontext = {
   funktionLabel: 'Réception Gästekontakt', funktionsbereich: 'Hotelempfang', abschlussLabel: 'Kaufmann/Kauffrau EFZ', eintritt: '2027-01-01', vertragsart: 'Jahresstelle (unbefristet)',
   beschaeftigungsgrad: 80, dreizehnterProzent: 8.33, gewaehlterMonatslohn: 5040, begruendung: 'Begründung: Erfahrung',
-  freigabe: 'HR', datum: '2026-11-13',
+  anerkennung: 'Gelernt: X → Neue Stelle: Y: anerkannt, Stufe IIIa', freigabe: 'HR', datum: '2026-11-13',
   betraege: { monatslohn: 4032, dreizehnter: 335.85, totalMonat: 4367.85, jahresbrutto: 52414.2, stundenansatz: 28.5,
     reduzierterMonatslohn: 3709.45, reduzierterTotal: 4018.43 }
 };
@@ -117,7 +117,11 @@ test('Export: Abschluss, Funktionsbereich und Einstufungshinweis', () => {
   ];
   const z = X.baueExportZeilen(ergebnis({ warnungen: warn }), kontext);
   assert.equal(finde(z, 'Funktionsbereich')[0][1], 'Hotelempfang');
-  assert.equal(finde(z, 'Abschluss')[0][1], 'Kaufmann/Kauffrau EFZ');
+  assert.equal(finde(z, 'Gelernter Beruf / Abschluss')[0][1], 'Kaufmann/Kauffrau EFZ');
+  assert.equal(finde(z, 'Funktion im Waldhaus')[0][1], 'Réception Gästekontakt');
+  assert.equal(finde(z, 'Anerkennung')[0][1], 'Gelernt: X → Neue Stelle: Y: anerkannt, Stufe IIIa');
+  const labels = z.map(r => r[0]);
+  assert.ok(labels.indexOf('Gelernter Beruf / Abschluss') < labels.indexOf('Funktion im Waldhaus'));
   assert.equal(finde(z, 'Einstufungshinweis').length, 1);
   assert.equal(finde(z, 'Einstufungshinweis')[0][1], 'Nicht anerkannt. Bereich ungeregelt.');
   assert.deepEqual(finde(z, 'Warnung').map(r => r[1]), ['Andere Warnung']);

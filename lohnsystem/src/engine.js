@@ -53,7 +53,7 @@
     var funktion = ((config && config.funktionen) || []).filter(function (x) { return x.id === input.funktionId; })[0] || null;
     var bereich = funktion && funktion.bereich ? funktion.bereich : null;
     var ab = input.abschluss === 'keiner' ? null : findeAbschluss(config, input.abschluss);
-    if (ab && ab.stufe === null) {
+    if (ab && ab.stufe === null && !manuell) {
       warnungen.push({ code: 'hf_offen', text: ab.label + ': Stufe bitte von Hand wählen.' });
     }
     if (manuell) {

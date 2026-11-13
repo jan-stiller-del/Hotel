@@ -13,24 +13,27 @@
 </header>
 
 <div id="konfigFehler" class="meldung fehler" hidden></div>
+<p id="baenderHinweis" class="meldung info baender-hinweis" hidden>Lohnbänder sind Beispielwerte, bis sie freigegeben sind.</p>
 
 <main id="seite" class="seite" hidden>
   <form id="formular" class="formular" autocomplete="off" onsubmit="return false">
     <fieldset>
-      <legend>Stelle</legend>
-      <div class="feld"><label for="abteilung">Abteilung</label><select id="abteilung"></select></div>
-      <div class="feld"><label for="funktion">Funktion</label><select id="funktion"></select><p class="hilfe" id="funktionsbereich"></p></div>
-      <div class="feld"><label for="sonderfall">Sonderfall</label><select id="sonderfall"></select></div>
-    </fieldset>
-
-    <fieldset>
-      <legend>Ausbildung und Erfahrung</legend>
-      <div class="feld"><label for="abschluss">Abschluss</label><select id="abschluss"></select></div>
+      <legend>Gelernter Beruf</legend>
+      <div class="feld"><label for="abschluss">Gelernter Beruf / Abschluss</label><select id="abschluss"></select></div>
       <div class="feld" id="wbWrap" hidden>
         <label class="inline"><input type="checkbox" id="weiterbildung6Tage"> Berufsspezifische Weiterbildung von mindestens 6 Tagen (belegt)</label>
       </div>
-      <div class="feld" id="hfWrap"><label for="stufeManuell">Stufe von Hand wählen</label><select id="stufeManuell"></select><p class="hilfe">Pflicht bei Höherer Fachschule, ausländischem und anderem Abschluss; sonst nur zum Übersteuern der Einstufung nach Abschluss und Funktionsbereich.</p></div>
-      <div class="feld"><label for="erfahrung">Einschlägige Erfahrung in Jahren</label><select id="erfahrung"></select></div>
+      <div class="feld" id="hfWrap"><label for="stufeManuell">Stufe von Hand wählen</label><select id="stufeManuell"></select><p class="hilfe">Pflicht bei Höherer Fachschule, ausländischem und anderem Abschluss; sonst nur zum Übersteuern der Einstufung nach Abschluss und Funktionsbereich. Wird beim Wechsel von Abschluss oder Funktion zurückgesetzt.</p></div>
+    </fieldset>
+
+    <p id="anerkennung" class="anerkennung offen" role="status" aria-live="polite"></p>
+
+    <fieldset>
+      <legend>Neue Stelle</legend>
+      <div class="feld"><label for="abteilung">Abteilung</label><select id="abteilung"></select></div>
+      <div class="feld"><label for="funktion">Funktion im Waldhaus (neue Stelle)</label><select id="funktion"></select><p class="hilfe" id="funktionsbereich"></p></div>
+      <div class="feld"><label for="sonderfall">Sonderfall</label><select id="sonderfall"></select></div>
+      <div class="feld"><label for="erfahrung">Einschlägige Erfahrung in dieser Funktion (Jahre)</label><select id="erfahrung"></select><p class="hilfe">Es zählt nur Erfahrung, die in der künftigen Funktion gesammelt wurde, nicht die Zeit im gelernten Beruf.</p></div>
       <div class="feld" id="sprachenWrap">
         <span class="feldname" id="sprachenTitel">Sprachen (nur bei Gästekontakt)</span>
         <div id="sprachenListe" role="group" aria-labelledby="sprachenTitel"></div>

@@ -50,14 +50,15 @@ test('bestimmeStufe: Abschluss zu Stufe', () => {
   assert.equal(s({ abschluss: 'berufspruefung' }), 'IV');
 });
 
-test('bestimmeStufe: HF ohne Handwahl offen, mit Handwahl IV; beides mit Warnung', () => {
+test('bestimmeStufe: HF ohne Handwahl offen (hf_offen), mit Handwahl IV ohne hf_offen', () => {
   const c = baueConfig();
   const offen = E.bestimmeStufe(c, { funktionId: 'rec', abschluss: 'hf' });
   assert.equal(offen.stufe, null);
   assert.ok(offen.warnungen.some((w) => w.code === 'hf_offen'));
   const manuell = E.bestimmeStufe(c, { funktionId: 'rec', abschluss: 'hf', stufeManuell: 'IV' });
   assert.equal(manuell.stufe, 'IV');
-  assert.ok(manuell.warnungen.some((w) => w.code === 'hf_offen'));
+  assert.ok(!manuell.warnungen.some((w) => w.code === 'hf_offen'));
+  assert.ok(manuell.warnungen.some((w) => w.code === 'stufe_manuell'));
 });
 
 test('findeMindestlohnTabelle: Stichtage Jahresbetrieb', () => {
