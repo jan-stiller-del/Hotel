@@ -116,8 +116,8 @@
     VERTRAGSARTEN.forEach(function (a) { option($('vertragsart'), a[0], a[1]); });
     option($('stufeManuell'), '', '– bitte wählen –');
     STUFEN_HF.forEach(function (s) { option($('stufeManuell'), s, config.stufen[s] ? config.stufen[s].label : s); });
-    for (var h = 0; h <= config.betrieb.maxErfahrungsjahre * 2; h++) {
-      option($('erfahrung'), String(h / 2), String(h / 2).replace('.', ',') + ' Jahre');
+    for (var h = 0; h <= config.betrieb.maxErfahrungsjahre; h++) {
+      option($('erfahrung'), String(h), h + (h === 1 ? ' Jahr' : ' Jahre'));
     }
     var sprachCodes = (config.bausteine && config.bausteine.sprachen) || [];
     sprachCodes.forEach(function (code) {

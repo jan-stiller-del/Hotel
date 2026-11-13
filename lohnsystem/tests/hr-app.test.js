@@ -23,10 +23,16 @@ test('Grundfelder werden uebernommen und Zahlen geparst', () => {
   assert.equal(i.sonderfall, 'keiner');
 });
 
-test('Erfahrung in halben Jahren', () => {
-  assert.equal(formularZuInput(werte({ erfahrung: '4.5' })).erfahrungJahre, 4.5);
-  assert.equal(formularZuInput(werte({ erfahrung: '0.5' })).erfahrungJahre, 0.5);
+test('Erfahrung in ganzen Jahren', () => {
+  assert.equal(formularZuInput(werte({ erfahrung: '4' })).erfahrungJahre, 4);
+  assert.equal(formularZuInput(werte({ erfahrung: '1' })).erfahrungJahre, 1);
+  assert.equal(formularZuInput(werte({ erfahrung: '0' })).erfahrungJahre, 0);
   assert.equal(formularZuInput(werte({ erfahrung: '' })).erfahrungJahre, 0);
+});
+
+test('Deutsch wird wie jede andere Sprache uebernommen', () => {
+  const i = formularZuInput(werte({ sprachen: { DE: 'Muttersprache', EN: 'B2' } }));
+  assert.deepEqual(i.sprachen, [{ sprache: 'DE', niveau: 'Muttersprache' }, { sprache: 'EN', niveau: 'B2' }]);
 });
 
 test('Sprachen: nur gewaehlte mit Niveau, Reihenfolge Sprachcode', () => {

@@ -95,8 +95,8 @@
       f.push('Beschäftigungsgrad muss zwischen 1 und 100 liegen.');
     }
     var e = input.erfahrungJahre;
-    if (!istZahl(e) || e < 0 || Math.round(e * 2) !== e * 2) {
-      f.push('Erfahrung muss eine Zahl in halben Jahren sein (0, 0.5, 1, ...).');
+    if (!istZahl(e) || e < 0 || Math.floor(e) !== e) {
+      f.push('Erfahrung muss in ganzen Jahren angegeben werden (0, 1, 2, ...).');
     }
     if (input.vertragsart !== 'unbefristet' && input.vertragsart !== 'saison') {
       f.push('Vertragsart unbekannt.');

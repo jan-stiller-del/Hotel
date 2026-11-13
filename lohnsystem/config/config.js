@@ -51,12 +51,12 @@ window.LOHN_CONFIG = {
     { "id": "administration-leitung", "abteilung": "administration", "label": "Leiter/in Administration", "gaestekontakt": true, "bandMin": 5800, "bandMax": 8000, "beispiel": true }
   ],
   "bausteine": {
-    "erfahrungProJahr": 50,
-    "spracheProSprache": 100,
-    "maxSprachen": 2,
-    "sprachen": ["EN", "FR", "IT"],
+    "erfahrungProJahr": 10,
+    "spracheProSprache": 20,
+    "maxSprachen": 4,
+    "sprachen": ["DE", "EN", "FR", "IT"],
     "mindestNiveau": "B2",
-    "hinweis": "Beispiel: Platzhalterbeträge, echte Werte liefert HR"
+    "hinweis": "Beträge von Jan festgelegt: Erfahrung CHF 10 pro Jahr, Sprache CHF 20 pro Sprache; Deutsch, Englisch, Französisch und Italienisch zählen (ab Niveau B2, höchstens CHF 80)"
   },
   "zusatzbausteine": []
 };

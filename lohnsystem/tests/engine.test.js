@@ -20,7 +20,7 @@ function baueConfig() {
       { id: 'koch', abteilung: 'a', label: 'Koch', gaestekontakt: false, bandMin: 4300, bandMax: 5600 },
       { id: 'eng', abteilung: 'a', label: 'Eng', gaestekontakt: true, bandMin: 4300, bandMax: 4400 },
     ],
-    bausteine: { erfahrungProJahr: 50, spracheProSprache: 100, maxSprachen: 2, sprachen: ['EN', 'FR', 'IT'], mindestNiveau: 'B2' },
+    bausteine: { erfahrungProJahr: 50, spracheProSprache: 100, maxSprachen: 2, sprachen: ['DE', 'EN', 'FR', 'IT'], mindestNiveau: 'B2' },
     zusatzbausteine: [
       { id: 'zl', label: 'Zulage', art: 'lohn', betrag: 150 },
       { id: 'ze', label: 'Pauschale', art: 'entschaedigung', betrag: 80 },
@@ -119,8 +119,24 @@ test('berechne: ungültige Erfahrung ist ein Fehler ohne NaN', () => {
   }
 });
 
-test('berechne: halbe Erfahrungsjahre erlaubt', () => {
-  assert.equal(E.berechne(baueConfig(), eingabe({ erfahrungJahre: 2.5 })).vorschlag, 4680);
+test('berechne: nur ganze Erfahrungsjahre, halbe Jahre sind ein Fehler', () => {
+  for (const v of [0.5, 2.5]) {
+    const r = E.berechne(baueConfig(), eingabe({ erfahrungJahre: v }));
+    assert.equal(r.modus, 'fehler', String(v));
+    assert.match(r.fehler[0], /ganzen Jahren/);
+  }
+  assert.equal(E.berechne(baueConfig(), eingabe({ erfahrungJahre: 3 })).vorschlag, 4705);
+  assert.equal(E.berechne(baueConfig(), eingabe({ erfahrungJahre: 0 })).modus, 'berechnet');
+});
+
+test('berechne: Deutsch zählt wie jede andere Sprache', () => {
+  const r = E.berechne(baueConfig(), eingabe({ sprachen: [{ sprache: 'DE', niveau: 'B2' }, { sprache: 'EN', niveau: 'C1' }] }));
+  assert.equal(r.modus, 'berechnet');
+  assert.deepEqual(r.positionen.map((p) => p.betrag), [4555, 200]);
+  assert.equal(r.vorschlag, 4755);
+  const b1 = E.berechne(baueConfig(), eingabe({ sprachen: [{ sprache: 'DE', niveau: 'B1' }] }));
+  assert.equal(b1.positionen.length, 1);
+  assert.equal(b1.vorschlag, 4555);
 });
 
 test('berechne: Funktion ohne Gästekontakt gibt keinen Sprachzuschlag', () => {
@@ -130,8 +146,8 @@ test('berechne: Funktion ohne Gästekontakt gibt keinen Sprachzuschlag', () => {
   assert.equal(r.fehler.length, 0);
 });
 
-test('berechne: leere Sprachenliste, nur Deutsch oder B1 ergeben keine Sprachposition', () => {
-  for (const sprachen of [[], [{ sprache: 'DE', niveau: 'C2' }], [{ sprache: 'EN', niveau: 'B1' }]]) {
+test('berechne: leere Sprachenliste oder nur B1 ergeben keine Sprachposition', () => {
+  for (const sprachen of [[], [{ sprache: 'DE', niveau: 'B1' }], [{ sprache: 'EN', niveau: 'B1' }]]) {
     const r = E.berechne(baueConfig(), eingabe({ sprachen }));
     assert.equal(r.modus, 'berechnet');
     assert.equal(r.positionen.length, 1);
@@ -245,4 +261,23 @@ test('rechneBetraege: gewaehlter Lohn, Teilzeit 60 % und Einarbeitung 8 %', () =
   const o = E.rechneBetraege(cfg, 5040, { beschaeftigungsgrad: 100, einarbeitung: { erlaubt: false, reduktionProzent: 8 } });
   assert.equal(o.reduzierterMonatslohn, null);
   assert.equal(o.reduzierterTotal, null);
+});
+
+test('Standardkonfiguration: EFZ-Beispiel Réceptionist/in ergibt 4675', () => {
+  const fs = require('node:fs');
+  const path = require('node:path');
+  const vm = require('node:vm');
+  const sandbox = { window: {} };
+  vm.runInNewContext(fs.readFileSync(path.join(__dirname, '..', 'config', 'config.js'), 'utf8'), sandbox);
+  const config = JSON.parse(JSON.stringify(sandbox.window.LOHN_CONFIG));
+  assert.equal(config.bausteine.erfahrungProJahr, 10);
+  assert.equal(config.bausteine.spracheProSprache, 20);
+  assert.deepEqual(config.bausteine.sprachen, ['DE', 'EN', 'FR', 'IT']);
+  assert.equal(config.bausteine.maxSprachen, 4);
+  const r = E.berechne(config, eingabe({
+    funktionId: 'reception-mitarbeiter', erfahrungJahre: 4,
+    sprachen: [{ sprache: 'DE', niveau: 'B2' }, { sprache: 'EN', niveau: 'B2' }, { sprache: 'FR', niveau: 'C1' }, { sprache: 'IT', niveau: 'B2' }],
+  }));
+  assert.deepEqual(r.positionen.map((p) => p.betrag), [4555, 40, 80]);
+  assert.equal(r.vorschlag, 4675);
 });
