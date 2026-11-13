@@ -215,6 +215,44 @@ Zweck: Niemand soll unbemerkt mehr verdienen, als es seiner Stufe entspricht. Er
 - [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): Zeile für Koch EFZ → Chef de rang und → Room Attendant; kein «(Beispiel)» hinter den Funktionen; Hinweis oben sichtbar; Konsole ohne Fehler; 375 px ohne Horizontalscroll.
 - [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: gelernter Beruf und neue Funktion getrennt, Beispiel-Hinweis zentral"`
 
+### Task 5k: Kader mit 50-Stunden-Woche und Überstundenpauschale (Wunsch von Jan)
+
+Grundlage: Recherche zu L-GAV Art. 15 Ziff. 4–7 und ArG (Kommentar S. 37–43). Kader (Abteilungsleitung) arbeiten 50 Stunden pro Woche, 6,5 Stunden über der Normalarbeitszeit von 43,5; diese werden als Pauschale zu 100 % in den Bruttolohn eingerechnet und separat ausgewiesen. Rechtliche Leitplanken (im Rechner als Hinweise sichtbar): Der Mindestlohn der Stufe muss mit dem **Grundlohn** für 43,5 Stunden erreicht werden, die Pauschale darf ihn nicht auffüllen. Unter CHF 6'750 Grundlohn (ohne 13. Monatslohn) ist die Pauschale zu 100 % nur zulässig, wenn alle drei Voraussetzungen von Art. 15 Ziff. 5 erfüllt sind: Arbeitszeiterfassung nach Art. 21, monatliche schriftliche Mitteilung des Überstundensaldos, Auszahlung spätestens mit der letzten Lohnzahlung; sonst gilt 125 % (Ziff. 6). Ab CHF 6'750 kann die Überstundenentschädigung schriftlich frei vereinbart werden (Ziff. 7, im Rahmen des Gesetzes). 50 Stunden sind im Gastgewerbe die gesetzliche Höchstarbeitszeit (Art. 9 ArG); Überzeit darüber ist zuschlagspflichtig.
+
+**Files:**
+- Modify: `lohnsystem/config/config.js`, `lohnsystem/src/config.js`, `lohnsystem/src/engine.js`, `lohnsystem/src/hr-app.js`, `lohnsystem/src/export.js`, `lohnsystem/hr.html` (falls nötig)
+- Test: `lohnsystem/tests/config.test.js`, `lohnsystem/tests/engine.test.js`, `lohnsystem/tests/hr-app.test.js`, `lohnsystem/tests/export.test.js`
+
+**Interfaces:**
+- Config neu: `betrieb.kaderWochenstunden: 50`, `betrieb.ueberstundenSatz: 1.0` (Jan: 100 %), `betrieb.ueberstundenGrenze6750: 6750`, `betrieb.dreizehnterInklPauschale: true` (13. Monatslohn auf Grundlohn plus Pauschale, vorsichtige Variante); Funktionen bekommen `kader: boolean` (Standard `false`).
+- Engine: `rechneBetraege(config, vollzeitLohn, { beschaeftigungsgrad, einarbeitung, kader })` liefert zusätzlich `ueberstundenpauschale` (Monatsbetrag, null wenn nicht Kader), `pauschaleStundenProMonat` (6,5 × 52 / 12 = 28,17), `pauschale125` (Vergleichswert bei 125 %); Pauschale = `runde5(vollzeitLohn / (betrieb.wochenstunden × 52 / 12) × (kaderWochenstunden − wochenstunden) × 52 / 12 × satz)`, bei Teilzeit auf den Beschäftigungsgrad skaliert (Kader in Teilzeit: Wochenstunden-Differenz proportional); `dreizehnter` auf Grundlohn plus Pauschale, wenn `dreizehnterInklPauschale`; `totalMonat` = Grundlohn + Pauschale + 13.; Mindestlohnvergleich, Band, Spielraum, Stufenvergleich und Stundenansatz bleiben auf dem Grundlohn. `Ergebnis.kader = { aktiv, pauschale, pauschale125, stundenProMonat, grundlohnUnterGrenze: boolean }`. Neue Warnung `kader_voraussetzungen` (nur wenn Grundlohn unter 6750 und Satz kleiner als 1,25): «Pauschale zu 100 % nur zulässig bei Arbeitszeiterfassung (Art. 21 L-GAV), monatlicher schriftlicher Saldomitteilung und Auszahlung spätestens mit der letzten Lohnzahlung; sonst 125 % (CHF X). Eine 50-Stunden-Normalarbeitszeit ist unter CHF 6'750 nicht vereinbar, es handelt sich um Überstunden.»; Hinweis `kader_ab_grenze` ab 6750 («Überstundenentschädigung kann schriftlich frei vereinbart werden, Art. 15 Ziff. 7»); Hinweis `kader_hoechstarbeitszeit` («50 Stunden = gesetzliche Höchstarbeitszeit im Gastgewerbe, Überzeit darüber mit 25 % Zuschlag»).
+- UI/Export: Block «Auszahlung pro Monat» zeigt für Kader «Grundlohn (43,5 h)», «Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)» als eigene Zeile, «13. Monatslohn (auf Grundlohn plus Pauschale)», Total, Jahresbrutto; Hinweise sichtbar; Export mit denselben Zeilen aus `kontext.betraege`.
+
+- [ ] **Step 1: Failing tests.** Config: Funktion mit `kader:true` valide, Standardwerte; Validierung `kaderWochenstunden` > `wochenstunden` und höchstens 50, `ueberstundenSatz` ≥ 1. Engine: Grundlohn 5325: Stundenansatz 28.25 (5325 / 188.5), Pauschale 795.80 bei 100 % (28,1667 h) und 994.75 bei 125 %, 13. Monatslohn auf 6120.80 × 8,33 %, Total; Kader mit Grundlohn ≥ 6750 → Hinweis `kader_ab_grenze`, keine Warnung `kader_voraussetzungen`; Nicht-Kader unverändert (`kader` null, keine Pauschale); Mindestlohn auf Grundlohn (Pauschale füllt nicht auf); Teilzeit 80 %; `dreizehnterInklPauschale: false`. UI: reiner Helfer für die Auszahlungszeilen erweitert (Reihenfolge, Beschriftung), Hinweise. Export: Zeilen vorhanden, Zahlen als Zahlen.
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren** (Config-Flag `kader` für die Funktionen der Abteilungsleitung laut Jan, Engine, Anzeige, Export).
+- [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): Chef de cuisine, Stufe IV, Grundlohn 5325: Pauschale 795.80, Total inkl. 13., Warnung `kader_voraussetzungen` sichtbar; Nicht-Kader ohne Pauschale; Konsole ohne Fehler.
+- [ ] **Step 5: Commit.** `git add lohnsystem && git commit -m "feat: Kader mit 50-Stunden-Woche und Ueberstundenpauschale"`
+
+### Task 5l: Strikt nach Stufe, das Funktionsband hebt nicht mehr an (Entscheid von Jan: «strikt Ia»)
+
+Bisher galt als Untergrenze das Maximum aus Funktions-Bandminimum und Stufen-Mindestlohn: Wer wegen eines nicht anerkannten Abschlusses nur Stufe Ia hat (zum Beispiel Hotelfachfrau an der Réception), wurde auf das Band der Funktion (IIIa, 4555) angehoben. Neu gilt strikt die Stufe: Untergrenze ist der **L-GAV-Mindestlohn der Stufe** der Person, das Funktions-Bandminimum hebt nicht mehr an und bleibt Orientierung für die Funktion.
+
+**Files:**
+- Modify: `lohnsystem/src/engine.js`, `lohnsystem/src/hr-app.js`, `lohnsystem/src/export.js`
+- Test: `lohnsystem/tests/engine.test.js`, `lohnsystem/tests/engine-spielraum-einarbeitung.test.js`, `lohnsystem/tests/hr-app.test.js`, `lohnsystem/tests/export.test.js`
+
+**Interfaces:**
+- Engine: wirksamer Bandstart = Stufen-Mindestlohn (statt `max(bandMin, Mindestlohn)`); Bandmaximum der Funktion begrenzt weiterhin nach oben, der Mindestlohn schlägt das Bandmaximum (Warnung `band_zu_eng` wie bisher); Spielraum-Untergrenze und Freigabe-Bereiche beziehen sich auf den Stufen-Mindestlohn (nicht auf das Funktionsband). `Ergebnis.bandStart` ist jetzt der Stufen-Mindestlohn, `Ergebnis.funktionsband = { min, max }` zeigt das Band der Funktion. Neuer Hinweis `unter_funktionsband` (nur wenn der Vorschlag unter dem Funktions-Bandminimum liegt): «Der Lohn liegt unter dem Lohnband der Funktion (CHF X bis Y), weil die Einstufung der Person (Stufe Z) tiefer ist als die typische Stufe der Funktion. Einstufung und Anerkennung des Abschlusses prüfen.»
+- UI: die Ergebniszeile zeigt «Stufe …, Mindestlohn CHF … (Tabelle …), Lohnband der Funktion CHF … bis …»; der Hinweis erscheint in der Warnliste; Excel-Export: Zeile «Lohnband der Funktion» (von–bis) und der Hinweis.
+- Die Stufen- und Einarbeitungs-Logik, `Stufenvergleich`, Kader-Pauschale und Anerkennung bleiben unverändert.
+
+- [ ] **Step 1: Failing tests.** Engine: Hotelfachfrau (Abschluss nicht anerkannt → Ia) als Receptionist (Band 4555–4900): Vorschlag 3735 ohne Zuschläge (nicht 4555), mit 5 Jahren Erfahrung 3785, Hinweis `unter_funktionsband`, keine Anhebung; Kaufmann/Kauffrau HGT EFZ als Receptionist (IIIa): Vorschlag 4555, kein Hinweis `unter_funktionsband`; Gastronomiekoch FA (IV) in einer Funktion mit Band 4555–4900: Mindestlohn schlägt das Bandmaximum, Vorschlag 5325, Warnung `band_zu_eng`; Spielraum/Freigabe unten bei 3735 beginnend für Ia; Praktikum unverändert. Die Tests aus Task 5e und 5h, die das Anheben auf das Funktions-Bandminimum festhielten (erwartetes `stufe_uebersprungen` bei Ia/Ib am Bandboden), werden auf das neue Verhalten angepasst: die erwarteten Warncodes und Beträge stimmen mit der neuen Untergrenze überein, nicht abgeschwächt.
+- [ ] **Step 2: Run:** `node --test lohnsystem/tests/*.test.js` → FAIL.
+- [ ] **Step 3: Implementieren** (Engine, Anzeige, Export).
+- [ ] **Step 4: Im Browser prüfen** (Server Port 8765, nicht starten oder stoppen): Hotelfachfrau-Beispiel (Abschluss «Hotelfachmann/-frau EFZ», Funktion Receptionist) zeigt 3735 mit dem Hinweis; Konsole ohne Fehler.
+- [ ] **Step 5: Commit.** `git add` mit expliziten Pfaden, `git commit -m "feat: strikt nach Stufe, Funktionsband hebt nicht mehr an"`
+
 ### Task 6: Konfigurations-Editor, Import und Export, Jahrespflege
 
 **Files:**
