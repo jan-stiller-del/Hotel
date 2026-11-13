@@ -150,6 +150,10 @@ test('berechne: Teilzeit 60 Prozent, Mindestlohnvergleich auf Vollzeitbasis', ()
   assert.equal(r.monatslohn, 2733);
   assert.equal(r.monatslohn, Math.round(4555 * 0.6 * 20) / 20);
   assert.equal(r.warnungen.filter((w) => w.code === 'band_zu_eng').length, 0);
+  assert.equal(r.stundenansatz, 24.16);
+  const voll = E.berechne(baueConfig(), eingabe({ beschaeftigungsgrad: 100 }));
+  assert.equal(voll.stundenansatz, 24.16);
+  assert.equal(voll.stundenansatz, Math.round((voll.vorschlag / 188.5) * 100) / 100);
 });
 
 test('berechne: Beschäftigungsgrad 0 und 101 sind Fehler', () => {

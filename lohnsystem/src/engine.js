@@ -184,7 +184,7 @@
       bandStart: bandStart, bandMax: bandMax, positionen: positionen, vorschlag: vorschlag,
       monatslohn: monatslohn, dreizehnter: dreizehnter, totalMonat: totalMonat,
       jahresbrutto: runde2(totalMonat * 12),
-      stundenansatz: runde2(monatslohn / (betrieb.wochenstunden * 52 / 12)),
+      stundenansatz: runde2(vorschlag / (betrieb.wochenstunden * 52 / 12)),
       entschaedigungen: entschaedigungen, spanne: null, einarbeitung: null,
       warnungen: warnungen, fehler: []
     };
