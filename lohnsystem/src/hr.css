@@ -35,3 +35,26 @@ tr.summe td { font-weight:700; }
 .meldung ul { margin:0; padding-left:18px; }
 #konfigFehler { margin:16px; }
 .wahl { margin-top:16px; border-top:1px solid var(--rand); padding-top:4px; }
+
+/* Spielraum-Grafik: Muster und Beschriftung zusätzlich zur Farbe */
+.spielraum-grafik { margin-top:10px; }
+.sg { padding-top:2px; }
+.sg-flaggen { position:relative; height:34px; margin:0 12px; }
+.sg-flagge { position:absolute; top:0; transform:translateX(-50%); min-width:20px; text-align:center; font-size:.75rem; font-weight:700; line-height:16px; padding:0 3px; border:2px solid var(--text); border-radius:4px; background:#fff; color:var(--text); }
+.sg-flagge.sg-tief { top:18px; }
+.sg-spur { position:relative; height:64px; margin:0 12px; border:1px solid var(--rand); background:#fff; }
+.sg-band { position:absolute; }
+.sg-gm { top:0; bottom:0; background:repeating-linear-gradient(45deg, #cfdcec 0 4px, #eaf0f8 4px 8px); border-left:2px solid #1f4e79; border-right:2px solid #1f4e79; }
+.sg-hr { top:12px; bottom:12px; background:repeating-linear-gradient(-45deg, #8fb0d6 0 3px, #bcd0e8 3px 6px); border-left:2px solid #1f4e79; border-right:2px solid #1f4e79; }
+.sg-vorgesetzte { top:24px; bottom:24px; background:#1f4e79; }
+.sg-marke { position:absolute; top:-4px; bottom:-4px; width:0; border-left:3px solid var(--text); transform:translateX(-1.5px); }
+.sg-m-gewaehlt { border-left:4px solid #b3261e; transform:translateX(-2px); }
+.sg-m-mindestlohn { border-left:3px dotted var(--text); }
+.sg-m-bandMax { border-left:3px double var(--text); }
+.sg-f-gewaehlt { border-color:#b3261e; color:#b3261e; }
+.sg-achse { display:flex; justify-content:space-between; margin:2px 12px 0; font-size:.8rem; color:var(--grau); }
+.sg-legende { list-style:none; margin:8px 0 0; padding:0; font-size:.85rem; }
+.sg-legende li { margin:3px 0; }
+.sg-flagge-text { display:inline-block; min-width:20px; text-align:center; font-weight:700; border:2px solid var(--text); border-radius:4px; background:#fff; }
+.sg-muster { display:inline-block; width:20px; height:12px; vertical-align:middle; position:static; border:1px solid #1f4e79; }
+.sg-freigabe { margin:8px 0 0; font-weight:700; }

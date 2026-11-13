@@ -240,6 +240,9 @@
         });
         out.appendChild(t);
         out.appendChild(el('p', 'hilfe', 'Die Bereiche gelten kumulativ; ausserhalb des GM-Bereichs ist der Lohn nicht zulässig.'));
+        var grafik = el('div', 'spielraum-grafik');
+        grafik.id = 'spielraumGrafik';
+        out.appendChild(grafik);
       }
 
       out.appendChild(el('h3', null, 'Rechenweg'));
@@ -281,8 +284,18 @@
     var letzterVorschlag = null;
     var letztesErgebnis = null;
 
+    // Spielraum-Grafik mit dem aktuell gewählten Lohn neu zeichnen (Container entsteht in renderErgebnis).
+    function zeichneGrafik() {
+      var ziel = $('spielraumGrafik');
+      if (!ziel || !window.LohnGrafik) { return; }
+      var roh = String($('gewaehlterLohn').value).trim();
+      var wert = roh === '' ? null : Number(roh);
+      window.LohnGrafik.renderGrafik(window.LohnGrafik.baueGrafikModell(letztesErgebnis, wert), ziel);
+    }
+
     // Freigabestufe live anzeigen und Exportknopf nur bei gültiger Wahl freigeben.
     function pruefeWahl() {
+      zeichneGrafik();
       var zeile = $('freigabeZeile');
       var knopf = $('exportKnopf');
       if (!letztesErgebnis || letztesErgebnis.modus !== 'berechnet') {
