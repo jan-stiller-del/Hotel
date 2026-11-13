@@ -283,3 +283,45 @@ test('validateConfig: Spielraum nicht aufsteigend', () => {
   gleich.stufen.II.spielraum = { vorgesetzte: 2, hr: 2, gm: 2 };
   assert.equal(validateConfig(gleich).ok, true);
 });
+
+// ---- ungültige Einarbeitungsdaten ----
+test('pruefeEinarbeitung: ungültige Daten gewähren nie erlaubt', () => {
+  const p = (e) => E.pruefeEinarbeitung(cfg, { stufe: 'Ia', einarbeitung: e, eintritt: '2027-03-15' });
+  [
+    { aktiv: true },
+    { aktiv: true, frueheresLGAVMonate: '0' },
+    { aktiv: true, frueheresLGAVMonate: -1 },
+    { aktiv: true, frueheresLGAVMonate: 0, rueckkehrHausUnterbruchMonate: '10' },
+    { aktiv: true, frueheresLGAVMonate: 0, rueckkehrHausUnterbruchMonate: -5 },
+  ].forEach((e) => {
+    const r = p(e);
+    assert.equal(r.erlaubt, false);
+    assert.equal(r.maxMonate, 0);
+    assert.ok(r.grund.length > 0);
+  });
+});
+
+test('berechne: ungültige Einarbeitungsdaten ergeben Fehler', () => {
+  const basis = { aktiv: true, reduktionProzent: 8, frueheresLGAVMonate: 0, rueckkehrHausUnterbruchMonate: null };
+  const faelle = [
+    { frueheresLGAVMonate: undefined },
+    { frueheresLGAVMonate: '0' },
+    { frueheresLGAVMonate: -1 },
+    { rueckkehrHausUnterbruchMonate: '10' },
+    { rueckkehrHausUnterbruchMonate: -3 },
+  ];
+  faelle.forEach((f) => {
+    const r = E.berechne(cfg, eingabe({ einarbeitung: Object.assign({}, basis, f) }));
+    assert.equal(r.modus, 'fehler');
+    assert.ok(r.fehler.length > 0);
+  });
+  assert.ok(E.berechne(cfg, eingabe({ einarbeitung: { aktiv: true, reduktionProzent: 8 } }))
+    .fehler.some((t) => t.includes('Frühere L-GAV-Tätigkeit')));
+  // inaktiv: Daten werden nicht geprüft
+  assert.equal(E.berechne(cfg, eingabe({ einarbeitung: { aktiv: false } })).modus, 'berechnet');
+});
+
+test('monateHinzu: 31.8.2027 + 6 Monate = 29.2.2028 (Schaltjahr)', () => {
+  assert.equal(E.monateHinzu('2027-08-31', 6), '2028-02-29');
+  assert.equal(E.monateHinzu('2026-08-31', 6), '2027-02-28');
+});

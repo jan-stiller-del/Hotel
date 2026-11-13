@@ -93,6 +93,13 @@
       if (!istZahl(ein.reduktionProzent) || ein.reduktionProzent < 0 || ein.reduktionProzent > maxProzent) {
         f.push('Die Einarbeitungsreduktion darf höchstens ' + maxProzent + ' % betragen.');
       }
+      if (!istZahl(ein.frueheresLGAVMonate) || ein.frueheresLGAVMonate < 0) {
+        f.push('Frühere L-GAV-Tätigkeit in Monaten angeben (Zahl ab 0).');
+      }
+      var ub = ein.rueckkehrHausUnterbruchMonate;
+      if (ub !== null && ub !== undefined && (!istZahl(ub) || ub < 0)) {
+        f.push('Unterbruch bei Rückkehr ins Haus in Monaten angeben (Zahl ab 0) oder leer lassen.');
+      }
     }
     return f;
   }
@@ -118,7 +125,7 @@
     var summe = m + monate;
     var nj = j + Math.floor(summe / 12);
     var nm = ((summe % 12) + 12) % 12;
-    // Monatsende: Tag auf den letzten Tag des Zielmonats begrenzen (31.8. + 6 Monate = 28.2.)
+    // Monatsende: Tag auf den letzten Tag des Zielmonats begrenzen (31.8.2027 + 6 Monate = 29.2.2028, Schaltjahr; 28.2. in einem normalen Jahr)
     var letzter = new Date(Date.UTC(nj, nm + 1, 0)).getUTCDate();
     var nt = Math.min(t, letzter);
     return nj + '-' + ('0' + (nm + 1)).slice(-2) + '-' + ('0' + nt).slice(-2);
@@ -127,9 +134,15 @@
   function pruefeEinarbeitung(config, daten) {
     var stufe = daten && daten.stufe;
     var e = (daten && daten.einarbeitung) || {};
-    var frueher = istZahl(e.frueheresLGAVMonate) ? e.frueheresLGAVMonate : 0;
+    var frueher = e.frueheresLGAVMonate;
     var unterbruch = e.rueckkehrHausUnterbruchMonate;
     function nein(grund) { return { erlaubt: false, maxMonate: 0, grund: grund }; }
+    if (!istZahl(frueher) || frueher < 0) {
+      return nein('Frühere L-GAV-Tätigkeit in Monaten fehlt oder ist ungültig.');
+    }
+    if (unterbruch !== null && unterbruch !== undefined && (!istZahl(unterbruch) || unterbruch < 0)) {
+      return nein('Unterbruch bei Rückkehr ins Haus ist ungültig.');
+    }
     if (istZahl(unterbruch) && unterbruch < 24) {
       return nein('Rückkehr ins gleiche Haus mit Unterbruch unter 24 Monaten: keine Einarbeitungsreduktion.');
     }
@@ -314,6 +327,7 @@
     findeMindestlohnTabelle: findeMindestlohnTabelle,
     berechne: berechne,
     pruefeEinarbeitung: pruefeEinarbeitung,
+    monateHinzu: monateHinzu,
     pruefeAbweichung: pruefeAbweichung
   };
 }));
