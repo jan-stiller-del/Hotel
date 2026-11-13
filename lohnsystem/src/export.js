@@ -39,6 +39,12 @@
       });
     }
     add('Gewählter Vollzeit-Monatslohn', k.gewaehlterMonatslohn);
+    var sv = k.stufenvergleich;
+    if (sv) {
+      add('Mindestlohn der Stufe', sv.mindestlohn);
+      add('Lohn über Stufen-Mindestlohn', (sv.ueberStufe < 0 ? '-' : '') + 'CHF ' + Math.abs(sv.ueberStufe).toFixed(2) + ' (' + prozentText(sv.ueberStufeProzent.toFixed(1)) + ' %)');
+      add('Nächsthöhere Stufe übersprungen', sv.uebersprungen ? 'ja (' + sv.naechsteStufe + ', CHF ' + sv.mindestlohnNaechste.toFixed(2) + ')' : 'nein');
+    }
     add('Freigabe durch', k.freigabe === 'keine' ? 'keine (Vorschlag übernommen)' : k.freigabe);
     add('Begründung', k.begruendung || '');
     var b = k.betraege;

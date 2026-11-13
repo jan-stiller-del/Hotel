@@ -94,11 +94,30 @@
     return { tabelle: treffer, veraltet: veraltet };
   }
 
+  // Vergleich eines Vollzeitlohns mit dem Mindestlohn seiner Stufe und der nächsthöheren Stufe (Praktikum ausgenommen).
+  function pruefeStufenvergleich(config, tabelle, stufe, vollzeitLohn) {
+    var i = STUFEN_MANUELL.indexOf(stufe);
+    var stufen = tabelle && tabelle.stufen;
+    if (i < 0 || !stufen || !istZahl(stufen[stufe]) || !istZahl(vollzeitLohn)) { return null; }
+    var mindestlohn = stufen[stufe];
+    var naechste = i + 1 < STUFEN_MANUELL.length ? STUFEN_MANUELL[i + 1] : null;
+    var mlNaechste = naechste && istZahl(stufen[naechste]) ? stufen[naechste] : null;
+    return {
+      stufe: stufe, mindestlohn: mindestlohn,
+      ueberStufe: runde2(vollzeitLohn - mindestlohn),
+      ueberStufeProzent: Math.round((vollzeitLohn - mindestlohn) / mindestlohn * 1000) / 10,
+      naechsteStufe: mlNaechste === null ? null : naechste,
+      mindestlohnNaechste: mlNaechste,
+      uebersprungen: mlNaechste !== null && vollzeitLohn >= mlNaechste
+    };
+  }
+
   function leeresErgebnis(modus, warnungen, fehler) {
     return {
       modus: modus, stufe: null, mindestlohn: null, tabelleJahr: null, bandStart: null, bandMax: null,
       positionen: [], vorschlag: null, monatslohn: null, dreizehnter: null, totalMonat: null,
       jahresbrutto: null, stundenansatz: null, entschaedigungen: [], spanne: null, spanneStufen: null, einarbeitung: null,
+      stufenvergleich: null,
       warnungen: warnungen || [], fehler: fehler || []
     };
   }
@@ -313,6 +332,12 @@
       }
     }
 
+    var stufenvergleich = sonder === 'praktikum' ? null : pruefeStufenvergleich(config, tab.tabelle, stufe, vorschlag);
+    if (stufenvergleich && stufenvergleich.uebersprungen) {
+      warnungen.push({ code: 'stufe_uebersprungen', text: 'Der Lohn liegt auf oder über dem Mindestlohn der nächsthöheren Stufe ' + stufenvergleich.naechsteStufe
+        + ' (CHF ' + stufenvergleich.mindestlohnNaechste.toFixed(2) + '). Prüfen, ob die Einstufung stimmt und ob der Lohn gegenüber Mitarbeitenden gleicher Qualifikation begründbar ist.' });
+    }
+
     return {
       modus: 'berechnet', stufe: stufe, mindestlohn: mindestlohn, tabelleJahr: tab.tabelle.jahr,
       bandStart: bandStart, bandMax: bandMax, positionen: positionen, vorschlag: vorschlag,
@@ -320,6 +345,7 @@
       jahresbrutto: betraege.jahresbrutto,
       stundenansatz: betraege.stundenansatz,
       entschaedigungen: entschaedigungen, spanne: spanne, spanneStufen: spanneStufen, einarbeitung: einarbeitung,
+      stufenvergleich: stufenvergleich,
       warnungen: warnungen, fehler: []
     };
   }
@@ -364,6 +390,7 @@
     runde5: runde5,
     bestimmeStufe: bestimmeStufe,
     findeMindestlohnTabelle: findeMindestlohnTabelle,
+    pruefeStufenvergleich: pruefeStufenvergleich,
     berechne: berechne,
     rechneBetraege: rechneBetraege,
     pruefeEinarbeitung: pruefeEinarbeitung,

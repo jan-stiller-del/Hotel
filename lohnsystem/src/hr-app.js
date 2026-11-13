@@ -89,6 +89,24 @@
     ];
   }
 
+  // Anzeigezeilen {text, art} aus einem Stufenvergleich (Engine); art 'warnung' = hervorgehobene Zeile mit Marker.
+  function baueStufenvergleichZeilen(sv) {
+    if (!sv) { return []; }
+    var d = Number(sv.ueberStufe);
+    var zeilen = [{
+      text: 'Lohn über Stufen-Mindestlohn: ' + (d < 0 ? '-' : '+') + 'CHF ' + Math.abs(d).toFixed(2)
+        + ' (' + Number(sv.ueberStufeProzent).toFixed(1).replace('.', ',') + ' %)',
+      art: 'info'
+    }];
+    if (sv.uebersprungen) {
+      zeilen.push({
+        text: '⚠ Nächsthöhere Stufe ' + sv.naechsteStufe + ' (CHF ' + Number(sv.mindestlohnNaechste).toFixed(2) + ') erreicht oder überschritten',
+        art: 'warnung'
+      });
+    }
+    return zeilen;
+  }
+
   // Gruppen für das Abschluss-Dropdown: «Ohne Abschluss» mit «keiner» zuerst, dann je Stufe die Abschlüsse aus der Konfiguration.
   function baueAbschlussGruppen(config) {
     var gruppen = [{ label: 'Ohne Abschluss', optionen: [{ id: 'keiner', label: 'Kein Abschluss (Stufe Ia)' }] }];
@@ -330,6 +348,19 @@
       tabelle.appendChild(tr);
     }
 
+    // Zeilen des Stufenvergleichs in einen Container schreiben (Marker im Text, nicht nur Farbe).
+    function zeigeStufenzeilen(ziel, sv) {
+      baueStufenvergleichZeilen(sv).forEach(function (z) {
+        ziel.appendChild(el('p', 'stufenzeile ' + z.art, z.text));
+      });
+    }
+    // Stufenvergleich für einen gewählten Vollzeitlohn, mit der Tabelle, die für den Vorschlag galt.
+    function stufenvergleichFuer(e, wert) {
+      if (!e || e.modus !== 'berechnet' || !isFinite(wert)) { return null; }
+      var tab = window.LohnEngine.findeMindestlohnTabelle(config, $('eintritt').value, $('vertragsart').value).tabelle;
+      return window.LohnEngine.pruefeStufenvergleich(config, tab, e.stufe, wert);
+    }
+
     function renderErgebnis(e, kontext) {
       var out = $('ergebnisInhalt');
       leeren(out);
@@ -346,6 +377,7 @@
       out.appendChild(el('p', 'hilfe', 'Stufe ' + (e.stufe === 'P' ? 'Praktikum' : e.stufe)
         + ', Mindestlohn CHF ' + chf(e.mindestlohn) + ' (Tabelle ' + e.tabelleJahr + ')'
         + (e.bandStart !== null ? ', Lohnband CHF ' + chf(e.bandStart) + ' bis ' + chf(e.bandMax) : '')));
+      zeigeStufenzeilen(out, e.stufenvergleich);
 
       if (e.spanneStufen) {
         out.appendChild(el('h3', null, 'Erlaubter Spielraum (nur HR)'));
@@ -426,6 +458,8 @@
       zeichneGrafik();
       var zeile = $('freigabeZeile');
       var knopf = $('exportKnopf');
+      var svBox = $('stufenvergleichWahl');
+      leeren(svBox);
       if (!letztesErgebnis || letztesErgebnis.modus !== 'berechnet') {
         zeile.textContent = '';
         knopf.disabled = true;
@@ -435,6 +469,7 @@
       var roh = String($('gewaehlterLohn').value).trim();
       var wert = roh === '' ? NaN : Number(roh);
       var p = window.LohnEngine.pruefeAbweichung(letztesErgebnis, wert, $('begruendung').value);
+      zeigeStufenzeilen(svBox, stufenvergleichFuer(letztesErgebnis, wert));
       if (p.freigabe) {
         zeile.textContent = 'Freigabe durch: ' + (p.freigabe === 'keine' ? 'keine nötig (Vorschlag)' : p.freigabe);
       } else {
@@ -461,6 +496,7 @@
           beschaeftigungsgrad: Number($('beschaeftigungsgrad').value),
           einarbeitung: letztesErgebnis.einarbeitung
         }),
+        stufenvergleich: stufenvergleichFuer(letztesErgebnis, wert),
         gewaehlterMonatslohn: wert, begruendung: $('begruendung').value.trim(), freigabe: p.freigabe,
         datum: new Date().toISOString().slice(0, 10)
       });
@@ -547,5 +583,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen };
+  return { formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
 }));

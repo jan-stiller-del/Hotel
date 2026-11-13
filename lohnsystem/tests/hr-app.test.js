@@ -279,3 +279,28 @@ test('zeigeStufeManuell: nur wenn nötig oder schon gewählt', () => {
   assert.equal(zeigeStufeManuell(cfg, 'koch-efz', { warnungen: [{ code: 'bereich_ungeregelt' }] }, ''), true);
   assert.equal(zeigeStufeManuell(cfg, 'koch-efz', { warnungen: [] }, 'IV'), true);
 });
+
+// ---------- Task 5h ----------
+const { baueStufenvergleichZeilen } = require('../src/hr-app.js');
+const SV = { stufe: 'IIIa', mindestlohn: 4555, ueberStufe: 180, ueberStufeProzent: 4, naechsteStufe: 'IIIb', mindestlohnNaechste: 4663, uebersprungen: true };
+
+test('baueStufenvergleichZeilen: Lohn über Mindestlohn und hervorgehobene Zeile bei Überspringen', () => {
+  const z = baueStufenvergleichZeilen(SV);
+  assert.equal(z.length, 2);
+  assert.equal(z[0].text, 'Lohn über Stufen-Mindestlohn: +CHF 180.00 (4,0 %)');
+  assert.equal(z[0].art, 'info');
+  assert.match(z[1].text, /^⚠ Nächsthöhere Stufe IIIb \(CHF 4663\.00\) erreicht oder überschritten/);
+  assert.equal(z[1].art, 'warnung');
+});
+
+test('baueStufenvergleichZeilen: ohne Überspringen nur eine Zeile, null gibt leer, Kommastelle', () => {
+  assert.equal(baueStufenvergleichZeilen(Object.assign({}, SV, { uebersprungen: false })).length, 1);
+  assert.deepEqual(baueStufenvergleichZeilen(null), []);
+  const z = baueStufenvergleichZeilen(Object.assign({}, SV, { ueberStufe: 120, ueberStufeProzent: 2.6, uebersprungen: false }));
+  assert.equal(z[0].text, 'Lohn über Stufen-Mindestlohn: +CHF 120.00 (2,6 %)');
+});
+
+test('baueStufenvergleichZeilen: Lohn unter dem Mindestlohn zeigt Minus', () => {
+  const z = baueStufenvergleichZeilen(Object.assign({}, SV, { ueberStufe: -50, ueberStufeProzent: -1.1, uebersprungen: false }));
+  assert.equal(z[0].text, 'Lohn über Stufen-Mindestlohn: -CHF 50.00 (-1,1 %)');
+});

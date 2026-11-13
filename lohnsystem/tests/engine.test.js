@@ -298,7 +298,7 @@ function standardConfig() {
 const SC = standardConfig();
 function stufeFuer(funktionId, abschluss, extra) {
   const r = E.berechne(SC, eingabe(Object.assign({ funktionId, abschluss }, extra || {})));
-  return { stufe: r.stufe, codes: r.warnungen.map((w) => w.code), r };
+  return { stufe: r.stufe, codes: r.warnungen.map((w) => w.code).filter((c) => c !== 'stufe_uebersprungen'), r };
 }
 
 test('Einstufung: Koch EFZ in der Küche ergibt IIIa ohne Warnung', () => {
@@ -399,4 +399,74 @@ test('Einstufung: unbekannte Abschluss-Id ist ein Fehler', () => {
   const r = stufeFuer('reception-receptionist', 'gibtsnicht');
   assert.equal(r.r.modus, 'fehler');
   assert.ok(r.r.fehler.includes('Abschluss unbekannt.'));
+});
+
+// ---------- Task 5h: Hinweis bei übersprungener Lohnstufe ----------
+const TAB27 = { stufen: { Ia: 3735, Ib: 3967, II: 4094, IIIa: 4555, IIIb: 4663, IV: 5325, P: 2404 } };
+
+test('pruefeStufenvergleich: IIIa gegen IIIb, Gleichheit zählt als übersprungen', () => {
+  const v = E.pruefeStufenvergleich({}, TAB27, 'IIIa', 4675);
+  assert.equal(v.stufe, 'IIIa');
+  assert.equal(v.mindestlohn, 4555);
+  assert.equal(v.ueberStufe, 120);
+  assert.equal(v.ueberStufeProzent, 2.6);
+  assert.equal(v.naechsteStufe, 'IIIb');
+  assert.equal(v.mindestlohnNaechste, 4663);
+  assert.equal(v.uebersprungen, true);
+  assert.equal(E.pruefeStufenvergleich({}, TAB27, 'IIIa', 4655).uebersprungen, false);
+  assert.equal(E.pruefeStufenvergleich({}, TAB27, 'IIIa', 4663).uebersprungen, true);
+  assert.equal(E.pruefeStufenvergleich({}, TAB27, 'IIIa', 4662.95).uebersprungen, false);
+});
+
+test('pruefeStufenvergleich: Ia gegen Ib, IV ohne nächste Stufe, Praktikum null', () => {
+  const ia = E.pruefeStufenvergleich({}, TAB27, 'Ia', 3970);
+  assert.equal(ia.naechsteStufe, 'Ib');
+  assert.equal(ia.mindestlohnNaechste, 3967);
+  assert.equal(ia.uebersprungen, true);
+  const iv = E.pruefeStufenvergleich({}, TAB27, 'IV', 9000);
+  assert.equal(iv.naechsteStufe, null);
+  assert.equal(iv.mindestlohnNaechste, null);
+  assert.equal(iv.uebersprungen, false);
+  assert.equal(E.pruefeStufenvergleich({}, TAB27, 'P', 3000), null);
+});
+
+test('pruefeStufenvergleich: nächste Stufe fehlt in der Tabelle, kein Absturz, kein NaN', () => {
+  const v = E.pruefeStufenvergleich({}, { stufen: { IIIa: 4555 } }, 'IIIa', 9000);
+  assert.equal(v.uebersprungen, false);
+  assert.equal(v.mindestlohnNaechste, null);
+  assert.ok(Number.isFinite(v.ueberStufe) && Number.isFinite(v.ueberStufeProzent));
+  assert.equal(E.pruefeStufenvergleich({}, { stufen: {} }, 'IIIa', 4600), null);
+});
+
+test('berechne: Vorschlag über der nächsten Stufe gibt stufenvergleich und Warnung stufe_uebersprungen', () => {
+  const c = baueConfig();
+  const e = E.berechne(c, eingabe({ erfahrungJahre: 3 })); // 4555 + 150 = 4705
+  assert.equal(e.vorschlag, 4705);
+  assert.equal(e.stufenvergleich.uebersprungen, true);
+  assert.equal(e.stufenvergleich.naechsteStufe, 'IIIb');
+  const w = e.warnungen.filter((x) => x.code === 'stufe_uebersprungen');
+  assert.equal(w.length, 1);
+  assert.match(w[0].text, /nächsthöheren Stufe IIIb \(CHF 4663\.00\)/);
+});
+
+test('berechne: Vorschlag unter der nächsten Stufe gibt keine Warnung', () => {
+  const e = E.berechne(baueConfig(), eingabe({ erfahrungJahre: 2 })); // 4655
+  assert.equal(e.stufenvergleich.uebersprungen, false);
+  assert.ok(!e.warnungen.some((x) => x.code === 'stufe_uebersprungen'));
+});
+
+test('berechne: von Hand gewählte Stufe ist die Basis des Vergleichs', () => {
+  const e = E.berechne(baueConfig(), eingabe({ abschluss: 'keiner', stufeManuell: 'II', erfahrungJahre: 5 })); // 4094 + 250 = 4344 < 4555
+  assert.equal(e.stufenvergleich.stufe, 'II');
+  assert.equal(e.stufenvergleich.naechsteStufe, 'IIIa');
+  assert.equal(e.stufenvergleich.uebersprungen, false);
+});
+
+test('berechne: Praktikum, Hinweis und Fehler haben stufenvergleich null, keine Warnung', () => {
+  const c = baueConfig();
+  const p = E.berechne(c, eingabe({ sonderfall: 'praktikum' }));
+  assert.equal(p.stufenvergleich, null);
+  assert.ok(!p.warnungen.some((x) => x.code === 'stufe_uebersprungen'));
+  assert.equal(E.berechne(c, eingabe({ sonderfall: 'unter18' })).stufenvergleich, null);
+  assert.equal(E.berechne(c, eingabe({ beschaeftigungsgrad: 0 })).stufenvergleich, null);
 });

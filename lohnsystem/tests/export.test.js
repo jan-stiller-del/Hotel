@@ -132,3 +132,19 @@ test('Export: ohne Einstufungswarnung keine Zeile Einstufungshinweis', () => {
   assert.equal(finde(z, 'Einstufungshinweis').length, 0);
   assert.equal(finde(z, 'Warnung').length, 1);
 });
+
+test('baueExportZeilen: Stufenvergleich für den gewählten Lohn', () => {
+  const sv = { stufe: 'IIIa', mindestlohn: 4555, ueberStufe: 120, ueberStufeProzent: 2.6, naechsteStufe: 'IIIb', mindestlohnNaechste: 4663, uebersprungen: true };
+  const z = X.baueExportZeilen(ergebnis(), Object.assign({}, kontext, { stufenvergleich: sv }));
+  assert.equal(finde(z, 'Mindestlohn der Stufe')[0][1], 4555);
+  assert.equal(finde(z, 'Lohn über Stufen-Mindestlohn')[0][1], 'CHF 120.00 (2,6 %)');
+  assert.equal(finde(z, 'Nächsthöhere Stufe übersprungen')[0][1], 'ja (IIIb, CHF 4663.00)');
+  const nein = X.baueExportZeilen(ergebnis(), Object.assign({}, kontext, { stufenvergleich: Object.assign({}, sv, { uebersprungen: false }) }));
+  assert.equal(finde(nein, 'Nächsthöhere Stufe übersprungen')[0][1], 'nein');
+});
+
+test('baueExportZeilen: ohne Stufenvergleich keine Vergleichszeilen', () => {
+  const z = X.baueExportZeilen(ergebnis(), kontext);
+  assert.equal(finde(z, 'Lohn über Stufen-Mindestlohn').length, 0);
+  assert.equal(finde(z, 'Nächsthöhere Stufe').length, 0);
+});
