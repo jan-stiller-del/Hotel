@@ -1,7 +1,7 @@
 'use strict';
 const test = require('node:test');
 const assert = require('node:assert/strict');
-const { formularZuInput } = require('../src/hr-app.js');
+const { formularZuInput, waehleOption } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -64,4 +64,11 @@ test('Weiterbildung, HF-Stufe, Zusatzbausteine', () => {
 
 test('Leerer Beschaeftigungsgrad wird null', () => {
   assert.equal(formularZuInput(werte({ beschaeftigungsgrad: '' })).beschaeftigungsgrad, null);
+});
+
+test('waehleOption behaelt vorhandenen Wert, sonst leer', () => {
+  assert.equal(waehleOption(['a', 'b'], 'b'), 'b');
+  assert.equal(waehleOption(['a', 'b'], 'x'), '');
+  assert.equal(waehleOption([], ''), '');
+  assert.equal(waehleOption(['a'], undefined), '');
 });

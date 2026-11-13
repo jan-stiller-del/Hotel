@@ -67,6 +67,11 @@
     return input;
   }
 
+  // Welcher Wert bleibt in einem neu gefüllten Select gewählt? Sonst leer («– bitte wählen –»).
+  function waehleOption(werte, alt) {
+    return (alt && werte.indexOf(alt) >= 0) ? alt : '';
+  }
+
   // ---------- Browser-Teil ----------
   function start() {
     var doc = document;
@@ -149,12 +154,15 @@
       var alt = sel.value;
       leeren(sel);
       option(sel, '', '– bitte wählen –');
+      var ids = [];
       config.funktionen.forEach(function (f) {
         if (f.abteilung === $('abteilung').value) {
+          ids.push(f.id);
           option(sel, f.id, f.label + (f.beispiel ? ' (Beispiel)' : ''));
         }
       });
-      sel.value = alt;
+      sel.value = waehleOption(ids, alt);
+      if (sel.selectedIndex < 0) { sel.selectedIndex = 0; }
     }
     function aktuelleFunktion() {
       return config.funktionen.filter(function (f) { return f.id === $('funktion').value; })[0] || null;
@@ -199,7 +207,7 @@
       tabelle.appendChild(tr);
     }
 
-    function renderErgebnis(e) {
+    function renderErgebnis(e, kontext) {
       var out = $('ergebnisInhalt');
       leeren(out);
       var wahl = $('wahlBereich');
@@ -238,7 +246,7 @@
       var rw = el('table');
       e.positionen.forEach(function (p) { zeile(rw, p.label, chf(p.betrag)); });
       zeile(rw, 'Vorschlag Vollzeit (begrenzt auf das Lohnband)', chf(e.vorschlag), 'summe');
-      var grad = Number($('beschaeftigungsgrad').value);
+      var grad = Number(kontext.beschaeftigungsgrad);
       zeile(rw, 'Monatslohn bei ' + String(grad).replace('.', ',') + ' %', chf(e.monatslohn));
       zeile(rw, '13. Monatslohn (' + prozent(config.betrieb.dreizehnterProzent) + ')', chf(e.dreizehnter));
       zeile(rw, 'Total pro Monat', chf(e.totalMonat), 'summe');
@@ -269,6 +277,14 @@
       }
     }
 
+    var manuell = false;
+    var letzterVorschlag = null;
+    function wahlLeeren() {
+      $('gewaehlterLohn').value = '';
+      manuell = false;
+      letzterVorschlag = null;
+    }
+
     function aktualisieren() {
       var f = aktuelleFunktion();
       var abschluss = $('abschluss').value;
@@ -287,13 +303,23 @@
         leeren(out);
         out.appendChild(el('p', 'leer', 'Noch kein Ergebnis. Bitte angeben: ' + fehlt.join(', ') + '.'));
         $('wahlBereich').hidden = true;
+        wahlLeeren();
         return;
       }
       var ergebnis = window.LohnEngine.berechne(config, formularZuInput(lies()));
-      renderErgebnis(ergebnis);
-      if (ergebnis.modus === 'berechnet') { $('gewaehlterLohn').value = ergebnis.vorschlag.toFixed(2); }
+      renderErgebnis(ergebnis, { beschaeftigungsgrad: $('beschaeftigungsgrad').value });
+      if (ergebnis.modus === 'berechnet') {
+        if (ergebnis.vorschlag !== letzterVorschlag || !manuell) {
+          $('gewaehlterLohn').value = ergebnis.vorschlag.toFixed(2);
+          manuell = false;
+        }
+        letzterVorschlag = ergebnis.vorschlag;
+      } else {
+        wahlLeeren();
+      }
     }
 
+    $('gewaehlterLohn').addEventListener('input', function () { manuell = true; });
     $('abteilung').addEventListener('change', funktionenFuellen);
     $('formular').addEventListener('input', aktualisieren);
     $('formular').addEventListener('change', aktualisieren);
@@ -306,5 +332,5 @@
     start();
   }
 
-  return { formularZuInput: formularZuInput };
+  return { formularZuInput: formularZuInput, waehleOption: waehleOption };
 }));
