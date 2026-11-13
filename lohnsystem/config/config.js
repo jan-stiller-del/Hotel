@@ -17,13 +17,13 @@ window.LOHN_CONFIG = {
     }
   ],
   "stufen": {
-    "Ia":   { "label": "Stufe Ia",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "Beispiel: Platzhalterwert" },
-    "Ib":   { "label": "Stufe Ib",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "Beispiel: Platzhalterwert" },
-    "II":   { "label": "Stufe II",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "Beispiel: Platzhalterwert" },
-    "IIIa": { "label": "Stufe IIIa", "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "Beispiel: Platzhalterwert" },
-    "IIIb": { "label": "Stufe IIIb", "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "Beispiel: Platzhalterwert" },
-    "IV":   { "label": "Stufe IV",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "Beispiel: Platzhalterwert" },
-    "P":    { "label": "Praktikum",  "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "Beispiel: Platzhalterwert" }
+    "Ia":   { "label": "Stufe Ia",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "Ib":   { "label": "Stufe Ib",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "II":   { "label": "Stufe II",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "IIIa": { "label": "Stufe IIIa", "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "IIIb": { "label": "Stufe IIIb", "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "IV":   { "label": "Stufe IV",   "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" },
+    "P":    { "label": "Praktikum",  "spielraum": { "vorgesetzte": 1, "hr": 2, "gm": 3 }, "hinweis": "von Jan bestätigt (1 / 2 / 3 %)" }
   },
   "abteilungen": [
     { "id": "reception", "label": "Réception und Reservation" },

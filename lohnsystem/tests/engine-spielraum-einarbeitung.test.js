@@ -248,7 +248,7 @@ test('validateConfig: Standardkonfiguration hat gültigen Spielraum', () => {
   const c = validConfigMitDefault();
   assert.deepEqual(validateConfig(c).fehler, []);
   assert.deepEqual(c.stufen.IIIa.spielraum, { vorgesetzte: 1, hr: 2, gm: 3 });
-  assert.ok(c.stufen.IIIa.hinweis.includes('Beispiel'));
+  assert.ok(c.stufen.IIIa.hinweis.includes('von Jan bestätigt'));
 });
 
 test('validateConfig: Spielraum fehlt', () => {
