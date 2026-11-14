@@ -40,13 +40,13 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.strictEqual(c.abteilungen.length, 7);
   assert.deepStrictEqual(c.zusatzbausteine, []);
   assert.strictEqual(c.betrieb.wochenstunden, 43.5);
-  const anzahl = { reception: 11, housekeeping: 7, kueche: 8, service: 9, spa: 7, technik: 4, administration: 9 };
+  const anzahl = { reception: 12, housekeeping: 7, kueche: 8, service: 10, spa: 7, technik: 4, administration: 10 };
   for (const a of c.abteilungen) {
     assert.strictEqual(c.funktionen.filter((f) => f.abteilung === a.id).length, anzahl[a.id], a.id);
   }
   assert.strictEqual(c.betrieb.baenderBestaetigt, true);
-  assert.strictEqual(c.funktionen.length, 55);
-  assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 55);
+  assert.strictEqual(c.funktionen.length, 58);
+  assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 58);
   for (const f of c.funktionen) {
     assert.notStrictEqual(f.beispiel, true, f.id);
     assert.ok(f.id.startsWith(f.abteilung + '-'), f.id);
@@ -284,9 +284,9 @@ test('Kader-Funktionen und Betriebswerte in der Standardkonfiguration', () => {
   assert.strictEqual(c.betrieb.ueberstundenGrenze6750, 6750);
   assert.strictEqual(c.betrieb.dreizehnterInklPauschale, true);
   const kader = c.funktionen.filter((f) => f.kader === true).map((f) => f.label).sort();
-  assert.deepStrictEqual(kader, ['Chef de cuisine', 'Event Manager', 'Executive Housekeeper',
-    'Front Office Manager', 'HR Manager', 'Head of Engineering', 'IT Manager', 'Marketing Manager',
-    'Reservations Manager', 'Revenue Manager', 'Spa Manager']);
+  assert.deepStrictEqual(kader, ['Chef de cuisine', 'Director of Sales and Marketing', 'Executive Housekeeper',
+    'F&B Manager', 'Front Office Manager', 'HR Manager', 'Head of Engineering', 'IT Manager',
+    'Rooms Division Manager', 'Spa Manager']);
   assert.strictEqual(c.funktionen.find((f) => f.label === 'Chef de partie').kader === true, false);
 });
 

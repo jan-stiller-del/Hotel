@@ -12,11 +12,11 @@ function standardConfig() {
   return JSON.parse(JSON.stringify(sandbox.window.LOHN_CONFIG));
 }
 
-test('Standardkonfiguration ergibt Modell ohne Fehler, 7 Abteilungen, 55 Funktionen', () => {
+test('Standardkonfiguration ergibt Modell ohne Fehler, 7 Abteilungen, 58 Funktionen', () => {
   const m = baueLeseModell(standardConfig(), '2027-02-01');
   assert.equal(m.fehler, undefined);
   assert.equal(m.baender.length, 7);
-  assert.equal(m.baender.reduce((s, b) => s + b.funktionen.length, 0), 55);
+  assert.equal(m.baender.reduce((s, b) => s + b.funktionen.length, 0), 58);
   assert.equal(m.jahr, 2027);
   assert.equal(m.gueltigAb, '2027-01-01');
 });
