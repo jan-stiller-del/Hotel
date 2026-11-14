@@ -767,3 +767,17 @@ test('Kein Kader (Sous-chef): nur 5 Franken Handy-Entschaedigung', () => {
   const r = E.berechne(SC, eingabe({ funktionId: 'kueche-sous-chef', abschluss: 'gastronomiekoch-fa' }));
   assert.deepEqual(r.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 5]]);
 });
+
+test('Eintritt vor dem Stichtag: befristet behaelt den alten Mindestlohn, unbefristet bekommt ab Stichtag den hoeheren', () => {
+  const c = baueConfig();
+  const bef = E.berechne(c, eingabe({ vertragsart: 'befristet', eintritt: '2026-12-15' }));
+  assert.equal(bef.positionen[0].betrag, 4500);
+  const hb = bef.warnungen.find((w) => w.code === 'mindestlohn_befristet');
+  assert.ok(hb && /bis Vertragsende/.test(hb.text) && /4500/.test(hb.text));
+  const unb = E.berechne(c, eingabe({ vertragsart: 'unbefristet', eintritt: '2026-12-15' }));
+  assert.equal(unb.positionen[0].betrag, 4500);
+  const hu = unb.warnungen.find((w) => w.code === 'mindestlohn_ab_stichtag');
+  assert.ok(hu && /01.01.2027/.test(hu.text) && /4555/.test(hu.text));
+  const spaeter = E.berechne(c, eingabe({ vertragsart: 'unbefristet', eintritt: '2027-03-01' }));
+  assert.ok(!spaeter.warnungen.some((w) => w.code === 'mindestlohn_ab_stichtag'));
+});

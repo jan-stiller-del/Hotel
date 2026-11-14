@@ -298,6 +298,21 @@
     }
     var mindestlohn = tab.tabelle.stufen[stufe];
     var betrieb = config.betrieb;
+    // Eintritt vor einem späteren Stichtag: befristet bleibt beim Mindestlohn des Eintritts, unbefristet steigt ab Stichtag.
+    var folge = null;
+    (config.mindestloehne || []).forEach(function (t) {
+      var ab = t.gueltigAbJahresbetrieb;
+      if (typeof ab === 'string' && ab > input.eintritt && (!folge || ab < folge.gueltigAbJahresbetrieb)) { folge = t; }
+    });
+    if (folge && istZahl(folge.stufen && folge.stufen[stufe])) {
+      var ab = folge.gueltigAbJahresbetrieb;
+      var abText = ab.slice(8, 10) + '.' + ab.slice(5, 7) + '.' + ab.slice(0, 4);
+      if (input.vertragsart === 'befristet') {
+        warnungen.push({ code: 'mindestlohn_befristet', text: 'Befristete Stelle: Mindestlohn der Stufe bleibt bis Vertragsende bei CHF ' + mindestlohn + ' (ab ' + abText + ' gälte CHF ' + folge.stufen[stufe] + ' für neue Eintritte).' });
+      } else {
+        warnungen.push({ code: 'mindestlohn_ab_stichtag', text: 'Unbefristete Stelle: ab ' + abText + ' gilt der höhere Mindestlohn von CHF ' + folge.stufen[stufe] + ' (heute CHF ' + mindestlohn + '), der Lohn ist dann anzupassen.' });
+      }
+    }
 
     var zusatz = [];
     var entschaedigungen = [];
