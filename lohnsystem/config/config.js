@@ -12,7 +12,7 @@ window.LOHN_CONFIG = {
     "ueberstundenGrenze6750": 6750,
     "dreizehnterInklPauschale": true
   },
-  // Stichtag der Mindestlohn-Tabelle (Jahresbetrieb 1.1.2027, Saison 1.5.2027): offen, bei Kontrollstelle klären
+  // Stichtage der Mindestlohn-Tabelle (von Jan bestätigt): Jahresstelle und befristete Stelle 1.1.2027, Saison 1.5.2027
   "mindestloehne": [
     {
       "jahr": 2027,
