@@ -22,7 +22,7 @@
     ['vollzeitstudium', 'Vollzeitstudium'],
     ['wiedereingliederung', 'Wiedereingliederung']
   ];
-  var VERTRAGSARTEN = [['unbefristet', 'Jahresstelle (unbefristet)'], ['saison', 'Saisonstelle']];
+  var VERTRAGSARTEN = [['unbefristet', 'Jahresstelle (unbefristet)'], ['befristet', 'Befristete Stelle'], ['saison', 'Saisonstelle']];
   var STUFEN_MANUELL = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV'];
 
   var Cfg = typeof require === 'function' ? require('./config.js') : window.LohnConfig;

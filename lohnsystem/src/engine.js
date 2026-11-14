@@ -178,7 +178,7 @@
     if (!istZahl(e) || e < 0 || Math.floor(e) !== e) {
       f.push('Erfahrung muss in ganzen Jahren angegeben werden (0, 1, 2, ...).');
     }
-    if (input.vertragsart !== 'unbefristet' && input.vertragsart !== 'saison') {
+    if (input.vertragsart !== 'unbefristet' && input.vertragsart !== 'befristet' && input.vertragsart !== 'saison') {
       f.push('Vertragsart unbekannt.');
     }
     if (typeof input.eintritt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input.eintritt)) {

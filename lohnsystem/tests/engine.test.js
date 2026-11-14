@@ -67,6 +67,19 @@ test('findeMindestlohnTabelle: Stichtage Jahresbetrieb', () => {
   assert.equal(E.findeMindestlohnTabelle(c, '2027-01-01', 'unbefristet').tabelle.jahr, 2027);
 });
 
+test('findeMindestlohnTabelle: befristete Stelle folgt dem Stichtag Jahresbetrieb (1.1.)', () => {
+  const c = baueConfig();
+  assert.equal(E.findeMindestlohnTabelle(c, '2026-12-31', 'befristet').tabelle.jahr, 2026);
+  assert.equal(E.findeMindestlohnTabelle(c, '2027-01-01', 'befristet').tabelle.jahr, 2027);
+  assert.equal(E.findeMindestlohnTabelle(c, '2027-03-01', 'befristet').tabelle.jahr, 2027);
+});
+
+test('Vertragsart befristet wird akzeptiert', () => {
+  const c = baueConfig();
+  const r = E.berechne(c, Object.assign({}, eingabe(), { vertragsart: 'befristet' }));
+  assert.ok(!(r.fehler || []).some((x) => /Vertragsart/.test(x)));
+});
+
 test('findeMindestlohnTabelle: Stichtage Saison', () => {
   const c = baueConfig();
   assert.equal(E.findeMindestlohnTabelle(c, '2027-04-30', 'saison').tabelle.jahr, 2026);
