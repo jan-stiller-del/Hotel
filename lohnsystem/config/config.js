@@ -153,5 +153,9 @@ window.LOHN_CONFIG = {
     "mindestNiveau": "B2",
     "hinweis": "Beträge von Jan festgelegt: Erfahrung CHF 10 pro Jahr, Sprache CHF 20 pro Sprache; Deutsch, Englisch, Französisch und Italienisch zählen (ab Niveau B2, höchstens CHF 80)"
   },
-  "zusatzbausteine": []
+  "zusatzbausteine": [
+    { "id": "kader-handy", "label": "Entschädigung private Handynutzung", "art": "entschaedigung", "betrag": 20, "nurKader": true },
+    { "id": "kader-spesen", "label": "Spesenentschädigung", "art": "entschaedigung", "betrag": 200, "nurKader": true },
+    { "id": "handy-mitarbeiter", "label": "Entschädigung private Handynutzung", "art": "entschaedigung", "betrag": 5, "nurNichtKader": true }
+  ]
 };

@@ -318,7 +318,7 @@
     });
     $('sprachenHilfe').textContent = 'Gezählt werden Sprachen ab Niveau ' + config.bausteine.mindestNiveau
       + ', höchstens ' + config.bausteine.maxSprachen + '.';
-    var zusatz = config.zusatzbausteine || [];
+    var zusatz = (config.zusatzbausteine || []).filter(function (z) { return z.nurKader !== true && z.nurNichtKader !== true; });
     $('zusatzWrap').hidden = zusatz.length === 0;
     zusatz.forEach(function (z) {
       var label = el('label', 'inline');

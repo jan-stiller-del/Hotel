@@ -260,8 +260,8 @@ test('rechneBetraege: gewaehlter Lohn, Teilzeit 60 % und Einarbeitung 8 %', () =
   assert.equal(b.totalMonat, 3275.9);
   assert.equal(b.jahresbrutto, 39310.8);
   assert.equal(b.stundenansatz, 26.74);
-  assert.equal(b.reduzierterMonatslohn, 2782.1);
-  assert.equal(b.reduzierterTotal, 3013.85);
+  assert.equal(b.reduzierterMonatslohn, 2783);
+  assert.equal(b.reduzierterTotal, 3014.8);
   const o = E.rechneBetraege(cfg, 5040, { beschaeftigungsgrad: 100, einarbeitung: { erlaubt: false, reduktionProzent: 8 } });
   assert.equal(o.reduzierterMonatslohn, null);
   assert.equal(o.reduzierterTotal, null);
@@ -540,15 +540,15 @@ test('Kader 5325: Stundenansatz, Pauschale 100 % und 125 %, 13. Monatslohn und T
   assert.equal(e.vorschlag, 5325);
   assert.equal(e.monatslohn, 5325);
   assert.equal(e.stundenansatz, 28.25);
-  assert.equal(e.ueberstundenpauschale, 795.8);
+  assert.equal(e.ueberstundenpauschale, 796);
   assert.equal(e.kader.aktiv, true);
-  assert.equal(e.kader.pauschale, 795.8);
-  assert.equal(e.kader.pauschale125, 994.75);
+  assert.equal(e.kader.pauschale, 796);
+  assert.equal(e.kader.pauschale125, 995);
   assert.equal(e.kader.stundenProMonat, 28.17);
   assert.equal(e.kader.grundlohnUnterGrenze, true);
-  assert.equal(e.dreizehnter, 509.85); // (5325 + 795.80) x 8,33 %
-  assert.equal(e.totalMonat, 6630.65);
-  assert.equal(e.jahresbrutto, 79567.8);
+  assert.equal(e.dreizehnter, 509.9); // (5325 + 796) x 8,33 %, auf 5 Rappen
+  assert.equal(e.totalMonat, 6630.9);
+  assert.equal(e.jahresbrutto, 79570.8);
 });
 
 test('Kader: Mindestlohn, Band und Stufenvergleich bleiben auf dem Grundlohn', () => {
@@ -566,7 +566,7 @@ test('Kader: Hinweise unter 6750, alle drei Texte', () => {
   const e = E.berechne(kaderConfig(), kEin());
   const v = e.warnungen.find((w) => w.code === 'kader_voraussetzungen');
   assert.ok(v);
-  assert.equal(v.text, 'Pauschale zu 100 % nur zulässig bei Arbeitszeiterfassung (Art. 21 L-GAV), monatlicher schriftlicher Saldomitteilung und Auszahlung spätestens mit der letzten Lohnzahlung; sonst 125 % (CHF 994.75). Eine 50-Stunden-Normalarbeitszeit ist unter CHF 6\'750 nicht vereinbar, es handelt sich um Überstunden.');
+  assert.equal(v.text, 'Pauschale zu 100 % nur zulässig bei Arbeitszeiterfassung (Art. 21 L-GAV), monatlicher schriftlicher Saldomitteilung und Auszahlung spätestens mit der letzten Lohnzahlung; sonst 125 % (CHF 995.00). Eine 50-Stunden-Normalarbeitszeit ist unter CHF 6\'750 nicht vereinbar, es handelt sich um Überstunden.');
   const h = e.warnungen.find((w) => w.code === 'kader_hoechstarbeitszeit');
   assert.equal(h.text, '50 Stunden = gesetzliche Höchstarbeitszeit im Gastgewerbe, Überzeit darüber mit 25 % Zuschlag.');
   assert.ok(!e.warnungen.some((w) => w.code === 'kader_ab_grenze'));
@@ -594,7 +594,7 @@ test('Kader: Grundlohn genau 6750 zaehlt als ab Grenze; Pauschale hilft nicht, d
 
 test('Kader mit Satz 1,25: keine Voraussetzungswarnung', () => {
   const e = E.berechne(kaderConfig({ ueberstundenSatz: 1.25 }), kEin());
-  assert.equal(e.kader.pauschale, 994.75);
+  assert.equal(e.kader.pauschale, 995);
   assert.ok(!e.warnungen.some((w) => w.code === 'kader_voraussetzungen'));
 });
 
@@ -609,23 +609,23 @@ test('Nicht-Kader: unveraendert, keine Pauschale', () => {
 test('Kader in Teilzeit 80 %: Pauschale skaliert', () => {
   const e = E.berechne(kaderConfig(), kEin({ beschaeftigungsgrad: 80 }));
   assert.equal(e.monatslohn, 4260);
-  assert.equal(e.ueberstundenpauschale, 636.75); // 28.25 x 22.54 h (22,536 gerundet)
+  assert.equal(e.ueberstundenpauschale, 637); // 28.25 x 22.54 h (22,536 gerundet)
   assert.equal(e.dreizehnter, 407.9);
-  assert.equal(e.totalMonat, 5304.65);
+  assert.equal(e.totalMonat, 5304.9);
   assert.equal(e.stundenansatz, 28.25);
 });
 
 test('dreizehnterInklPauschale false: 13. Monatslohn nur auf den Grundlohn', () => {
   const e = E.berechne(kaderConfig({ dreizehnterInklPauschale: false }), kEin());
   assert.equal(e.dreizehnter, 443.55);
-  assert.equal(e.totalMonat, 6564.35);
+  assert.equal(e.totalMonat, 6564.55);
 });
 
 test('rechneBetraege: Kader-Felder und Bezeichnungen', () => {
   const b = E.rechneBetraege(kaderConfig(), 5325, { beschaeftigungsgrad: 100, einarbeitung: null, kader: true });
-  assert.equal(b.ueberstundenpauschale, 795.8);
+  assert.equal(b.ueberstundenpauschale, 796);
   assert.equal(b.pauschaleStundenProMonat, 28.17);
-  assert.equal(b.pauschale125, 994.75);
+  assert.equal(b.pauschale125, 995);
   assert.equal(b.bezeichnungen.grundlohn, 'Grundlohn (43,5 h)');
   assert.equal(b.bezeichnungen.pauschale, 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)');
   assert.equal(b.bezeichnungen.dreizehnter, '13. Monatslohn (auf Grundlohn plus Pauschale)');
@@ -640,11 +640,11 @@ test('Kader: gedruckte Stunden x Stundenansatz x Satz ergeben den Betrag (Vollze
     const e = E.berechne(kaderConfig(), kEin({ beschaeftigungsgrad: grad }));
     const h = Number(e.bezeichnungen.pauschale.match(/([\d,]+) h pro Monat/)[1].replace(',', '.'));
     assert.equal(h, e.kader.stundenProMonat);
-    assert.equal(E.runde5(e.stundenansatz * h * 1), e.ueberstundenpauschale);
-    assert.equal(E.runde5(e.stundenansatz * h * 1.25), e.kader.pauschale125);
+    assert.equal(E.runde1(e.stundenansatz * h * 1), e.ueberstundenpauschale);
+    assert.equal(E.runde1(e.stundenansatz * h * 1.25), e.kader.pauschale125);
   });
   const e80 = E.berechne(kaderConfig(), kEin({ beschaeftigungsgrad: 80 }));
-  assert.equal(e80.kader.pauschale125, 795.95); // 28.25 x 22.54 x 1.25 = 795.94375
+  assert.equal(e80.kader.pauschale125, 796); // 28.25 x 22.54 x 1.25 = 795.94 -> 796
 });
 
 test('Kader mit Einarbeitung 8 %: reduzierte Pauschale, 13. und Total', () => {
@@ -652,12 +652,12 @@ test('Kader mit Einarbeitung 8 %: reduzierte Pauschale, 13. und Total', () => {
   const e = E.berechne(kaderConfig(), kEin({ funktionId: 'chefweit', abschluss: 'efz', einarbeitung: einarb }));
   assert.equal(e.stufe, 'IIIa');
   assert.equal(e.vorschlag, 4555);
-  assert.equal(e.ueberstundenpauschale, 680.6); // 24.16 x 28.17
+  assert.equal(e.ueberstundenpauschale, 681); // 24.16 x 28.17
   assert.equal(e.einarbeitung.erlaubt, true);
-  assert.equal(e.einarbeitung.reduzierterMonatslohn, 4190.6);
-  assert.equal(e.einarbeitung.reduzierteUeberstundenpauschale, 626.2); // 22.23 x 28.17 = 626.22
-  // 13.: (4190.60 + 626.20) x 8,33 % = 401.24 -> 401.25; Total 4190.60 + 626.20 + 401.25
-  assert.equal(e.einarbeitung.reduzierterTotal, 5218.05);
+  assert.equal(e.einarbeitung.reduzierterMonatslohn, 4191);
+  assert.equal(e.einarbeitung.reduzierteUeberstundenpauschale, 627); // 22.23 x 28.17 = 626.22, aufgerundet
+  // 13.: (4191 + 627) x 8,33 % = 401.34 -> 401.35 (5 Rappen); Total 4191 + 627 + 401.35
+  assert.equal(e.einarbeitung.reduzierterTotal, 5219.35);
   const n = E.berechne(kaderConfig(), eingabe({ funktionId: 'koch', abschluss: 'efz', einarbeitung: einarb }));
   assert.equal(n.einarbeitung.reduzierteUeberstundenpauschale, null);
 });
@@ -745,4 +745,18 @@ test('bandAlsUntergrenze: ohne Flag bleibt der Start beim Stufen-Mindestlohn', (
   const r = E.berechne(SC, eingabe({ funktionId: 'kueche-sous-chef', abschluss: 'gastronomiekoch-fa' }));
   assert.equal(r.bandStart, 5325);
   assert.equal(r.vorschlag, 5325);
+});
+
+// ---- Kader-Entschaedigungen (nurKader) werden automatisch angewendet ----
+
+test('Kader (Chef de cuisine): Handy 20 und Spesen 200 automatisch als Entschaedigung', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa' }));
+  assert.deepEqual(r.entschaedigungen.map((x) => [x.label, x.betrag]),
+    [['Entschädigung private Handynutzung', 20], ['Spesenentschädigung', 200]]);
+  assert.equal(r.vorschlag, 6000);
+});
+
+test('Kein Kader (Sous-chef): nur 5 Franken Handy-Entschaedigung', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-sous-chef', abschluss: 'gastronomiekoch-fa' }));
+  assert.deepEqual(r.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 5]]);
 });

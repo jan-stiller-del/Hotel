@@ -189,7 +189,7 @@ test('fuegeBausteinHinzu: Entschädigungen akzeptiert, Konfiguration bleibt gül
   meldungsfrei(a);
   const b = E.fuegeBausteinHinzu(a.config, { id: 'it-mittel-privat', label: 'IT-Mittel private', art: 'entschaedigung', betrag: 40 });
   meldungsfrei(b);
-  assert.strictEqual(b.config.zusatzbausteine.length, 2);
+  assert.strictEqual(b.config.zusatzbausteine.length, 5);
   assert.strictEqual(validateConfig(b.config).ok, true);
   const lohn = E.fuegeBausteinHinzu(b.config, { id: 'zulage', label: 'Zulage', art: 'lohn', betrag: 0 });
   meldungsfrei(lohn);
@@ -209,7 +209,7 @@ test('entferneBaustein', () => {
   const c = E.fuegeBausteinHinzu(lade(), { id: 'spesen', label: 'Spesen', art: 'entschaedigung', betrag: 150 }).config;
   const r = E.entferneBaustein(c, 'spesen');
   meldungsfrei(r);
-  assert.deepStrictEqual(r.config.zusatzbausteine, []);
+  assert.deepStrictEqual(r.config.zusatzbausteine.map((z) => z.id), ['kader-handy', 'kader-spesen', 'handy-mitarbeiter']);
   assert.strictEqual(E.entferneBaustein(c, 'gibtsnicht').ok, false);
 });
 

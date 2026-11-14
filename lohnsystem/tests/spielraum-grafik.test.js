@@ -41,7 +41,7 @@ test('EFZ-Beispiel: Vorschlag 4955', () => {
 test('drei Bänder GM aussen, HR, Vorgesetzte innen, alle in der Achse', () => {
   const m = G.baueGrafikModell(efz(), null);
   assert.deepEqual(m.baender.map((b) => b.name), ['GM', 'HR', 'Vorgesetzte']);
-  assert.deepEqual(m.baender.map((b) => [b.von, b.bis]), [[4806.35, 5103.65], [4855.9, 5054.1], [4905.45, 5004.55]]);
+  assert.deepEqual(m.baender.map((b) => [b.von, b.bis]), [[4807, 5104], [4856, 5055], [4906, 5005]]);
   m.baender.forEach((b) => {
     assert.ok(b.vonProzent >= 0 && b.bisProzent <= 100 && b.vonProzent < b.bisProzent, b.name);
     assert.ok(b.von >= m.achse.min && b.bis <= m.achse.max);
@@ -53,7 +53,7 @@ test('drei Bänder GM aussen, HR, Vorgesetzte innen, alle in der Achse', () => {
 test('Marke vorschlag bei 4955, in der Mitte', () => {
   const v = marke(G.baueGrafikModell(efz(), null), 'vorschlag');
   assert.equal(v.wert, 4955);
-  assert.ok(Math.abs(v.prozent - 50) < 0.01);
+  assert.ok(Math.abs(v.prozent - 50) < 0.5); // Grenzen sind aufgerundet, daher nicht exakt symmetrisch
   assert.match(v.label, /4955\.00/);
 });
 

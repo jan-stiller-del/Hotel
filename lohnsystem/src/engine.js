@@ -16,6 +16,7 @@
   };
 
   function istZahl(x) { return typeof x === 'number' && isFinite(x); }
+  function runde1(x) { return Math.ceil(x - 1e-9) + 0; }
   function runde5(x) { return Math.round(x * 20 + 1e-9) / 20; }
   function runde2(x) { return Math.round(x * 100 + 1e-9) / 100; }
 
@@ -27,7 +28,7 @@
   function rechneBetraege(config, vollzeitLohn, opt) {
     var betrieb = config.betrieb;
     var grad = opt.beschaeftigungsgrad;
-    var monatslohn = runde5(vollzeitLohn * grad / 100);
+    var monatslohn = runde1(vollzeitLohn * grad / 100);
     var stundenansatz = runde2(vollzeitLohn / (betrieb.wochenstunden * 52 / 12));
     var kader = !!opt.kader && istZahl(betrieb.kaderWochenstunden);
     var pauschale = null;
@@ -41,8 +42,8 @@
       var vollStunden = runde2(diff * 52 / 12);
       // Die gezeigten Stunden sind die Rechengrundlage: Betrag = Stundenansatz x Stunden pro Monat x Satz.
       stundenProMonat = runde2(vollStunden * grad / 100);
-      pauschale = runde5(stundenansatz * stundenProMonat * satz);
-      pauschale125 = runde5(stundenansatz * stundenProMonat * 1.25);
+      pauschale = runde1(stundenansatz * stundenProMonat * satz);
+      pauschale125 = runde1(stundenansatz * stundenProMonat * 1.25);
       var inkl = betrieb.dreizehnterInklPauschale !== false;
       bezeichnungen = {
         grundlohn: 'Grundlohn (' + dezimal(betrieb.wochenstunden) + ' h)' + (grad === 100 ? '' : ' bei ' + dezimal(grad) + ' %'),
@@ -59,12 +60,12 @@
     var reduzierteUeberstundenpauschale = null;
     var ein = opt.einarbeitung;
     if (ein && ein.erlaubt) {
-      reduzierterMonatslohn = runde5(monatslohn * (1 - ein.reduktionProzent / 100));
+      reduzierterMonatslohn = runde1(monatslohn * (1 - ein.reduktionProzent / 100));
       if (kader) {
         // Pauschale auf dem reduzierten Grundlohn: reduzierter Stundenansatz, gleiche Rundungsregel wie oben.
-        var reduzierterVoll = runde5(vollzeitLohn * (1 - ein.reduktionProzent / 100));
+        var reduzierterVoll = runde1(vollzeitLohn * (1 - ein.reduktionProzent / 100));
         var redAnsatz = runde2(reduzierterVoll / (betrieb.wochenstunden * 52 / 12));
-        reduzierteUeberstundenpauschale = runde5(redAnsatz * stundenProMonat * satzKader);
+        reduzierteUeberstundenpauschale = runde1(redAnsatz * stundenProMonat * satzKader);
         var redBasis13 = betrieb.dreizehnterInklPauschale !== false ? reduzierterMonatslohn + reduzierteUeberstundenpauschale : reduzierterMonatslohn;
         reduzierterTotal = runde2(reduzierterMonatslohn + reduzierteUeberstundenpauschale + runde5(redBasis13 * betrieb.dreizehnterProzent / 100));
       } else {
@@ -145,7 +146,7 @@
     var mlNaechste = naechste && istZahl(stufen[naechste]) ? stufen[naechste] : null;
     return {
       stufe: stufe, mindestlohn: mindestlohn,
-      ueberStufe: runde2(vollzeitLohn - mindestlohn),
+      ueberStufe: runde1(vollzeitLohn - mindestlohn),
       ueberStufeProzent: Math.round((vollzeitLohn - mindestlohn) / mindestlohn * 1000) / 10,
       naechsteStufe: mlNaechste === null ? null : naechste,
       mindestlohnNaechste: mlNaechste,
@@ -263,8 +264,8 @@
 
   function berechneSpanne(vorschlag, prozent, bandStart, bandMax) {
     return {
-      min: runde5(Math.max(vorschlag * (1 - prozent / 100), bandStart)),
-      max: runde5(Math.min(vorschlag * (1 + prozent / 100), bandMax))
+      min: runde1(Math.max(vorschlag * (1 - prozent / 100), bandStart)),
+      max: runde1(Math.min(vorschlag * (1 + prozent / 100), bandMax))
     };
   }
 
@@ -311,6 +312,17 @@
       }
     });
     if (zusatzFehler.length) { return fehlerErgebnis(zusatzFehler, warnungen); }
+    // Automatische Bausteine (nicht von Hand wählbar): nurKader bei Kaderfunktionen, nurNichtKader bei allen anderen.
+    var istKaderFunktion = sonder !== 'praktikum' && funktion.kader === true;
+    (config.zusatzbausteine || []).forEach(function (z) {
+      var automatisch = (z.nurKader === true && istKaderFunktion) || (z.nurNichtKader === true && !istKaderFunktion);
+      if (!automatisch || (input.zusatzIds || []).indexOf(z.id) >= 0) { return; }
+      if (z.art === 'entschaedigung') {
+        entschaedigungen.push({ label: z.label, betrag: z.betrag });
+      } else {
+        zusatz.push({ label: z.label, betrag: z.betrag, art: 'lohn' });
+      }
+    });
 
     var positionen = [{ label: 'Basis Stufe ' + (stufe === 'P' ? 'Praktikum' : stufe), betrag: mindestlohn, art: 'basis' }];
     var vorschlag;
@@ -324,11 +336,11 @@
       var jahre = Math.min(input.erfahrungJahre, betrieb.maxErfahrungsjahre);
       var proJahr = istZahl(funktion.erfahrungProJahr) ? funktion.erfahrungProJahr : config.bausteine.erfahrungProJahr;
       if (jahre > 0 && proJahr > 0) {
-        positionen.push({ label: 'Erfahrung (' + jahre + ' Jahre)', betrag: runde5(jahre * proJahr), art: 'lohn' });
+        positionen.push({ label: 'Erfahrung (' + jahre + ' Jahre)', betrag: runde1(jahre * proJahr), art: 'lohn' });
       }
       var nSprachen = zaehleSprachen(config, funktion, input.sprachen);
       if (nSprachen > 0) {
-        positionen.push({ label: 'Sprachen (' + nSprachen + ')', betrag: runde5(nSprachen * config.bausteine.spracheProSprache), art: 'lohn' });
+        positionen.push({ label: 'Sprachen (' + nSprachen + ')', betrag: runde1(nSprachen * config.bausteine.spracheProSprache), art: 'lohn' });
       }
       positionen = positionen.concat(zusatz);
 
@@ -342,7 +354,7 @@
         warnungen.push({ code: 'band_zu_eng', text: 'Das Bandmaximum liegt unter dem Mindestlohn; der Mindestlohn gilt.' });
         bandMax = mindestlohn;
       }
-      vorschlag = runde5(Math.min(Math.max(summe, bandStart), bandMax));
+      vorschlag = runde1(Math.min(Math.max(summe, bandStart), bandMax));
     }
 
     var istKader = sonder !== 'praktikum' && funktion.kader === true && istZahl(betrieb.kaderWochenstunden);
@@ -456,6 +468,7 @@
   }
 
   return {
+    runde1: runde1,
     runde5: runde5,
     bestimmeStufe: bestimmeStufe,
     findeMindestlohnTabelle: findeMindestlohnTabelle,

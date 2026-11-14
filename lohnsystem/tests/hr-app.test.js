@@ -389,11 +389,11 @@ test('baueWahlAbrechnung: Kader mit Pauschale, 13. auf Grundlohn plus Pauschale'
   const kader = Object.assign({}, WERG, { vorschlag: 5325, kader: { aktiv: true } });
   const a = baueWahlAbrechnung(cfg, kader, 5325, { beschaeftigungsgrad: '100' });
   assert.deepEqual(a.zeilen.map(r => r.art), ['lohn', 'pauschale', 'dreizehnter', 'summe', 'jahr', 'stundenansatz']);
-  assert.equal(wArt(a, 'pauschale').betrag, 795.8);
+  assert.equal(wArt(a, 'pauschale').betrag, 796);
   assert.equal(wArt(a, 'pauschale').label, 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)');
   assert.equal(wArt(a, 'dreizehnter').label, '13. Monatslohn (auf Grundlohn plus Pauschale)');
-  assert.equal(wArt(a, 'dreizehnter').betrag, 509.85);
-  assert.equal(wArt(a, 'summe').betrag, 6630.65);
+  assert.equal(wArt(a, 'dreizehnter').betrag, 509.9);
+  assert.equal(wArt(a, 'summe').betrag, 6630.9);
   assert.equal(a.differenz, null);
 });
 

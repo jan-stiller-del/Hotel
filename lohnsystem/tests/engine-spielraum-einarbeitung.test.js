@@ -94,8 +94,8 @@ test('berechne: Einarbeitung IIIa, 0 Monate, 8 %', () => {
   assert.equal(e.erlaubt, true);
   assert.equal(e.maxMonate, 3);
   assert.equal(e.reduktionProzent, 8);
-  assert.equal(e.reduzierterMonatslohn, E.runde5(r.monatslohn * 0.92));
-  assert.equal(e.reduzierterMonatslohn, 4374.6);
+  assert.equal(e.reduzierterMonatslohn, E.runde1(r.monatslohn * 0.92));
+  assert.equal(e.reduzierterMonatslohn, 4375);
   assert.ok(e.reduzierterTotal > e.reduzierterMonatslohn);
   assert.equal(e.volllohnAb, '2027-06-15');
   assert.ok(!r.warnungen.some((w) => w.code === 'stufe_ii_unsicher'));
@@ -149,11 +149,11 @@ test('berechne: Volllohn-Datum mit Monatsende (31.8. + 6 Monate = 28.2.)', () =>
 test('spanne: mit GM-Limit 3 %', () => {
   const r = E.berechne(cfg, eingabe());
   assert.equal(r.vorschlag, 4755);
-  assert.deepEqual(r.spanne, { min: 4612.35, max: 4897.65 });
+  assert.deepEqual(r.spanne, { min: 4613, max: 4898 });
   assert.deepEqual(r.spanneStufen, {
-    vorgesetzte: { min: 4707.45, max: 4802.55 },
-    hr: { min: 4659.9, max: 4850.1 },
-    gm: { min: 4612.35, max: 4897.65 },
+    vorgesetzte: { min: 4708, max: 4803 },
+    hr: { min: 4660, max: 4851 },
+    gm: { min: 4613, max: 4898 },
   });
 });
 
@@ -161,9 +161,9 @@ test('spanne: begrenzt durch Band', () => {
   const r = E.berechne(cfg, eingabe({ funktionId: 'schmal' }));
   assert.equal(r.vorschlag, 4755);
   // Untergrenze ist der Stufen-Mindestlohn IIIa (4555), nicht das Funktionsband (4750); die Obergrenze 4800 begrenzt weiterhin.
-  assert.deepEqual(r.spanne, { min: 4612.35, max: 4800 });
-  assert.deepEqual(r.spanneStufen.vorgesetzte, { min: 4707.45, max: 4800 });
-  assert.deepEqual(r.spanneStufen.hr, { min: 4659.9, max: 4800 });
+  assert.deepEqual(r.spanne, { min: 4613, max: 4800 });
+  assert.deepEqual(r.spanneStufen.vorgesetzte, { min: 4708, max: 4800 });
+  assert.deepEqual(r.spanneStufen.hr, { min: 4660, max: 4800 });
 });
 
 test('spanne: nie unter dem Mindestlohn', () => {
@@ -171,7 +171,7 @@ test('spanne: nie unter dem Mindestlohn', () => {
   assert.equal(r.vorschlag, 5325);
   assert.equal(r.spanne.min, 5325);
   assert.equal(r.spanneStufen.hr.min, 5325);
-  assert.equal(r.spanne.max, 5484.75);
+  assert.equal(r.spanne.max, 5485);
 });
 
 test('spanne: band_zu_eng ergibt min = max = Mindestlohn', () => {
@@ -199,7 +199,7 @@ test('pruefeAbweichung: Vorschlag ist freigabe keine, ohne Begründung ok', () =
 
 test('pruefeAbweichung: Vorgesetzte, ohne Begründung ok', () => {
   assert.deepEqual(E.pruefeAbweichung(erg(), 4800, ''), { ok: true, fehler: [], freigabe: 'Vorgesetzte' });
-  assert.deepEqual(E.pruefeAbweichung(erg(), 4707.45, '  '), { ok: true, fehler: [], freigabe: 'Vorgesetzte' });
+  assert.deepEqual(E.pruefeAbweichung(erg(), 4708, '  '), { ok: true, fehler: [], freigabe: 'Vorgesetzte' });
 });
 
 test('pruefeAbweichung: HR und GM brauchen Begründung', () => {
@@ -213,7 +213,7 @@ test('pruefeAbweichung: HR und GM brauchen Begründung', () => {
   assert.equal(gm.ok, false);
   assert.equal(gm.freigabe, 'GM');
   assert.deepEqual(E.pruefeAbweichung(erg(), 4890, 'Schlüsselperson'), { ok: true, fehler: [], freigabe: 'GM' });
-  assert.equal(E.pruefeAbweichung(erg(), 4612.35, 'Grund').freigabe, 'GM');
+  assert.equal(E.pruefeAbweichung(erg(), 4613, 'Grund').freigabe, 'GM');
 });
 
 test('pruefeAbweichung: ausserhalb GM-Spanne ist Fehler', () => {

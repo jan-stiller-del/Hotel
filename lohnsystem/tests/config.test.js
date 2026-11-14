@@ -38,7 +38,8 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.strictEqual(c.mindestloehne[0].gueltigAbJahresbetrieb, '2027-01-01');
   assert.strictEqual(c.mindestloehne[0].gueltigAbSaison, '2027-05-01');
   assert.strictEqual(c.abteilungen.length, 7);
-  assert.deepStrictEqual(c.zusatzbausteine, []);
+  assert.deepStrictEqual(c.zusatzbausteine.map((z) => [z.id, z.art, z.betrag, z.nurKader]),
+    [['kader-handy', 'entschaedigung', 20, true], ['kader-spesen', 'entschaedigung', 200, true], ['handy-mitarbeiter', 'entschaedigung', 5, undefined]]);
   assert.strictEqual(c.betrieb.wochenstunden, 43.5);
   const anzahl = { reception: 12, housekeeping: 7, kueche: 8, service: 10, spa: 7, technik: 4, administration: 10 };
   for (const a of c.abteilungen) {
