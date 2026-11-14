@@ -88,7 +88,7 @@ window.LOHN_CONFIG = {
     { "id": "reception-portier-bellboy", "abteilung": "reception", "bereich": "hotelempfang", "label": "Chasseur / Chauffeur", "gaestekontakt": true, "bandMin": 3735, "bandMax": 4050, "beispiel": false },
     { "id": "reception-nachtportier", "abteilung": "reception", "bereich": "hotelempfang", "label": "Night Porter", "gaestekontakt": true, "bandMin": 3735, "bandMax": 4050, "beispiel": false },
     { "id": "reception-reservationsassistenz", "abteilung": "reception", "bereich": "hotelempfang", "label": "Reservations Assistant", "gaestekontakt": true, "bandMin": 3735, "bandMax": 4050, "beispiel": false },
-    { "id": "reception-hotellerieangestellte-eba", "abteilung": "reception", "bereich": "hotelempfang", "label": "Front Desk Assistant", "gaestekontakt": true, "bandMin": 4094, "bandMax": 4450, "beispiel": false },
+    { "id": "reception-hotellerieangestellte-eba", "abteilung": "reception", "bereich": "hotelempfang", "label": "Front Desk Assistant", "gaestekontakt": true, "bandMin": 4663, "bandMax": 5000, "beispiel": false },
     { "id": "reception-receptionist", "abteilung": "reception", "bereich": "hotelempfang", "label": "Receptionist", "gaestekontakt": true, "bandMin": 4555, "bandMax": 4900, "beispiel": false },
     { "id": "reception-reservationsmitarbeiter", "abteilung": "reception", "bereich": "hotelempfang", "label": "Reservations Agent", "gaestekontakt": true, "bandMin": 4555, "bandMax": 4900, "beispiel": false },
     { "id": "reception-night-auditor", "abteilung": "reception", "bereich": "hotelempfang", "label": "Night Auditor", "gaestekontakt": true, "bandMin": 4555, "bandMax": 4900, "beispiel": false },

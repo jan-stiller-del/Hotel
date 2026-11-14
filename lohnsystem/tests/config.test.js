@@ -119,14 +119,14 @@ test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Demi-chef Band
   assert.deepStrictEqual(band('kueche-demi-chef'), [4555, 4900]);
 });
 
-test('Bandzahl pro Einstiegsband: Ia 12, II 3, IIIa 19, IIIb 3 plus Tournant 1, IV 16 Funktionen', () => {
+test('Bandzahl pro Einstiegsband: Ia 12, II 2, IIIa 19, IIIb 4 plus Tournant 1, IV 16 Funktionen', () => {
   const c = ladeStandardkonfiguration();
   const zaehl = (min, max) => c.funktionen.filter((f) => f.bandMin === min && f.bandMax === max).length;
-  assert.strictEqual(zaehl(4663, 5000), 3);
+  assert.strictEqual(zaehl(4663, 5000), 4);
   assert.strictEqual(zaehl(4663, 5100), 1);
   assert.strictEqual(zaehl(5325, 5700), 16);
   assert.strictEqual(zaehl(3735, 4050), 12);
-  assert.strictEqual(zaehl(4094, 4450), 3);
+  assert.strictEqual(zaehl(4094, 4450), 2);
   assert.strictEqual(zaehl(4555, 4900), 19);
 });
 
