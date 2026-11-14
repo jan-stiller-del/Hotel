@@ -259,3 +259,14 @@ test('unterscheidet erkennt Änderungen, nicht gleiche Kopien', () => {
   const r = E.setzeBetrieb(c, { wochenstunden: 42 });
   assert.strictEqual(E.unterscheidet(r.config, c), true);
 });
+
+test('aktualisiereFunktion: bandAlsUntergrenze setzen und wieder entfernen', () => {
+  const c = lade();
+  const id = 'kueche-sous-chef';
+  const an = E.aktualisiereFunktion(c, id, { bandAlsUntergrenze: true });
+  assert.strictEqual(an.ok, true);
+  assert.strictEqual(an.config.funktionen.find((x) => x.id === id).bandAlsUntergrenze, true);
+  const aus = E.aktualisiereFunktion(an.config, id, { bandAlsUntergrenze: false });
+  assert.ok(!aus.config.funktionen.find((x) => x.id === id).bandAlsUntergrenze);
+  assert.strictEqual(E.aktualisiereFunktion(c, id, { bandAlsUntergrenze: 'ja' }).ok, false);
+});

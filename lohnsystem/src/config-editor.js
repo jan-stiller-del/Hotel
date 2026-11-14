@@ -136,7 +136,7 @@
 
   // ---- Funktionen ----
 
-  var FUNKTION_FELDER = ['label', 'abteilung', 'bereich', 'gaestekontakt', 'kader', 'bandMin', 'bandMax'];
+  var FUNKTION_FELDER = ['label', 'abteilung', 'bereich', 'gaestekontakt', 'kader', 'bandAlsUntergrenze', 'bandMin', 'bandMax'];
 
   function pruefeFunktionsfelder(c, f, patch) {
     var fehler = [];
@@ -151,7 +151,7 @@
     if (patch.bereich !== undefined && patch.bereich !== null && bereichIds.indexOf(patch.bereich) < 0) {
       fehler.push('Unbekannter Funktionsbereich «' + patch.bereich + '».');
     }
-    ['gaestekontakt', 'kader'].forEach(function (k) {
+    ['gaestekontakt', 'kader', 'bandAlsUntergrenze'].forEach(function (k) {
       if (patch[k] !== undefined && typeof patch[k] !== 'boolean') { fehler.push('«' + k + '» muss ja oder nein sein.'); }
     });
     ['bandMin', 'bandMax'].forEach(function (k) {
@@ -178,6 +178,7 @@
         f[k] = typeof patch[k] === 'string' ? patch[k].trim() : patch[k];
       });
       if (patch.kader === false) { delete f.kader; }
+      if (patch.bandAlsUntergrenze === false) { delete f.bandAlsUntergrenze; }
       return [];
     });
   }
@@ -202,6 +203,7 @@
         bandMax: neu.bandMax,
       };
       if (neu.kader === true) { f.kader = true; }
+      if (neu.bandAlsUntergrenze === true) { f.bandAlsUntergrenze = true; }
       ['label', 'abteilung', 'bandMin', 'bandMax'].forEach(function (k) {
         if (f[k] === undefined) { fehler.push('Angabe fehlt: ' + k + '.'); }
       });

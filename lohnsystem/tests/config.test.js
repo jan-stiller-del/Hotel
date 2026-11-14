@@ -40,13 +40,13 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.strictEqual(c.abteilungen.length, 7);
   assert.deepStrictEqual(c.zusatzbausteine, []);
   assert.strictEqual(c.betrieb.wochenstunden, 43.5);
-  const anzahl = { reception: 11, housekeeping: 9, kueche: 14, service: 14, spa: 8, technik: 7, administration: 12 };
+  const anzahl = { reception: 11, housekeeping: 7, kueche: 8, service: 9, spa: 7, technik: 4, administration: 9 };
   for (const a of c.abteilungen) {
     assert.strictEqual(c.funktionen.filter((f) => f.abteilung === a.id).length, anzahl[a.id], a.id);
   }
   assert.strictEqual(c.betrieb.baenderBestaetigt, true);
-  assert.strictEqual(c.funktionen.length, 75);
-  assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 75);
+  assert.strictEqual(c.funktionen.length, 55);
+  assert.strictEqual(new Set(c.funktionen.map((f) => f.id)).size, 55);
   for (const f of c.funktionen) {
     assert.notStrictEqual(f.beispiel, true, f.id);
     assert.ok(f.id.startsWith(f.abteilung + '-'), f.id);
@@ -60,29 +60,22 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   }
   const lab = (id) => c.funktionen.find((f) => f.id === id).label;
   assert.strictEqual(lab('reception-receptionist'), 'Receptionist');
-  assert.strictEqual(lab('kueche-koch-efz'), 'Cuisinier');
-  assert.strictEqual(lab('kueche-kuechenangestellte-eba'), 'Commis de cuisine (Einstieg)');
+  assert.strictEqual(lab('kueche-kuechenhilfe'), 'Allrounder Küche / Casserollier');
+  assert.strictEqual(lab('kueche-commis'), 'Commis de cuisine');
   assert.strictEqual(lab('service-restaurationsfachfrau-efz'), 'Demi-chef de rang');
   assert.strictEqual(lab('technik-leitung'), 'Head of Engineering');
   const neu = {
-    'reception-chauffeur': ['Chauffeur', true, 3735, 4050],
     'reception-guest-relations': ['Guest Relations Agent', true, 4555, 4900],
     'housekeeping-laundry-supervisor': ['Laundry Supervisor', false, 4555, 4900],
-    'kueche-saucier': ['Saucier', false, 4663, 5000],
-    'kueche-entremetier': ['Entremetier', false, 4663, 5000],
-    'kueche-garde-manger': ['Garde-manger', false, 4663, 5000],
-    'kueche-tournant': ['Tournant', false, 4663, 5000],
-    'kueche-cuisinier-fruehstueck': ['Cuisinier au petit-déjeuner', false, 4555, 4900],
+    'kueche-tournant': ['Tournant', false, 4663, 5100],
     'service-sommelier': ['Sommelier', true, 4663, 5000],
     'service-chef-de-rang': ['Chef de rang', true, 4663, 5000],
-    'service-commis-de-bar': ['Commis de bar', true, 4094, 4450],
     'spa-fitness-trainer': ['Fitness Trainer', true, 4555, 4900],
     'spa-physiotherapist': ['Physiotherapist', true, 4555, 4900],
-    'technik-electrician': ['Electrician', false, 4555, 4900],
     'administration-revenue-manager': ['Revenue Manager', false, 5325, 5700],
     'administration-event-manager': ['Event Manager', true, 5325, 5700],
     'administration-it-manager': ['IT Manager', false, 5325, 5700],
-    'administration-reservations-manager': ['Reservations Manager', false, 5325, 5700],
+    'reception-reservations-manager': ['Reservations Manager', true, 5325, 5700],
   };
   for (const [id, [label, g, min, max]] of Object.entries(neu)) {
     const f = c.funktionen.find((x) => x.id === id);
@@ -93,7 +86,7 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
     assert.strictEqual(f.bandMax, max, id);
   }
   const gk = (id) => c.funktionen.find((f) => f.id === id).gaestekontakt;
-  assert.strictEqual(gk('housekeeping-hausbursche'), false);
+  assert.strictEqual(gk('housekeeping-gouvernante'), true);
   assert.strictEqual(gk('housekeeping-lingerie'), false);
   assert.strictEqual(gk('housekeeping-gouvernante'), true);
   assert.strictEqual(gk('administration-sales-marketing'), true);
@@ -108,7 +101,7 @@ test('alle Funktionen einer Stufe teilen dasselbe Einstiegsband', () => {
   const c = ladeStandardkonfiguration();
   const paare = new Set(c.funktionen.map((f) => f.bandMin + '-' + f.bandMax));
   assert.deepStrictEqual([...paare].sort(),
-    ['3735-4050', '4094-4450', '4555-4900', '4663-5000', '5325-5700']);
+    ['3735-4050', '4094-4450', '4555-4900', '4663-5000', '4663-5100', '5325-5700', '6000-6800']);
 });
 
 test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Demi-chef Band IIIa (4555-4900), Sous-chef und Chef de cuisine bleiben IV', () => {
@@ -118,22 +111,23 @@ test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Demi-chef Band
     assert.ok(f, id);
     return [f.bandMin, f.bandMax];
   };
-  for (const id of ['kueche-chef-de-partie', 'kueche-saucier', 'kueche-entremetier', 'kueche-garde-manger', 'kueche-tournant']) {
+  for (const id of ['kueche-chef-de-partie']) {
     assert.deepStrictEqual(band(id), [4663, 5000], id);
   }
   assert.deepStrictEqual(band('kueche-sous-chef'), [5325, 5700]);
-  assert.deepStrictEqual(band('kueche-kuechenchef'), [5325, 5700]);
+  assert.deepStrictEqual(band('kueche-kuechenchef'), [6000, 6800]);
   assert.deepStrictEqual(band('kueche-demi-chef'), [4555, 4900]);
 });
 
-test('Bandzahl pro Einstiegsband: Ia 14, II 7, IIIa 27, IIIb 8, IV 19 Funktionen', () => {
+test('Bandzahl pro Einstiegsband: Ia 12, II 3, IIIa 19, IIIb 3 plus Tournant 1, IV 16 Funktionen', () => {
   const c = ladeStandardkonfiguration();
   const zaehl = (min, max) => c.funktionen.filter((f) => f.bandMin === min && f.bandMax === max).length;
-  assert.strictEqual(zaehl(4663, 5000), 8);
-  assert.strictEqual(zaehl(5325, 5700), 19);
-  assert.strictEqual(zaehl(3735, 4050), 14);
-  assert.strictEqual(zaehl(4094, 4450), 7);
-  assert.strictEqual(zaehl(4555, 4900), 27);
+  assert.strictEqual(zaehl(4663, 5000), 3);
+  assert.strictEqual(zaehl(4663, 5100), 1);
+  assert.strictEqual(zaehl(5325, 5700), 16);
+  assert.strictEqual(zaehl(3735, 4050), 12);
+  assert.strictEqual(zaehl(4094, 4450), 3);
+  assert.strictEqual(zaehl(4555, 4900), 19);
 });
 
 test('fehlende Mindestlohn-Stufe wird abgelehnt', () => {
@@ -239,7 +233,7 @@ test('Standardkonfiguration: Bereiche, Abschlüsse und Funktionsbereiche', () =>
   assert.strictEqual(bereich('service-sommelier'), 'restauration');
   assert.strictEqual(bereich('administration-sales-marketing'), 'backoffice');
   assert.strictEqual(bereich('spa-masseur'), null);
-  assert.strictEqual(bereich('technik-electrician'), null);
+  assert.strictEqual(bereich('technik-leitung'), null);
 });
 
 test('Abschluss mit unbekannter Bereich-Id wird abgelehnt', () => {
@@ -290,7 +284,7 @@ test('Kader-Funktionen und Betriebswerte in der Standardkonfiguration', () => {
   assert.strictEqual(c.betrieb.ueberstundenGrenze6750, 6750);
   assert.strictEqual(c.betrieb.dreizehnterInklPauschale, true);
   const kader = c.funktionen.filter((f) => f.kader === true).map((f) => f.label).sort();
-  assert.deepStrictEqual(kader, ['Chef de cuisine', 'Directeur de restaurant', 'Event Manager', 'Executive Housekeeper',
+  assert.deepStrictEqual(kader, ['Chef de cuisine', 'Event Manager', 'Executive Housekeeper',
     'Front Office Manager', 'HR Manager', 'Head of Engineering', 'IT Manager', 'Marketing Manager',
     'Reservations Manager', 'Revenue Manager', 'Spa Manager']);
   assert.strictEqual(c.funktionen.find((f) => f.label === 'Chef de partie').kader === true, false);

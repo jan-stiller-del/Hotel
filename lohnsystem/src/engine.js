@@ -334,7 +334,8 @@
 
       var summe = positionen.reduce(function (s, p) { return s + p.betrag; }, 0);
       // Strikt nach Stufe: Untergrenze ist der Mindestlohn der Stufe, das Funktionsband hebt nicht an.
-      bandStart = mindestlohn;
+      // Ausnahme: Funktionen mit bandAlsUntergrenze (z.B. Chef de cuisine) starten mindestens beim Bandminimum.
+      bandStart = funktion.bandAlsUntergrenze === true ? Math.max(mindestlohn, funktion.bandMin) : mindestlohn;
       funktionsband = { min: funktion.bandMin, max: funktion.bandMax };
       bandMax = funktion.bandMax;
       if (bandMax < mindestlohn) {

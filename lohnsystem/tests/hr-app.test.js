@@ -156,7 +156,7 @@ test('baueAbschlussGruppen: leere Gruppen entfallen, fehlende Konfiguration ergi
 test('funktionsbereichText: Bereich aus der Konfiguration oder «nicht geregelt»', () => {
   const cfg = standardConfig();
   const f = (id) => cfg.funktionen.find(x => x.id === id);
-  assert.equal(funktionsbereichText(cfg, f('kueche-koch-efz')), 'Funktionsbereich: Küche');
+  assert.equal(funktionsbereichText(cfg, f('kueche-commis')), 'Funktionsbereich: Küche');
   assert.equal(funktionsbereichText(cfg, f('spa-masseur')), 'Funktionsbereich: nicht geregelt');
   assert.equal(funktionsbereichText(cfg, null), '');
 });
@@ -164,7 +164,7 @@ test('funktionsbereichText: Bereich aus der Konfiguration oder «nicht geregelt�
 test('bereichLabel: direkter Nachschlag in config.bereiche', () => {
   const cfg = standardConfig();
   const f = (id) => cfg.funktionen.find(x => x.id === id);
-  assert.equal(bereichLabel(cfg, f('kueche-koch-efz')), 'Küche');
+  assert.equal(bereichLabel(cfg, f('kueche-commis')), 'Küche');
   assert.equal(bereichLabel(cfg, f('spa-masseur')), 'nicht geregelt');
   assert.equal(bereichLabel(cfg, null), '');
 });

@@ -302,7 +302,7 @@ function stufeFuer(funktionId, abschluss, extra) {
 }
 
 test('Einstufung: Koch EFZ in der Küche ergibt IIIa ohne Warnung', () => {
-  const r = stufeFuer('kueche-koch-efz', 'koch-efz');
+  const r = stufeFuer('kueche-commis', 'koch-efz');
   assert.equal(r.stufe, 'IIIa');
   assert.deepEqual(r.codes, []);
 });
@@ -321,7 +321,7 @@ test('Einstufung: Koch EFZ im Housekeeping ergibt Ia mit Warnung', () => {
 });
 
 test('Einstufung: Restaurationsfachfrau EFZ in der Küche ergibt Ia', () => {
-  const r = stufeFuer('kueche-koch-efz', 'restaurationsfachmann-efz');
+  const r = stufeFuer('kueche-commis', 'restaurationsfachmann-efz');
   assert.equal(r.stufe, 'Ia');
   assert.equal(r.r.vorschlag, 3735);
   assert.deepEqual(r.codes, ['abschluss_nicht_anerkannt', 'unter_funktionsband']);
@@ -358,7 +358,7 @@ test('Einstufung: Küchenangestellte EBA im Housekeeping ergibt Ia', () => {
 });
 
 test('Einstufung: Progresso Allrounder in Küche, Service und Housekeeping ergibt Ib', () => {
-  for (const f of ['kueche-koch-efz', 'service-commis-de-rang', 'housekeeping-zimmermaedchen']) {
+  for (const f of ['kueche-commis', 'service-commis-de-rang', 'housekeeping-zimmermaedchen']) {
     const r = stufeFuer(f, 'progresso-allrounder');
     assert.equal(r.stufe, 'Ib', f);
     assert.deepEqual(r.codes, f === 'housekeeping-zimmermaedchen' ? [] : ['unter_funktionsband'], f);
@@ -696,7 +696,7 @@ test('strikt: Kaufmann HGT EFZ (IIIa) als Receptionist 4555, kein Hinweis unter_
 });
 
 test('strikt: Gastronomiekoch FA (IV) in Funktion mit Band 4555-4900: Mindestlohn 5325 schlägt das Bandmaximum', () => {
-  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-koch-efz', abschluss: 'gastronomiekoch-fa' }));
+  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa' }));
   assert.equal(r.stufe, 'IV');
   assert.equal(r.vorschlag, 5325);
   assert.equal(r.bandStart, 5325);
@@ -729,4 +729,20 @@ test('strikt: Praktikum unverändert, kein Funktionsband und kein Hinweis', () =
 test('strikt: Hinweis unter_funktionsband nicht bei Hinweis- und Fehlermodus', () => {
   assert.equal(E.berechne(SC, eingabe({ funktionId: 'reception-receptionist', abschluss: 'keiner', sonderfall: 'unter18' })).funktionsband, null);
   assert.equal(E.berechne(SC, eingabe({ funktionId: 'gibtsnicht' })).funktionsband, null);
+});
+
+// ---- Ausnahme: bandAlsUntergrenze hebt den Start auf das Bandminimum an ----
+
+test('bandAlsUntergrenze: Chef de cuisine (IV) startet bei 6000, nicht bei 5325', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa' }));
+  assert.equal(r.stufe, 'IV');
+  assert.equal(r.bandStart, 6000);
+  assert.equal(r.bandMax, 6800);
+  assert.equal(r.vorschlag, 6000);
+});
+
+test('bandAlsUntergrenze: ohne Flag bleibt der Start beim Stufen-Mindestlohn', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-sous-chef', abschluss: 'gastronomiekoch-fa' }));
+  assert.equal(r.bandStart, 5325);
+  assert.equal(r.vorschlag, 5325);
 });

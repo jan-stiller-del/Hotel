@@ -329,6 +329,8 @@
     gast.checked = f.gaestekontakt === true;
     var kader = el('input', { attr: { type: 'checkbox' } });
     kader.checked = f.kader === true;
+    var untergrenze = el('input', { attr: { type: 'checkbox' } });
+    untergrenze.checked = f.bandAlsUntergrenze === true;
     var min = zahlFeld(f.bandMin, 'any');
     var max = zahlFeld(f.bandMax, 'any');
     label.setAttribute('aria-label', 'Bezeichnung: ' + name);
@@ -336,13 +338,14 @@
     ber.setAttribute('aria-label', 'Funktionsbereich: ' + name);
     gast.setAttribute('aria-label', 'Gästekontakt: ' + name);
     kader.setAttribute('aria-label', 'Kader: ' + name);
+    untergrenze.setAttribute('aria-label', 'Band als Untergrenze: ' + name);
     min.setAttribute('aria-label', 'Bandminimum: ' + name);
     max.setAttribute('aria-label', 'Bandmaximum: ' + name);
-    var alle = [label, abt, ber, gast, kader, min, max];
+    var alle = [label, abt, ber, gast, kader, untergrenze, min, max];
     var speichern = function () {
       var patch = {
         label: label.value, abteilung: abt.value, bereich: ber.value === '' ? null : ber.value,
-        gaestekontakt: gast.checked, kader: kader.checked, bandMin: zahl(min), bandMax: zahl(max),
+        gaestekontakt: gast.checked, kader: kader.checked, bandAlsUntergrenze: untergrenze.checked, bandMin: zahl(min), bandMax: zahl(max),
       };
       uebernehmen('funktion-' + f.id, 'funktionen', E.aktualisiereFunktion(arbeit, f.id, patch), alle);
     };
@@ -353,7 +356,7 @@
       delete offen['funktion-' + f.id];
       umbauen('entfernen-' + f.id, 'funktionen', E.entferneFunktion(arbeit, f.id));
     });
-    return el('tr', {}, [zelle(label), zelle(abt), zelle(ber), zelle(gast, 'mitte'), zelle(kader, 'mitte'),
+    return el('tr', {}, [zelle(label), zelle(abt), zelle(ber), zelle(gast, 'mitte'), zelle(kader, 'mitte'), zelle(untergrenze, 'mitte'),
       zelle(min, 'zahl'), zelle(max, 'zahl'), zelle(weg)]);
   }
 
@@ -365,11 +368,12 @@
     var ber = auswahl(bereichOptionen(), '');
     var gast = el('input', { attr: { type: 'checkbox' } });
     var kader = el('input', { attr: { type: 'checkbox' } });
+    var untergrenze2 = el('input', { attr: { type: 'checkbox' } });
     var min = zahlFeld('', 'any');
     var max = zahlFeld('', 'any');
     var raster = el('div', { cls: 'raster' }, [feld('Bezeichnung', label), feld('Abteilung', abt), feld('Funktionsbereich', ber), feld('Bandminimum (CHF)', min), feld('Bandmaximum (CHF)', max)]);
     ziel.appendChild(raster);
-    [['Gästekontakt', gast], ['Kader', kader]].forEach(function (p) {
+    [['Gästekontakt', gast], ['Kader', kader], ['Band als Untergrenze (Start mindestens beim Bandminimum)', untergrenze2]].forEach(function (p) {
       var id = neueId('f');
       p[1].id = id;
       ziel.appendChild(el('div', { cls: 'feld' }, [el('label', { cls: 'inline', attr: { 'for': id } }, [p[1], document.createTextNode(' ' + p[0])])]));
@@ -380,7 +384,7 @@
       ev.preventDefault();
       umbauen('neue-funktion', 'funktionen', E.fuegeFunktionHinzu(arbeit, {
         label: label.value, abteilung: abt.value, bereich: ber.value === '' ? null : ber.value,
-        gaestekontakt: gast.checked, kader: kader.checked, bandMin: zahl(min), bandMax: zahl(max),
+        gaestekontakt: gast.checked, kader: kader.checked, bandAlsUntergrenze: untergrenze2.checked, bandMin: zahl(min), bandMax: zahl(max),
       }));
     };
   }
