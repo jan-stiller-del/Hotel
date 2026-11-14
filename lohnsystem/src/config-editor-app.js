@@ -232,13 +232,11 @@
       });
       set.appendChild(raster);
       var d1 = el('input', { attr: { type: 'date', value: t.gueltigAbJahresbetrieb || '' } });
-      var d2 = el('input', { attr: { type: 'date', value: t.gueltigAbSaison || '' } });
       var stichtage = function () {
-        uebernehmen('stichtag-' + t.jahr, 'mindestloehne', E.setzeStichtage(arbeit, t.jahr, d1.value, d2.value), [d1, d2]);
+        uebernehmen('stichtag-' + t.jahr, 'mindestloehne', E.setzeStichtage(arbeit, t.jahr, d1.value), [d1]);
       };
       d1.addEventListener('change', stichtage);
-      d2.addEventListener('change', stichtage);
-      set.appendChild(el('div', { cls: 'raster' }, [feld('Gültig ab (Jahresbetrieb)', d1), feld('Gültig ab (Saison)', d2)]));
+      set.appendChild(el('div', { cls: 'raster' }, [feld('Gültig ab (Eintrittsdatum)', d1)]));
       ziel.appendChild(set);
     });
     var letztes = tabellen.length ? tabellen[0].jahr : new Date().getFullYear();

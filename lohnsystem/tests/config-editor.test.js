@@ -37,7 +37,6 @@ test('neueJahrestabelle 2028 mit 0,6 %: gerundete Werte, alte Tabelle bleibt', (
   assert.strictEqual(neu.stufen.IIIa, 4582);
   assert.strictEqual(neu.stufen.IV, 5357);
   assert.strictEqual(neu.gueltigAbJahresbetrieb, '2028-01-01');
-  assert.strictEqual(neu.gueltigAbSaison, '2028-05-01');
   assert.deepStrictEqual(r.config.mindestloehne.find((t) => t.jahr === 2027), c.mindestloehne[0]);
   assert.deepStrictEqual(r.fehler, []);
 });
@@ -65,13 +64,12 @@ test('setzeMindestlohn und setzeStichtage', () => {
   assert.strictEqual(E.setzeMindestlohn(c, 2027, 'Ia', 0).ok, false);
   assert.strictEqual(E.setzeMindestlohn(c, 2027, 'X', 3800).ok, false);
   assert.strictEqual(E.setzeMindestlohn(c, 1999, 'Ia', 3800).ok, false);
-  const s = E.setzeStichtage(c, 2027, '2027-02-01', '2027-06-01');
+  const s = E.setzeStichtage(c, 2027, '2027-02-01');
   meldungsfrei(s);
   assert.strictEqual(s.config.mindestloehne[0].gueltigAbJahresbetrieb, '2027-02-01');
-  assert.strictEqual(s.config.mindestloehne[0].gueltigAbSaison, '2027-06-01');
-  assert.strictEqual(E.setzeStichtage(c, 2027, '2027-13-01', '2027-06-01').ok, false);
-  assert.strictEqual(E.setzeStichtage(c, 2027, '2027-02-30', '2027-06-01').ok, false);
-  assert.strictEqual(E.setzeStichtage(c, 2027, '1.2.2027', '2027-06-01').ok, false);
+  assert.strictEqual(E.setzeStichtage(c, 2027, '2027-13-01').ok, false);
+  assert.strictEqual(E.setzeStichtage(c, 2027, '2027-02-30').ok, false);
+  assert.strictEqual(E.setzeStichtage(c, 2027, '1.2.2027').ok, false);
 });
 
 // ---- Stufen ----
@@ -222,7 +220,7 @@ test('alle Funktionen lassen die (tief eingefrorene) Eingabe unverändert', () =
     () => E.neueJahrestabelle(c, 2028, 0.6),
     () => E.neueJahrestabelle(c, 2027, 0.6),
     () => E.setzeMindestlohn(c, 2027, 'Ia', 3800),
-    () => E.setzeStichtage(c, 2027, '2027-02-01', '2027-06-01'),
+    () => E.setzeStichtage(c, 2027, '2027-02-01'),
     () => E.setzeStufe(c, 'Ia', { erklaerung: 'neu', spielraum: { vorgesetzte: 1, hr: 2, gm: 4 } }),
     () => E.setzeStufe(c, 'Ia', { spielraum: { vorgesetzte: 3, hr: 2, gm: 1 } }),
     () => E.aktualisiereFunktion(c, 'kueche-commis', { bandMin: 4600, kader: true }),

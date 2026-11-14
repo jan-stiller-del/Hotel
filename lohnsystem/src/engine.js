@@ -122,7 +122,7 @@
   }
 
   function findeMindestlohnTabelle(config, eintritt, vertragsart) {
-    var feld = vertragsart === 'saison' ? 'gueltigAbSaison' : 'gueltigAbJahresbetrieb';
+    var feld = 'gueltigAbJahresbetrieb';
     var tabellen = (config && Array.isArray(config.mindestloehne)) ? config.mindestloehne : [];
     var treffer = null;
     var letzte = null;
@@ -178,7 +178,7 @@
     if (!istZahl(e) || e < 0 || Math.floor(e) !== e) {
       f.push('Erfahrung muss in ganzen Jahren angegeben werden (0, 1, 2, ...).');
     }
-    if (input.vertragsart !== 'unbefristet' && input.vertragsart !== 'befristet' && input.vertragsart !== 'saison') {
+    if (input.vertragsart !== 'unbefristet' && input.vertragsart !== 'befristet') {
       f.push('Vertragsart unbekannt.');
     }
     if (typeof input.eintritt !== 'string' || !/^\d{4}-\d{2}-\d{2}$/.test(input.eintritt)) {

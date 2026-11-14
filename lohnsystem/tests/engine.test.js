@@ -9,9 +9,9 @@ function baueConfig() {
     version: 1,
     betrieb: { name: 'Test', wochenstunden: 43.5, dreizehnterProzent: 8.33, maxErfahrungsjahre: 10, einarbeitungMaxProzent: 8 },
     mindestloehne: [
-      { jahr: 2027, gueltigAbJahresbetrieb: '2027-01-01', gueltigAbSaison: '2027-05-01',
+      { jahr: 2027, gueltigAbJahresbetrieb: '2027-01-01',
         stufen: { Ia: 3735, Ib: 3967, II: 4094, IIIa: 4555, IIIb: 4663, IV: 5325, P: 2404 } },
-      { jahr: 2026, gueltigAbJahresbetrieb: '2026-01-01', gueltigAbSaison: '2026-05-01',
+      { jahr: 2026, gueltigAbJahresbetrieb: '2026-01-01',
         stufen: { Ia: 3700, Ib: 3900, II: 4000, IIIa: 4500, IIIb: 4600, IV: 5200, P: 2300 } },
     ],
     stufen: {},
@@ -78,12 +78,6 @@ test('Vertragsart befristet wird akzeptiert', () => {
   const c = baueConfig();
   const r = E.berechne(c, Object.assign({}, eingabe(), { vertragsart: 'befristet' }));
   assert.ok(!(r.fehler || []).some((x) => /Vertragsart/.test(x)));
-});
-
-test('findeMindestlohnTabelle: Stichtage Saison', () => {
-  const c = baueConfig();
-  assert.equal(E.findeMindestlohnTabelle(c, '2027-04-30', 'saison').tabelle.jahr, 2026);
-  assert.equal(E.findeMindestlohnTabelle(c, '2027-05-01', 'saison').tabelle.jahr, 2027);
 });
 
 test('findeMindestlohnTabelle: veraltet nach über einem Jahr', () => {

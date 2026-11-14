@@ -36,7 +36,6 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.deepStrictEqual(c.mindestloehne[0].stufen,
     { Ia: 3735, Ib: 3967, II: 4094, IIIa: 4555, IIIb: 4663, IV: 5325, P: 2404 });
   assert.strictEqual(c.mindestloehne[0].gueltigAbJahresbetrieb, '2027-01-01');
-  assert.strictEqual(c.mindestloehne[0].gueltigAbSaison, '2027-05-01');
   assert.strictEqual(c.abteilungen.length, 7);
   assert.deepStrictEqual(c.zusatzbausteine.map((z) => [z.id, z.art, z.betrag, z.nurKader]),
     [['kader-handy', 'entschaedigung', 20, true], ['kader-spesen', 'entschaedigung', 200, true], ['handy-mitarbeiter', 'entschaedigung', 5, undefined]]);

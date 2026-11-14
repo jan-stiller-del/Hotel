@@ -12,12 +12,11 @@ window.LOHN_CONFIG = {
     "ueberstundenGrenze6750": 6750,
     "dreizehnterInklPauschale": true
   },
-  // Stichtage der Mindestlohn-Tabelle (von Jan bestätigt): Jahresstelle und befristete Stelle 1.1.2027, Saison 1.5.2027
+  // Stichtage der Mindestlohn-Tabelle (von Jan bestätigt): unbefristete und befristete Stelle 1.1.2027
   "mindestloehne": [
     {
       "jahr": 2027,
       "gueltigAbJahresbetrieb": "2027-01-01",
-      "gueltigAbSaison": "2027-05-01",
       "stufen": { "Ia": 3735, "Ib": 3967, "II": 4094, "IIIa": 4555, "IIIb": 4663, "IV": 5325, "P": 2404 }
     }
   ],

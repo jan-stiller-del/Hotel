@@ -65,7 +65,6 @@
       tabellen.push({
         jahr: jahr,
         gueltigAbJahresbetrieb: jahr + '-01-01',
-        gueltigAbSaison: jahr + '-05-01',
         stufen: stufen,
       });
       return [];
@@ -83,16 +82,14 @@
     });
   }
 
-  function setzeStichtage(config, jahr, jahresbetrieb, saison) {
+  function setzeStichtage(config, jahr, stichtag) {
     return anwenden(config, function (c) {
       var t = tabelle(c, jahr);
       if (!t) { return ['Keine Mindestlohn-Tabelle für das Jahr ' + jahr + '.']; }
       var fehler = [];
-      if (!istDatum(jahresbetrieb)) { fehler.push('Stichtag Jahresbetrieb: ungültiges Datum (Format JJJJ-MM-TT).'); }
-      if (!istDatum(saison)) { fehler.push('Stichtag Saison: ungültiges Datum (Format JJJJ-MM-TT).'); }
+      if (!istDatum(stichtag)) { fehler.push('Stichtag: ungültiges Datum (Format JJJJ-MM-TT).'); }
       if (fehler.length) { return fehler; }
-      t.gueltigAbJahresbetrieb = jahresbetrieb;
-      t.gueltigAbSaison = saison;
+      t.gueltigAbJahresbetrieb = stichtag;
       return [];
     });
   }

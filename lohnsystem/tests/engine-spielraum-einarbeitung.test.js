@@ -14,7 +14,7 @@ function baueConfig() {
     version: 1,
     betrieb: { name: 'Test', wochenstunden: 43.5, dreizehnterProzent: 8.33, maxErfahrungsjahre: 10, einarbeitungMaxProzent: 8 },
     mindestloehne: [
-      { jahr: 2027, gueltigAbJahresbetrieb: '2027-01-01', gueltigAbSaison: '2027-05-01',
+      { jahr: 2027, gueltigAbJahresbetrieb: '2027-01-01',
         stufen: { Ia: 3735, Ib: 3967, II: 4094, IIIa: 4555, IIIb: 4663, IV: 5325, P: 2404 } },
     ],
     stufen,
