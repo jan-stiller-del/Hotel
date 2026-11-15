@@ -317,9 +317,17 @@
     var zusatz = [];
     var entschaedigungen = [];
     var zusatzFehler = [];
+    var kaderStelle = sonder !== 'praktikum' && funktion.kader === true;
+    var gewaehltSchon = {};
     (input.zusatzIds || []).forEach(function (id) {
+      if (gewaehltSchon[id]) { return; }
+      gewaehltSchon[id] = true;
       var z = (config.zusatzbausteine || []).filter(function (x) { return x.id === id; })[0];
       if (!z) { zusatzFehler.push('Zusatzbaustein unbekannt: ' + id + '.'); return; }
+      if ((z.nurKader === true && !kaderStelle) || (z.nurNichtKader === true && kaderStelle)) {
+        zusatzFehler.push('Der Baustein «' + z.label + '» gilt nur für ' + (z.nurKader === true ? 'Kader' : 'Nicht-Kader') + '.');
+        return;
+      }
       if (Array.isArray(z.nurAbteilungen) && z.nurAbteilungen.indexOf(funktion.abteilung) < 0) {
         zusatzFehler.push('Der Baustein «' + z.label + '» gilt nicht für diese Abteilung.');
         return;
@@ -392,10 +400,12 @@
     var spanneStufen = null;
     var sp = config.stufen && config.stufen[stufe] && config.stufen[stufe].spielraum;
     if (sonder !== 'praktikum' && sp && istZahl(sp.vorgesetzte) && istZahl(sp.hr) && istZahl(sp.gm)) {
+      // Überschreitbares Band (Kader): der Spielraum reicht über das Bandmaximum hinaus.
+      var spanneMax = band && band.ueberschreitbar ? Infinity : bandMax;
       spanneStufen = {
-        vorgesetzte: berechneSpanne(vorschlag, sp.vorgesetzte, bandStart, bandMax),
-        hr: berechneSpanne(vorschlag, sp.hr, bandStart, bandMax),
-        gm: berechneSpanne(vorschlag, sp.gm, bandStart, bandMax)
+        vorgesetzte: berechneSpanne(vorschlag, sp.vorgesetzte, bandStart, spanneMax),
+        hr: berechneSpanne(vorschlag, sp.hr, bandStart, spanneMax),
+        gm: berechneSpanne(vorschlag, sp.gm, bandStart, spanneMax)
       };
       spanne = { min: spanneStufen.gm.min, max: spanneStufen.gm.max };
     }
@@ -480,15 +490,13 @@
         }
       }
     }
-    var band = ergebnis.band;
-    // Überschreitbares Band (Kader): Lohn über dem Spielraum gilt als Freigabe GM, auch über dem Bandmaximum.
-    if (!freigabe && band && band.ueberschreitbar && gewaehlterMonatslohn > ergebnis.vorschlag) {
-      freigabe = 'GM';
-    }
     if (!freigabe) {
       return { ok: false, fehler: ['Abweichung ausserhalb des zulässigen Spielraums.'], freigabe: null };
     }
-    var ueberBandmax = !!(band && band.ueberschreitbar && gewaehlterMonatslohn > band.max + eps);
+    // Über dem Maximum eines überschreitbaren Bandes (Kader) gilt immer die Freigabe GM, mit Begründung.
+    var band = ergebnis.band;
+    var ueberBandmax = !!(band && band.ueberschreitbar && gewaehlterMonatslohn > ergebnis.bandMax + eps);
+    if (ueberBandmax) { freigabe = 'GM'; }
     if (freigabe !== 'Vorgesetzte' && !(typeof begruendung === 'string' && begruendung.trim())) {
       fehler.push('Begründung nötig: Die Abweichung braucht die Freigabe von ' + freigabe + '.');
     }

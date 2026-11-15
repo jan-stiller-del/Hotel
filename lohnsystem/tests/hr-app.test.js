@@ -366,15 +366,22 @@ test('baueWahlAbrechnung: Handy und Waesche erscheinen als Zulagen unter dem Bru
 });
 
 test('baueWahlAbrechnung: Lohn über dem überschreitbaren Bandmaximum zeigt einen Hinweis', () => {
-  const erg = Object.assign({}, WERG, { band: { art: 'kader', min: 6000, max: 7500, ueberschreitbar: true } });
+  const erg = Object.assign({}, WERG, { band: { art: 'kader', min: 6000, max: 7500, ueberschreitbar: true }, bandMax: 7500 });
   const ueber = baueWahlAbrechnung(standardConfig(), erg, 7800, { beschaeftigungsgrad: '100' });
   const hinweis = ueber.zeilen.filter(r => r.art === 'hinweis');
   assert.equal(hinweis.length, 1);
   assert.match(hinweis[0].label, /über dem Bandmaximum von CHF 7500.00/);
   const genau = baueWahlAbrechnung(standardConfig(), erg, 7500, { beschaeftigungsgrad: '100' });
   assert.equal(genau.zeilen.filter(r => r.art === 'hinweis').length, 0);
-  const fest = baueWahlAbrechnung(standardConfig(), Object.assign({}, WERG, { band: { art: 'stufe', min: 4555, max: 4900, ueberschreitbar: false } }), 5000, { beschaeftigungsgrad: '100' });
+  const fest = baueWahlAbrechnung(standardConfig(), Object.assign({}, WERG, { band: { art: 'stufe', min: 4555, max: 4900, ueberschreitbar: false }, bandMax: 4900 }), 5000, { beschaeftigungsgrad: '100' });
   assert.equal(fest.zeilen.filter(r => r.art === 'hinweis').length, 0);
+});
+
+test('baueWahlAbrechnung: Hinweis vergleicht mit dem wirksamen Maximum, nicht mit dem eingetragenen', () => {
+  // Maximum 5000 eingetragen, wirksam 5325 (Mindestlohn der Stufe schlägt das Band): kein Hinweis bei 5325.
+  const erg = Object.assign({}, WERG, { band: { art: 'kader', min: 4000, max: 5000, ueberschreitbar: true }, bandMax: 5325 });
+  const a = baueWahlAbrechnung(standardConfig(), erg, 5325, { beschaeftigungsgrad: '100' });
+  assert.equal(a.zeilen.filter(r => r.art === 'hinweis').length, 0);
 });
 
 test('baueWahlAbrechnung: gleicher Lohn, keine Differenz, Zeilen wie beim Vorschlag', () => {

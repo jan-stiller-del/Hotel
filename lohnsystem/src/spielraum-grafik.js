@@ -19,6 +19,10 @@
     var breite = gm.max - gm.min;
     var rand = breite > 0 ? breite * 0.1 : 50;
     var achse = { min: gm.min - rand, max: gm.max + rand };
+    // Überschreitbares Band (Kader): die Achse reicht bis zum gewählten Lohn, sonst klebt er am Rand.
+    if (ergebnis.band && ergebnis.band.ueberschreitbar && istZahl(gewaehlterLohn)) {
+      achse = { min: Math.min(achse.min, gewaehlterLohn - rand), max: Math.max(achse.max, gewaehlterLohn + rand) };
+    }
     var ganz = achse.max - achse.min;
     function prozent(wert) { return p4(Math.min(100, Math.max(0, (wert - achse.min) / ganz * 100))); }
     function band(name, r) {

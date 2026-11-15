@@ -1,9 +1,11 @@
-:root { --text:#1d2430; --grau:#5b6573; --rand:#c9d0d9; --flaeche:#f4f6f9; --akzent:#1f4e79;
+:root { --nachtblau:#132538; --text:#1d2430; --grau:#5b6573; --rand:#c9d0d9; --flaeche:#f4f6f9; --akzent:#1f4e79;
   --fehler-bg:#fde4e4; --fehler-rand:#b3261e; --info-bg:#e3eefb; --info-rand:#1f4e79; }
 * { box-sizing: border-box; }
 body { margin:0; font:16px/1.5 system-ui, "Segoe UI", Arial, sans-serif; color:var(--text); background:#fff; }
-.kopf { padding:16px; background:var(--akzent); color:#fff; }
-.kopf h1 { margin:0; font-size:1.4rem; }
+header.kopf { padding:16px; background:var(--nachtblau); color:#fff; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
+header.kopf .logo { height:84px; width:auto; display:block; }
+.kopf-text { flex:1 1 220px; min-width:0; }
+header.kopf h1 { margin:0; font-size:1.4rem; }
 .untertitel { margin:4px 0 0; opacity:.9; font-size:.9rem; }
 .inhalt { max-width:860px; margin:0 auto; padding:16px; }
 section { margin-bottom:28px; }

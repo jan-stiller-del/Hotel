@@ -119,8 +119,8 @@
       ergebnis.entschaedigungen.forEach(function (x) { zeilen.push({ label: x.label, betrag: x.betrag, art: 'entschaedigung' }); zulagenSumme += x.betrag; });
       zeilen.push({ label: 'Brutto pro Monat gesamt (Total plus Zulagen)', betrag: Math.round((b.totalMonat + zulagenSumme) * 100) / 100, art: 'summe' });
     }
-    if (ergebnis.band && ergebnis.band.ueberschreitbar && wert > ergebnis.band.max + 1e-9) {
-      zeilen.push({ label: 'Hinweis: Der gewählte Lohn liegt über dem Bandmaximum von CHF ' + ergebnis.band.max.toFixed(2) + ' (Freigabe GM mit Begründung).', betrag: null, art: 'hinweis' });
+    if (ergebnis.band && ergebnis.band.ueberschreitbar && wert > ergebnis.bandMax + 1e-9) {
+      zeilen.push({ label: 'Hinweis: Der gewählte Lohn liegt über dem Bandmaximum von CHF ' + ergebnis.bandMax.toFixed(2) + ' (Freigabe GM mit Begründung).', betrag: null, art: 'hinweis' });
     }
     if (ein) {
       var rp = String(ein.reduktionProzent).replace('.', ',');
@@ -441,7 +441,7 @@
       out.appendChild(kopf);
       out.appendChild(el('p', 'hilfe', Cfg.stufeMitErklaerung(config, e.stufe)
         + ', Mindestlohn CHF ' + chf(e.mindestlohn) + ' (Tabelle ' + e.tabelleJahr + ')'
-        + (e.band ? ', Lohnband ' + (e.band.art === 'kader' ? '(Kader) ' : '') + 'CHF ' + chf(e.band.min) + ' bis ' + chf(e.band.max) : '')));
+        + (e.band ? ', Lohnband ' + (e.band.art === 'kader' ? '(Kader) ' : '') + 'CHF ' + chf(typeof e.bandStart === 'number' ? e.bandStart : e.band.min) + ' bis ' + chf(typeof e.bandMax === 'number' ? e.bandMax : e.band.max) : '')));
       zeigeStufenzeilen(out, e.stufenvergleich);
 
       if (e.spanneStufen) {
@@ -479,7 +479,7 @@
       out.appendChild(el('h3', null, 'Rechenweg'));
       var rw = el('table');
       e.positionen.forEach(function (p) { zeile(rw, p.label, chf(p.betrag)); });
-      zeile(rw, 'Vorschlag Vollzeit (höchstens bis Bandende der Funktion)', chf(e.vorschlag), 'summe');
+      zeile(rw, 'Vorschlag Vollzeit (höchstens bis Bandende)', chf(e.vorschlag), 'summe');
       out.appendChild(rw);
 
       if (e.entschaedigungen.length) {

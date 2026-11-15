@@ -169,10 +169,24 @@
         });
       });
       var k = baender.kader;
+      [['Kaderband', k], ...STUFEN.filter(function (st) { return st !== 'P'; }).map(function (st) { return ['Lohnband Stufe ' + st, baender[st]]; })].forEach(function (p) {
+        if (p[1] && p[1].ueberschreitbar !== undefined && typeof p[1].ueberschreitbar !== 'boolean') {
+          fehler.push(p[0] + ': «Max überschreitbar» muss ja oder nein sein.');
+        }
+      });
       if (!k || !istZahl(k.min) || !istZahl(k.max) || k.min <= 0 || k.max <= 0) {
         fehler.push('Kaderband: Minimum und Maximum fehlen oder sind ungültig.');
       } else if (k.min > k.max) {
         fehler.push('Kaderband: Minimum ist grösser als Maximum.');
+      } else {
+        tabellen.forEach(function (t) {
+          STUFEN.filter(function (st) { return st !== 'P'; }).forEach(function (st) {
+            var ml = t && t.stufen && t.stufen[st];
+            if (istZahl(ml) && k.max < ml) {
+              fehler.push('Kaderband: Maximum liegt unter dem Mindestlohn der Stufe ' + st + ' (Tabelle ' + (t.jahr !== undefined ? t.jahr : '?') + ').');
+            }
+          });
+        });
       }
     }
 

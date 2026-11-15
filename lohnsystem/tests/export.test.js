@@ -182,11 +182,13 @@ test('baueExportZeilen: Einarbeitung bei Kader mit reduzierter Pauschale', () =>
 });
 
 test('Export: Zeile «Lohnband» neben dem Mindestlohn, Kaderband benannt, entfällt ohne Band', () => {
-  const z = X.baueExportZeilen(ergebnis({ band: { art: 'stufe', min: 4555, max: 4900, ueberschreitbar: false } }), kontext);
+  const z = X.baueExportZeilen(ergebnis({ band: { art: 'stufe', min: 4555, max: 4900, ueberschreitbar: false }, bandStart: 4555, bandMax: 4900 }), kontext);
   const i = z.findIndex((r) => r[0] === 'Mindestlohn (Tabelle 2027)');
   assert.deepEqual(z[i + 1], ['Lohnband (von bis)', '4555 bis 4900']);
-  const k = X.baueExportZeilen(ergebnis({ band: { art: 'kader', min: 6000, max: 7500, ueberschreitbar: true } }), kontext);
+  const k = X.baueExportZeilen(ergebnis({ band: { art: 'kader', min: 6000, max: 7500, ueberschreitbar: true }, bandStart: 6000, bandMax: 7500 }), kontext);
   assert.deepEqual(finde(k, 'Lohnband'), [['Lohnband (von bis)', '6000 bis 7500 (Kaderband)']]);
+  const start = X.baueExportZeilen(ergebnis({ band: { art: 'kader', min: 4000, max: 5000, ueberschreitbar: true }, bandStart: 5325, bandMax: 5325 }), kontext);
+  assert.deepEqual(finde(start, 'Lohnband'), [['Lohnband (von bis)', '5325 bis 5325 (Kaderband)']]);
   assert.equal(finde(X.baueExportZeilen(ergebnis({ band: null }), kontext), 'Lohnband').length, 0);
 });
 
@@ -198,4 +200,14 @@ test('baueExportZeilen: Zeile «Stufe» mit Erklärung, nächsthöhere Stufe mit
   assert.equal(finde(z, 'Stufe')[0][1], 'Stufe IIIa, Berufslehre mit eidg. Fähigkeitszeugnis (EFZ)');
   assert.equal(finde(z, 'Mindestlohn der Stufe')[0][1], 4555);
   assert.equal(finde(z, 'Nächsthöhere Stufe übersprungen')[0][1], 'ja (Stufe IIIb, EFZ plus 6 Tage berufsspezifische Weiterbildung, CHF 4663.00)');
+});
+
+test('Export: Hinweis «über dem Bandmaximum» nur bei überschreitbarem Band und Lohn über dem wirksamen Maximum', () => {
+  const band = { art: 'kader', min: 6000, max: 7500, ueberschreitbar: true };
+  const hinweise = (z) => z.filter((r) => /über dem Bandmaximum/.test(String(r[1])));
+  const k = (lohn) => Object.assign({}, kontext, { gewaehlterMonatslohn: lohn });
+  assert.equal(hinweise(X.baueExportZeilen(ergebnis({ band, bandStart: 6000, bandMax: 7500 }), k(8000))).length, 1);
+  assert.equal(hinweise(X.baueExportZeilen(ergebnis({ band, bandStart: 6000, bandMax: 7500 }), k(7500))).length, 0);
+  const fest = { art: 'stufe', min: 4555, max: 4900, ueberschreitbar: false };
+  assert.equal(hinweise(X.baueExportZeilen(ergebnis({ band: fest, bandStart: 4555, bandMax: 4900 }), k(8000))).length, 0);
 });

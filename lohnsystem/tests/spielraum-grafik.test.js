@@ -124,3 +124,19 @@ test('ungültiger gewählter Lohn (NaN) wird wie leer behandelt', () => {
   assert.equal(marke(m, 'gewaehlt'), undefined);
   assert.equal(m.freigabe, null);
 });
+
+test('Kader mit überschreitbarem Band: Achse reicht bis zum gewählten Lohn, Bandende erscheint', () => {
+  const c = config();
+  c.funktionen.push(FX.funktion({ id: 'chef', abteilung: 'a', label: 'Chef', gaestekontakt: false, kader: true }));
+  const e = E.berechne(c, eingabe({ funktionId: 'chef', abschluss: 'berufspruefung', sprachen: [] }));
+  assert.equal(e.vorschlag, 6000);
+  const m = G.baueGrafikModell(e, 7400);
+  assert.ok(m.achse.max >= 7400);
+  assert.ok(marke(m, 'gewaehlt').prozent < 100);
+  assert.equal(marke(m, 'bandMax'), undefined); // 7500 liegt noch ausserhalb der Achse
+  const m2 = G.baueGrafikModell(e, 7600);
+  assert.ok(marke(m2, 'bandMax'));
+  assert.ok(marke(m2, 'gewaehlt').prozent < 100);
+  const m3 = G.baueGrafikModell(e, null);
+  assert.ok(m3.achse.max < 7000); // ohne gewählten Lohn bleibt die Achse beim Spielraum
+});
