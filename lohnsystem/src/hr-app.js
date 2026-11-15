@@ -85,6 +85,12 @@
     });
   }
 
+  // Funktionen einer Abteilung für die Auswahl: alphabetisch nach Bezeichnung (deutsche Sortierung, ohne Akzent- und Gross-/Kleinschreibung).
+  function funktionenFuerAbteilung(config, abteilungId) {
+    return ((config && config.funktionen) || []).filter(function (f) { return f.abteilung === abteilungId; })
+      .sort(function (a, b) { return a.label.localeCompare(b.label, 'de', { sensitivity: 'base' }); });
+  }
+
   // Block «Auszahlung pro Monat»: Zeilen {label, betrag, art}; der 13. Monatslohn steht immer als eigene Zeile.
   function baueAuszahlungZeilen(e, config, kontext) {
     var satz = String(config.betrieb.dreizehnterProzent).replace('.', ',');
@@ -368,11 +374,9 @@
       leeren(sel);
       option(sel, '', '– bitte wählen –');
       var ids = [];
-      config.funktionen.forEach(function (f) {
-        if (f.abteilung === $('abteilung').value) {
-          ids.push(f.id);
-          option(sel, f.id, f.label);
-        }
+      funktionenFuerAbteilung(config, $('abteilung').value).forEach(function (f) {
+        ids.push(f.id);
+        option(sel, f.id, f.label);
       });
       sel.value = waehleOption(ids, alt);
       if (sel.selectedIndex < 0) { sel.selectedIndex = 0; }
@@ -683,5 +687,5 @@
     start();
   }
 
-  return { baueStufeManuellOptionen: baueStufeManuellOptionen, formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueWahlAbrechnung: baueWahlAbrechnung, formatDifferenz: formatDifferenz, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
+  return { funktionenFuerAbteilung: funktionenFuerAbteilung, baueStufeManuellOptionen: baueStufeManuellOptionen, formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueWahlAbrechnung: baueWahlAbrechnung, formatDifferenz: formatDifferenz, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
 }));

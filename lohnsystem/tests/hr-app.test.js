@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { stufeMitErklaerung } = require('../src/config.js');
-const { baueStufeManuellOptionen, formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueWahlAbrechnung, formatDifferenz, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
+const { funktionenFuerAbteilung, baueStufeManuellOptionen, formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueWahlAbrechnung, formatDifferenz, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -502,4 +502,22 @@ test('baueStufeManuellOptionen: ohne Erklärung nur die Stufe, ohne Konfiguratio
 test('baueStufenvergleichZeilen: nächsthöhere Stufe mit Erklärung, wenn die Konfiguration übergeben wird', () => {
   const z = baueStufenvergleichZeilen(SV, standardConfig());
   assert.equal(z[1].text, '⚠ Nächsthöhere Stufe IIIb, EFZ plus 6 Tage berufsspezifische Weiterbildung (CHF 4663.00) erreicht oder überschritten');
+});
+
+test('funktionenFuerAbteilung: nur die Funktionen der Abteilung, alphabetisch nach Bezeichnung', () => {
+  const cfg = standardConfig();
+  for (const a of cfg.abteilungen) {
+    const liste = funktionenFuerAbteilung(cfg, a.id);
+    assert.ok(liste.length > 0, a.id);
+    assert.ok(liste.every((f) => f.abteilung === a.id), a.id);
+    const labels = liste.map((f) => f.label);
+    assert.deepEqual(labels, labels.slice().sort((x, y) => x.localeCompare(y, 'de', { sensitivity: 'base' })), a.id);
+  }
+  const kueche = funktionenFuerAbteilung(cfg, 'kueche').map((f) => f.label);
+  assert.equal(kueche[0], 'Allrounder Küche / Casserollier');
+  assert.ok(kueche.indexOf('Pâtissier / Confiseur') > kueche.indexOf('Demi-chef de partie'));
+  assert.deepEqual(funktionenFuerAbteilung(cfg, 'gibtsnicht'), []);
+  const vorher = cfg.funktionen.map((f) => f.id).join();
+  funktionenFuerAbteilung(cfg, 'kueche');
+  assert.equal(cfg.funktionen.map((f) => f.id).join(), vorher); // Konfiguration bleibt unverändert
 });
