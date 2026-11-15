@@ -785,21 +785,47 @@ test('Kaderband gilt unabhängig von der Ausbildung', () => {
   assert.equal(r.vorschlag, 6000);
 });
 
-test('Kaderband: gewählter Lohn über dem Maximum braucht Begründung und gilt als Freigabe GM', () => {
+// Kaderband mit knappem Maximum 6100, damit der Spielraum (3 % von 6000 = 6180) über das Maximum hinausreicht.
+function engesKader() {
+  const c = JSON.parse(JSON.stringify(SC));
+  c.lohnbaender.kader = { min: 6000, max: 6100, ueberschreitbar: true };
+  return { c, r: E.berechne(c, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa' })) };
+}
+
+test('Kaderband: der Spielraum wird vom Bandmaximum nicht begrenzt, bei Stufenbändern schon', () => {
+  const { r } = engesKader();
+  assert.equal(r.vorschlag, 6000);
+  assert.equal(r.spanneStufen.gm.max, 6180);
+  const s = hotelfachAnRezeption();
+  assert.ok(s.spanneStufen.gm.max <= s.bandMax);
+});
+
+test('Kaderband: Lohn über dem Spielraum wird abgelehnt, auch wenn er unter dem Maximum liegt', () => {
   const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa' }));
-  const ohne = E.pruefeAbweichung(r, 7800, '');
+  for (const lohn of [6500, 7400, 7800]) {
+    const p = E.pruefeAbweichung(r, lohn, 'Begründung');
+    assert.equal(p.ok, false, String(lohn));
+    assert.deepEqual(p.fehler, ['Abweichung ausserhalb des zulässigen Spielraums.']);
+  }
+});
+
+test('Kaderband: Lohn im Spielraum über dem Maximum braucht Begründung und gilt als Freigabe GM', () => {
+  const { r } = engesKader();
+  const ohne = E.pruefeAbweichung(r, 6110, '');
   assert.equal(ohne.ok, false);
   assert.ok(ohne.fehler[0].includes('Begründung'));
-  const mit = E.pruefeAbweichung(r, 7800, 'Marktlage');
+  const mit = E.pruefeAbweichung(r, 6110, 'Marktlage'); // 1,8 % wäre HR, über dem Maximum gilt GM
   assert.equal(mit.ok, true);
   assert.equal(mit.freigabe, 'GM');
   assert.equal(mit.ueberBandmax, true);
+  assert.equal(E.pruefeAbweichung(r, 6190, 'Marktlage').ok, false);
 });
 
 test('Kaderband: genau auf dem Maximum ist keine Überschreitung', () => {
-  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa' }));
-  const p = E.pruefeAbweichung(r, 7500, 'Marktlage');
+  const { r } = engesKader();
+  const p = E.pruefeAbweichung(r, 6100, 'Marktlage');
   assert.equal(p.ok, true);
+  assert.equal(p.freigabe, 'HR');
   assert.equal(p.ueberBandmax, false);
 });
 
@@ -833,6 +859,14 @@ test('Handy-Entschaedigung wird auf das Pensum reduziert', () => {
   assert.deepEqual(teil.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 3]]);
   const kader = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa', beschaeftigungsgrad: 50 }));
   assert.deepEqual(kader.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 10], ['Spesenentschädigung', 100]]);
+});
+
+test('Zusatzbausteine von Hand: nur für Kader gewählt von Nicht-Kader ist ein Fehler, Doppelte zählen einmal', () => {
+  const nk = E.berechne(SC, eingabe({ funktionId: 'kueche-sous-chef', abschluss: 'gastronomiekoch-fa', zusatzIds: ['kader-spesen'] }));
+  assert.equal(nk.modus, 'fehler');
+  assert.ok(nk.fehler[0].includes('nur für Kader'));
+  const doppelt = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-kueche', 'waesche-kueche'] }));
+  assert.equal(doppelt.entschaedigungen.filter((x) => /Wäsche/.test(x.label)).length, 1);
 });
 
 test('Eintritt vor dem Stichtag: befristet behaelt den alten Mindestlohn, unbefristet bekommt ab Stichtag den hoeheren', () => {

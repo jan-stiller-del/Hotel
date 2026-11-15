@@ -200,7 +200,7 @@
     s4.appendChild(el('h3', 'Erfahrung'));
     var ul1 = el('ul');
     ul1.appendChild(el('li', 'CHF ' + zahl(r.erfahrungProJahr) + ' pro Jahr Erfahrung.'));
-    ul1.appendChild(el('li', 'Es zählt nur Erfahrung in der künftigen Funktion.'));
+    ul1.appendChild(el('li', 'Es zählt nur Erfahrung nach dem Lehrabschluss in der künftigen Funktion.'));
     ul1.appendChild(el('li', 'Es zählen nur ganze Jahre, höchstens ' + zahl(r.maxErfahrungsjahre) + ' Jahre.'));
     s4.appendChild(ul1);
     s4.appendChild(el('h3', 'Sprachen'));

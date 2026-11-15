@@ -30,7 +30,7 @@
     var hinweise = e.warnungen.filter(function (w) { return EINSTUFUNG_CODES.indexOf(w.code) >= 0; });
     if (hinweise.length) { add('Einstufungshinweis', hinweise.map(function (w) { return w.text; }).join(' ')); }
     add('Mindestlohn (Tabelle ' + e.tabelleJahr + ')', e.mindestlohn);
-    if (e.band) { add('Lohnband (von bis)', e.band.min + ' bis ' + e.band.max + (e.band.art === 'kader' ? ' (Kaderband)' : '')); }
+    if (e.band) { add('Lohnband (von bis)', (typeof e.bandStart === 'number' ? e.bandStart : e.band.min) + ' bis ' + (typeof e.bandMax === 'number' ? e.bandMax : e.band.max) + (e.band.art === 'kader' ? ' (Kaderband)' : '')); }
     e.positionen.forEach(function (p) { add(p.label, p.betrag); });
     add('Vorschlag Vollzeit pro Monat', e.vorschlag);
     if (e.spanneStufen) {
@@ -40,6 +40,9 @@
       });
     }
     add('Gewählter Vollzeit-Monatslohn', k.gewaehlterMonatslohn);
+    if (e.band && e.band.ueberschreitbar && typeof e.bandMax === 'number' && k.gewaehlterMonatslohn > e.bandMax + 1e-9) {
+      add('Hinweis', 'Der gewählte Lohn liegt über dem Bandmaximum von CHF ' + e.bandMax.toFixed(2) + ' (Freigabe GM mit Begründung).');
+    }
     var sv = k.stufenvergleich;
     if (sv) {
       add('Mindestlohn der Stufe', sv.mindestlohn);

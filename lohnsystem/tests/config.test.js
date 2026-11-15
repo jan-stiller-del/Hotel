@@ -149,6 +149,22 @@ test('Maximum null oder keine Zahl wird abgelehnt', () => {
   }
 });
 
+test('Lohnband: ueberschreitbar muss ja oder nein sein', () => {
+  const c = kopie();
+  c.lohnbaender.kader.ueberschreitbar = 'ja';
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.fehler.some((t) => t.includes('ja oder nein')));
+});
+
+test('Kaderband: Maximum unter dem höchsten Mindestlohn wird abgelehnt', () => {
+  const c = kopie();
+  c.lohnbaender.kader = { min: 4000, max: 5000, ueberschreitbar: true };
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.fehler.some((t) => t.includes('Kaderband') && t.includes('Mindestlohn')));
+});
+
 test('alte Bandfelder bei einer Funktion: gültig, aber Warnung', () => {
   const c = kopie();
   c.funktionen[0].bandMin = 3500;

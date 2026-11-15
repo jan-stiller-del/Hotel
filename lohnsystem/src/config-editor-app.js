@@ -557,7 +557,7 @@
     }
     var p = C.validateConfig(neu);
     if (!p.ok) {
-      importMeldung(['Konfigurationsdatei nicht lesbar'].concat(p.fehler));
+      importMeldung(['Die Konfigurationsdatei ist lesbar, aber ungültig oder veraltet:'].concat(p.fehler));
       return;
     }
     arbeit = neu;
