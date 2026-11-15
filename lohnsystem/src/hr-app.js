@@ -319,17 +319,26 @@
     $('sprachenHilfe').textContent = 'Gezählt werden Sprachen ab Niveau ' + config.bausteine.mindestNiveau
       + ', höchstens ' + config.bausteine.maxSprachen + '.';
     var zusatz = (config.zusatzbausteine || []).filter(function (z) { return z.nurKader !== true && z.nurNichtKader !== true; });
-    $('zusatzWrap').hidden = zusatz.length === 0;
-    zusatz.forEach(function (z) {
-      var label = el('label', 'inline');
-      var cb = doc.createElement('input');
-      cb.type = 'checkbox';
-      cb.value = z.id;
-      cb.name = 'zusatz';
-      label.appendChild(cb);
-      label.appendChild(doc.createTextNode(' ' + z.label + ' (CHF ' + chf(z.betrag) + (z.art === 'entschaedigung' ? ', Entschädigung' : '') + ')'));
-      $('zusatzListe').appendChild(label);
-    });
+    function zusatzFuellen() {
+      var gewaehlt = {};
+      Array.prototype.forEach.call(doc.getElementsByName('zusatz'), function (cb) { if (cb.checked) { gewaehlt[cb.value] = true; } });
+      leeren($('zusatzListe'));
+      var abt = $('abteilung').value;
+      var sichtbar = zusatz.filter(function (z) { return !Array.isArray(z.nurAbteilungen) || z.nurAbteilungen.indexOf(abt) >= 0; });
+      sichtbar.forEach(function (z) {
+        var label = el('label', 'inline');
+        var cb = doc.createElement('input');
+        cb.type = 'checkbox';
+        cb.value = z.id;
+        cb.name = 'zusatz';
+        cb.checked = gewaehlt[z.id] === true;
+        label.appendChild(cb);
+        label.appendChild(doc.createTextNode(' ' + z.label + ' (CHF ' + chf(z.betrag) + (z.art === 'entschaedigung' ? ', Entschädigung' : '') + (z.anteilig ? ', bei Teilzeit anteilig' : '') + ')'));
+        $('zusatzListe').appendChild(label);
+      });
+      $('zusatzWrap').hidden = sichtbar.length === 0;
+    }
+
     $('reduktionProzent').value = config.betrieb.einarbeitungMaxProzent;
     $('reduktionProzent').max = config.betrieb.einarbeitungMaxProzent;
 
@@ -640,10 +649,11 @@
     $('exportKnopf').addEventListener('click', exportieren);
     $('gewaehlterLohn').addEventListener('input', pruefeWahl);
     $('begruendung').addEventListener('input', pruefeWahl);
-    $('abteilung').addEventListener('change', funktionenFuellen);
+    $('abteilung').addEventListener('change', function () { funktionenFuellen(); zusatzFuellen(); });
     $('formular').addEventListener('input', aktualisieren);
     $('formular').addEventListener('change', aktualisieren);
     funktionenFuellen();
+    zusatzFuellen();
     aktualisieren();
     window.renderErgebnis = renderErgebnis;
   }

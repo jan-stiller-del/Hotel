@@ -320,8 +320,14 @@
     (input.zusatzIds || []).forEach(function (id) {
       var z = (config.zusatzbausteine || []).filter(function (x) { return x.id === id; })[0];
       if (!z) { zusatzFehler.push('Zusatzbaustein unbekannt: ' + id + '.'); return; }
+      if (Array.isArray(z.nurAbteilungen) && z.nurAbteilungen.indexOf(funktion.abteilung) < 0) {
+        zusatzFehler.push('Der Baustein «' + z.label + '» gilt nicht für diese Abteilung.');
+        return;
+      }
       if (z.art === 'entschaedigung') {
-        entschaedigungen.push({ label: z.label, betrag: z.betrag });
+        // anteilig: Teilzeit bekommt den Beschäftigungsgrad-Anteil, gerundet auf 5 Rappen.
+        var betragZ = z.anteilig === true ? Math.round(z.betrag * input.beschaeftigungsgrad / 100 * 20) / 20 : z.betrag;
+        entschaedigungen.push({ label: z.label, betrag: betragZ });
       } else {
         zusatz.push({ label: z.label, betrag: z.betrag, art: 'lohn' });
       }

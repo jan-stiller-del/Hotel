@@ -768,6 +768,17 @@ test('Kein Kader (Sous-chef): nur 5 Franken Handy-Entschaedigung', () => {
   assert.deepEqual(r.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 5]]);
 });
 
+test('Waescheentschaedigung: Vollzeit 50, Teilzeit anteilig, nur in der passenden Abteilung', () => {
+  const voll = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-kueche'] }));
+  assert.deepEqual(voll.entschaedigungen.map((x) => [x.label, x.betrag]).filter((x) => /Wäsche/.test(x[0])),
+    [['Wäscheentschädigung Berufskleidung (L-GAV Art. 30)', 50]]);
+  const teil = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', beschaeftigungsgrad: 60, zusatzIds: ['waesche-kueche'] }));
+  assert.ok(teil.entschaedigungen.some((x) => x.betrag === 30));
+  assert.equal(teil.vorschlag, voll.vorschlag);
+  const falsch = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-service-weste'] }));
+  assert.equal(falsch.modus, 'fehler');
+});
+
 test('Eintritt vor dem Stichtag: befristet behaelt den alten Mindestlohn, unbefristet bekommt ab Stichtag den hoeheren', () => {
   const c = baueConfig();
   const bef = E.berechne(c, eingabe({ vertragsart: 'befristet', eintritt: '2026-12-15' }));

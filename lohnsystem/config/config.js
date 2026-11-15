@@ -155,6 +155,10 @@ window.LOHN_CONFIG = {
   "zusatzbausteine": [
     { "id": "kader-handy", "label": "Entschädigung private Handynutzung", "art": "entschaedigung", "betrag": 20, "nurKader": true },
     { "id": "kader-spesen", "label": "Spesenentschädigung", "art": "entschaedigung", "betrag": 200, "nurKader": true },
-    { "id": "handy-mitarbeiter", "label": "Entschädigung private Handynutzung", "art": "entschaedigung", "betrag": 5, "nurNichtKader": true }
+    { "id": "handy-mitarbeiter", "label": "Entschädigung private Handynutzung", "art": "entschaedigung", "betrag": 5, "nurNichtKader": true },
+    { "id": "waesche-kueche", "label": "Wäscheentschädigung Berufskleidung (L-GAV Art. 30)", "art": "entschaedigung", "betrag": 50, "nurAbteilungen": ["kueche"], "anteilig": true },
+    { "id": "waesche-service-weste", "label": "Wäscheentschädigung Weste (L-GAV Art. 30)", "art": "entschaedigung", "betrag": 50, "nurAbteilungen": ["service"], "anteilig": true },
+    { "id": "waesche-service-schuerze", "label": "Wäscheentschädigung Schürze (L-GAV Art. 30)", "art": "entschaedigung", "betrag": 20, "nurAbteilungen": ["service"], "anteilig": true },
+    { "id": "waesche-dienstkleidung", "label": "Wäscheentschädigung Dienstkleidung (L-GAV Art. 30)", "art": "entschaedigung", "betrag": 50, "nurAbteilungen": ["housekeeping", "reception", "service"], "anteilig": true }
   ]
 };
