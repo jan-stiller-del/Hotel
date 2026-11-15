@@ -146,23 +146,35 @@
       if (f.bereich === undefined || (f.bereich !== null && !bereichIds[f.bereich])) {
         fehler.push(name + ': unbekannter Bereich «' + f.bereich + '» (Bereich oder null angeben).');
       }
-      if (!istZahl(f.bandMin) || !istZahl(f.bandMax)) {
-        fehler.push(name + ': Bandminimum und Bandmaximum müssen Zahlen sein.');
-        return;
+      if (f.bandMin !== undefined || f.bandMax !== undefined || f.bandAlsUntergrenze !== undefined) {
+        warnungen.push(name + ': Die Bandfelder bei der Funktion werden nicht mehr verwendet, das Band hängt an der Stufe.');
       }
-      if (f.bandMin > f.bandMax) {
-        fehler.push(name + ': Bandminimum ist grösser als Bandmaximum.');
-        return;
-      }
-      tabellen.forEach(function (t) {
-        var stufen = (t && t.stufen) || {};
-        var jahr = t && t.jahr !== undefined ? t.jahr : '?';
-        if (istZahl(stufen.Ia) && f.bandMin < stufen.Ia) {
-          warnungen.push(name + ': Bandminimum liegt unter dem Mindestlohn der Stufe Ia (Tabelle '
-            + jahr + ').');
-        }
-      });
     });
+
+    var baender = config.lohnbaender;
+    if (!baender || typeof baender !== 'object') {
+      fehler.push('Lohnbänder fehlen.');
+    } else {
+      STUFEN.filter(function (st) { return st !== 'P'; }).forEach(function (st) {
+        var b = baender[st];
+        if (!b || !istZahl(b.max) || b.max <= 0) {
+          fehler.push('Lohnband Stufe ' + st + ': Maximum fehlt oder ist ungültig.');
+          return;
+        }
+        tabellen.forEach(function (t) {
+          var ml = t && t.stufen && t.stufen[st];
+          if (istZahl(ml) && b.max < ml) {
+            fehler.push('Lohnband Stufe ' + st + ': Maximum liegt unter dem Mindestlohn (Tabelle ' + (t.jahr !== undefined ? t.jahr : '?') + ').');
+          }
+        });
+      });
+      var k = baender.kader;
+      if (!k || !istZahl(k.min) || !istZahl(k.max) || k.min <= 0 || k.max <= 0) {
+        fehler.push('Kaderband: Minimum und Maximum fehlen oder sind ungültig.');
+      } else if (k.min > k.max) {
+        fehler.push('Kaderband: Minimum ist grösser als Maximum.');
+      }
+    }
 
     return { ok: fehler.length === 0, fehler: fehler, warnungen: warnungen };
   }

@@ -15,8 +15,8 @@ function standardConfig() {
 test('Standardkonfiguration ergibt Modell ohne Fehler, 7 Abteilungen, 58 Funktionen', () => {
   const m = baueLeseModell(standardConfig(), '2027-02-01');
   assert.equal(m.fehler, undefined);
-  assert.equal(m.baender.length, 7);
-  assert.equal(m.baender.reduce((s, b) => s + b.funktionen.length, 0), 58);
+  assert.equal(m.funktionen.length, 7);
+  assert.equal(m.funktionen.reduce((s, b) => s + b.funktionen.length, 0), 58);
   assert.equal(m.jahr, 2027);
   assert.equal(m.gueltigAb, '2027-01-01');
 });
@@ -29,15 +29,27 @@ test('Mindestloehne der zum Datum gueltigen Tabelle, mit Stufenbezeichnung', () 
   assert.equal(m.mindestloehne.length, 7);
 });
 
-test('Band der Receptionist-Funktion und Gaestekontakt', () => {
+test('Gaestekontakt und Kader der Funktionen, keine Funktionsbänder mehr', () => {
   const m = baueLeseModell(standardConfig(), '2027-02-01');
-  const reception = m.baender.filter((b) => b.abteilung === 'Réception und Reservation')[0];
+  const reception = m.funktionen.filter((b) => b.abteilung === 'Réception und Reservation')[0];
   const r = reception.funktionen.filter((f) => f.label === 'Receptionist')[0];
-  assert.equal(r.bandMin, 4555);
-  assert.equal(r.bandMax, 4900);
   assert.equal(r.gaestekontakt, true);
-  const kueche = m.baender.filter((b) => b.abteilung === 'Küche')[0];
+  assert.equal(r.kader, false);
+  assert.equal(r.bandMin, undefined);
+  assert.equal(reception.funktionen.filter((f) => f.label === 'Front Office Manager')[0].kader, true);
+  const kueche = m.funktionen.filter((b) => b.abteilung === 'Küche')[0];
   assert.equal(kueche.funktionen[0].gaestekontakt, false);
+});
+
+test('Lohnbänder pro Stufe: Minimum ist der Mindestlohn, Maximum aus der Konfiguration, Kaderband', () => {
+  const m = baueLeseModell(standardConfig(), '2027-02-01');
+  const s = (st) => m.lohnbaender.stufen.filter((x) => x.stufe === st)[0];
+  assert.deepEqual(m.lohnbaender.stufen.map((x) => x.stufe), ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV']);
+  assert.equal(s('Ia').label, 'Stufe Ia');
+  assert.equal(s('IIIa').min, 4555);
+  assert.equal(s('IIIa').max, 4900);
+  assert.equal(s('Ib').max, 4450);
+  assert.deepEqual(m.lohnbaender.kader, { min: 6000, max: 7500, ueberschreitbar: true });
 });
 
 test('Regeln der Zuschlaege aus der Konfiguration', () => {
@@ -113,8 +125,8 @@ test('zukuenftig: Tabelle noch nicht gueltig ergibt Hinweis mit Datum', () => {
 
 test('Texte: Einstiegslohn ist nicht mehr an das Bandminimum gebunden (strikt nach Stufe)', () => {
   const m = baueLeseModell(standardConfig(), '2027-02-01');
-  assert.equal(m.texte.berechnung, 'Einstiegslohn = Mindestlohn der Stufe der Person + Zuschläge, höchstens bis zum Ende des Lohnbands der Funktion. Liegt die Stufe der Person tiefer als die typische Stufe der Funktion, kann der Lohn unter dem Lohnband liegen.');
-  assert.equal(m.texte.baender, 'Das Lohnband zeigt den Einstiegsbereich für die typische Stufe der Funktion. Massgebend für den Einstiegslohn ist die Stufe der Person (Abschluss und Funktionsbereich).');
+  assert.equal(m.texte.berechnung, 'Einstiegslohn = Mindestlohn der Stufe der Person + Zuschläge, höchstens bis zum Ende des Lohnbands der Stufe. Kader haben ein eigenes Kaderband.');
+  assert.equal(m.texte.baender, 'Das Lohnband hängt an der Ausbildung der Person (Stufe). Gleiche Ausbildung ergibt gleichen Lohn, unabhängig von der Funktion. Kader haben ein eigenes Band.');
 });
 
 test('Mindestloehne enthalten die Erklärung der Stufe; ohne Erklärung nur die Bezeichnung', () => {

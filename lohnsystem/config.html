@@ -66,14 +66,26 @@
     <div id="stufenListe"></div>
   </section>
 
+  <section aria-labelledby="baenderTitel">
+    <h2 id="baenderTitel">Lohnbänder pro Stufe</h2>
+    <div id="meldung-baender" class="meldung fehler" role="alert" hidden></div>
+    <p class="hilfe">Das Band hängt an der Ausbildung der Person. Das Minimum ist der Mindestlohn der Stufe (neueste Tabelle, nur Anzeige). Kader haben ein eigenes Band. Ist «Max überschreitbar» gesetzt, darf der gewählte Lohn mit Begründung (Freigabe GM) über dem Maximum liegen.</p>
+    <div class="tabelle-scroll" tabindex="0" role="region" aria-label="Tabelle der Lohnbänder">
+      <table class="funktionen">
+        <thead><tr><th>Band</th><th class="zahl">Minimum (CHF)</th><th class="zahl">Maximum (CHF)</th><th>Max überschreitbar</th></tr></thead>
+        <tbody id="baenderBody"></tbody>
+      </table>
+    </div>
+  </section>
+
   <section aria-labelledby="funkTitel">
-    <h2 id="funkTitel">Funktionen und Bänder</h2>
+    <h2 id="funkTitel">Funktionen</h2>
     <div id="meldung-funktionen" class="meldung fehler" role="alert" hidden></div>
     <div class="feld filter"><label for="filterAbteilung">Abteilung filtern</label><select id="filterAbteilung"></select></div>
     <p class="hilfe" id="funktionenAnzahl"></p>
     <div class="tabelle-scroll" tabindex="0" role="region" aria-label="Tabelle der Funktionen">
       <table class="funktionen">
-        <thead><tr><th>Bezeichnung</th><th>Abteilung</th><th>Bereich</th><th>Gäste&shy;kontakt</th><th>Kader</th><th>Band als Unter&shy;grenze</th><th class="zahl">Band von</th><th class="zahl">Band bis</th><th><span class="nur-sr">Aktion</span></th></tr></thead>
+        <thead><tr><th>Bezeichnung</th><th>Abteilung</th><th>Bereich</th><th>Gäste&shy;kontakt</th><th>Kader</th><th><span class="nur-sr">Aktion</span></th></tr></thead>
         <tbody id="funktionenBody"></tbody>
       </table>
     </div>

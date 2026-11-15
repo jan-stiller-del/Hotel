@@ -114,10 +114,13 @@
     var zeilen = baueAuszahlungZeilen(b, config, kontext).filter(function (r) { return r.art !== 'hinweis'; });
     // Zulagen und Entschädigungen (Handy, Wäsche usw.): stehen unter dem Bruttolohn, sind aber nicht Teil davon.
     if (ergebnis.entschaedigungen && ergebnis.entschaedigungen.length) {
-      zeilen.push({ label: 'Zulagen und Entschädigungen (nicht im Bruttolohn)', betrag: null, art: 'kopf' });
+      zeilen.push({ label: 'Zulagen und Entschädigungen', betrag: null, art: 'kopf' });
       var zulagenSumme = 0;
       ergebnis.entschaedigungen.forEach(function (x) { zeilen.push({ label: x.label, betrag: x.betrag, art: 'entschaedigung' }); zulagenSumme += x.betrag; });
-      zeilen.push({ label: 'Gesamtauszahlung pro Monat (Total plus Zulagen)', betrag: Math.round((b.totalMonat + zulagenSumme) * 100) / 100, art: 'summe' });
+      zeilen.push({ label: 'Brutto pro Monat gesamt (Total plus Zulagen)', betrag: Math.round((b.totalMonat + zulagenSumme) * 100) / 100, art: 'summe' });
+    }
+    if (ergebnis.band && ergebnis.band.ueberschreitbar && wert > ergebnis.band.max + 1e-9) {
+      zeilen.push({ label: 'Hinweis: Der gewählte Lohn liegt über dem Bandmaximum von CHF ' + ergebnis.band.max.toFixed(2) + ' (Freigabe GM mit Begründung).', betrag: null, art: 'hinweis' });
     }
     if (ein) {
       var rp = String(ein.reduktionProzent).replace('.', ',');
@@ -438,7 +441,7 @@
       out.appendChild(kopf);
       out.appendChild(el('p', 'hilfe', Cfg.stufeMitErklaerung(config, e.stufe)
         + ', Mindestlohn CHF ' + chf(e.mindestlohn) + ' (Tabelle ' + e.tabelleJahr + ')'
-        + (e.funktionsband ? ', Lohnband der Funktion CHF ' + chf(e.funktionsband.min) + ' bis ' + chf(e.funktionsband.max) : '')));
+        + (e.band ? ', Lohnband ' + (e.band.art === 'kader' ? '(Kader) ' : '') + 'CHF ' + chf(e.band.min) + ' bis ' + chf(e.band.max) : '')));
       zeigeStufenzeilen(out, e.stufenvergleich);
 
       if (e.spanneStufen) {
