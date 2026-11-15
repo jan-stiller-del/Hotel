@@ -4,7 +4,7 @@
   var C = window.LohnConfig;
   var E = window.LohnEditor;
   var SPEICHER_SCHLUESSEL = 'lohnsystem-config-entwurf-v1';
-  var SEKTIONEN = ['betrieb', 'mindestloehne', 'stufen', 'funktionen', 'bausteine', 'zusatz', 'import'];
+  var SEKTIONEN = ['betrieb', 'mindestloehne', 'stufen', 'baender', 'funktionen', 'bausteine', 'zusatz', 'import'];
 
   var veroeffentlicht = null; // Stand der Datei config/config.js
   var arbeit = null;          // Arbeitskopie
@@ -288,6 +288,38 @@
     });
   }
 
+  // ---- Lohnbänder pro Stufe ----
+
+  function baenderZeigen() {
+    var body = $('baenderBody');
+    leeren(body);
+    var tabellen = (arbeit.mindestloehne || []).slice().sort(function (a, b) { return b.jahr - a.jahr; });
+    var neueste = (tabellen[0] || {}).stufen || {};
+    var baender = arbeit.lohnbaender || {};
+    function zeile(id, name, minAnzeige, minFeld, b) {
+      var max = zahlFeld(b.max, 'any');
+      var ueber = el('input', { attr: { type: 'checkbox' } });
+      ueber.checked = b.ueberschreitbar === true;
+      max.setAttribute('aria-label', 'Maximum: ' + name);
+      ueber.setAttribute('aria-label', 'Max überschreitbar: ' + name);
+      var alle = [max, ueber].concat(minFeld ? [minFeld] : []);
+      var speichern = function () {
+        var patch = { max: zahl(max), ueberschreitbar: ueber.checked };
+        if (minFeld) { patch.min = zahl(minFeld); }
+        uebernehmen('band-' + id, 'baender', E.setzeBand(arbeit, id, patch), alle);
+      };
+      alle.forEach(function (e) { e.addEventListener('change', speichern); });
+      body.appendChild(el('tr', {}, [zelle(el('span', { text: name })), minFeld ? zelle(minFeld, 'zahl') : el('td', { cls: 'zahl', text: minAnzeige }),
+        zelle(max, 'zahl'), zelle(ueber, 'mitte')]));
+    }
+    E.BAND_STUFEN.forEach(function (s) {
+      var ml = neueste[s];
+      zeile(s, C.stufeName(arbeit, s) + (C.stufeErklaerung(arbeit, s) ? ', ' + C.stufeErklaerung(arbeit, s) : ''), typeof ml === 'number' ? ml.toFixed(2) : '–', null, baender[s] || {});
+    });
+    var k = baender.kader || {};
+    zeile('kader', 'Kader (alle Kader-Funktionen, unabhängig von der Ausbildung)', '', zahlFeld(k.min, 'any'), k);
+  }
+
   // ---- Funktionen ----
 
   function abteilungOptionen() {
@@ -327,23 +359,16 @@
     gast.checked = f.gaestekontakt === true;
     var kader = el('input', { attr: { type: 'checkbox' } });
     kader.checked = f.kader === true;
-    var untergrenze = el('input', { attr: { type: 'checkbox' } });
-    untergrenze.checked = f.bandAlsUntergrenze === true;
-    var min = zahlFeld(f.bandMin, 'any');
-    var max = zahlFeld(f.bandMax, 'any');
     label.setAttribute('aria-label', 'Bezeichnung: ' + name);
     abt.setAttribute('aria-label', 'Abteilung: ' + name);
     ber.setAttribute('aria-label', 'Funktionsbereich: ' + name);
     gast.setAttribute('aria-label', 'Gästekontakt: ' + name);
     kader.setAttribute('aria-label', 'Kader: ' + name);
-    untergrenze.setAttribute('aria-label', 'Band als Untergrenze: ' + name);
-    min.setAttribute('aria-label', 'Bandminimum: ' + name);
-    max.setAttribute('aria-label', 'Bandmaximum: ' + name);
-    var alle = [label, abt, ber, gast, kader, untergrenze, min, max];
+    var alle = [label, abt, ber, gast, kader];
     var speichern = function () {
       var patch = {
         label: label.value, abteilung: abt.value, bereich: ber.value === '' ? null : ber.value,
-        gaestekontakt: gast.checked, kader: kader.checked, bandAlsUntergrenze: untergrenze.checked, bandMin: zahl(min), bandMax: zahl(max),
+        gaestekontakt: gast.checked, kader: kader.checked,
       };
       uebernehmen('funktion-' + f.id, 'funktionen', E.aktualisiereFunktion(arbeit, f.id, patch), alle);
     };
@@ -354,8 +379,7 @@
       delete offen['funktion-' + f.id];
       umbauen('entfernen-' + f.id, 'funktionen', E.entferneFunktion(arbeit, f.id));
     });
-    return el('tr', {}, [zelle(label), zelle(abt), zelle(ber), zelle(gast, 'mitte'), zelle(kader, 'mitte'), zelle(untergrenze, 'mitte'),
-      zelle(min, 'zahl'), zelle(max, 'zahl'), zelle(weg)]);
+    return el('tr', {}, [zelle(label), zelle(abt), zelle(ber), zelle(gast, 'mitte'), zelle(kader, 'mitte'), zelle(weg)]);
   }
 
   function funktionNeuZeigen() {
@@ -366,12 +390,9 @@
     var ber = auswahl(bereichOptionen(), '');
     var gast = el('input', { attr: { type: 'checkbox' } });
     var kader = el('input', { attr: { type: 'checkbox' } });
-    var untergrenze2 = el('input', { attr: { type: 'checkbox' } });
-    var min = zahlFeld('', 'any');
-    var max = zahlFeld('', 'any');
-    var raster = el('div', { cls: 'raster' }, [feld('Bezeichnung', label), feld('Abteilung', abt), feld('Funktionsbereich', ber), feld('Bandminimum (CHF)', min), feld('Bandmaximum (CHF)', max)]);
+    var raster = el('div', { cls: 'raster' }, [feld('Bezeichnung', label), feld('Abteilung', abt), feld('Funktionsbereich', ber)]);
     ziel.appendChild(raster);
-    [['Gästekontakt', gast], ['Kader', kader], ['Band als Untergrenze (Start mindestens beim Bandminimum)', untergrenze2]].forEach(function (p) {
+    [['Gästekontakt', gast], ['Kader (bekommt das Kaderband)', kader]].forEach(function (p) {
       var id = neueId('f');
       p[1].id = id;
       ziel.appendChild(el('div', { cls: 'feld' }, [el('label', { cls: 'inline', attr: { 'for': id } }, [p[1], document.createTextNode(' ' + p[0])])]));
@@ -382,7 +403,7 @@
       ev.preventDefault();
       umbauen('neue-funktion', 'funktionen', E.fuegeFunktionHinzu(arbeit, {
         label: label.value, abteilung: abt.value, bereich: ber.value === '' ? null : ber.value,
-        gaestekontakt: gast.checked, kader: kader.checked, bandAlsUntergrenze: untergrenze2.checked, bandMin: zahl(min), bandMax: zahl(max),
+        gaestekontakt: gast.checked, kader: kader.checked,
       }));
     };
   }
@@ -497,6 +518,7 @@
     betriebZeigen();
     mindestloehneZeigen();
     stufenZeigen();
+    baenderZeigen();
     funktionenZeigen();
     funktionNeuZeigen();
     bausteineZeigen();
