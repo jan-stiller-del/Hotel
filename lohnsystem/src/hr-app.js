@@ -115,7 +115,9 @@
     // Zulagen und Entschädigungen (Handy, Wäsche usw.): stehen unter dem Bruttolohn, sind aber nicht Teil davon.
     if (ergebnis.entschaedigungen && ergebnis.entschaedigungen.length) {
       zeilen.push({ label: 'Zulagen und Entschädigungen (nicht im Bruttolohn)', betrag: null, art: 'kopf' });
-      ergebnis.entschaedigungen.forEach(function (x) { zeilen.push({ label: x.label, betrag: x.betrag, art: 'entschaedigung' }); });
+      var zulagenSumme = 0;
+      ergebnis.entschaedigungen.forEach(function (x) { zeilen.push({ label: x.label, betrag: x.betrag, art: 'entschaedigung' }); zulagenSumme += x.betrag; });
+      zeilen.push({ label: 'Gesamtauszahlung pro Monat (Total plus Zulagen)', betrag: Math.round((b.totalMonat + zulagenSumme) * 100) / 100, art: 'summe' });
     }
     if (ein) {
       var rp = String(ein.reduktionProzent).replace('.', ',');

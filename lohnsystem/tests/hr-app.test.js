@@ -357,10 +357,12 @@ test('baueWahlAbrechnung: Handy und Waesche erscheinen als Zulagen unter dem Bru
     { label: 'Entschädigung private Handynutzung', betrag: 5 },
     { label: 'Wäscheentschädigung Berufskleidung (L-GAV Art. 30)', betrag: 30 }] });
   const a = baueWahlAbrechnung(standardConfig(), erg, 5000, { beschaeftigungsgrad: '60' });
-  assert.deepEqual(a.zeilen.map(r => r.art), ['lohn', 'dreizehnter', 'summe', 'jahr', 'kopf', 'entschaedigung', 'entschaedigung', 'stundenansatz']);
+  assert.deepEqual(a.zeilen.map(r => r.art), ['lohn', 'dreizehnter', 'summe', 'jahr', 'kopf', 'entschaedigung', 'entschaedigung', 'summe', 'stundenansatz']);
   const ents = a.zeilen.filter(r => r.art === 'entschaedigung');
   assert.deepEqual(ents.map(r => r.betrag), [5, 30]);
-  assert.equal(wArt(a, 'summe').betrag, wArt(baueWahlAbrechnung(standardConfig(), WERG, 5000, { beschaeftigungsgrad: '60' }), 'summe').betrag);
+  const ohne = baueWahlAbrechnung(standardConfig(), WERG, 5000, { beschaeftigungsgrad: '60' });
+  assert.equal(a.zeilen.filter(r => r.art === 'summe')[0].betrag, wArt(ohne, 'summe').betrag);
+  assert.equal(a.zeilen.filter(r => r.art === 'summe')[1].betrag, Math.round((wArt(ohne, 'summe').betrag + 35) * 100) / 100);
 });
 
 test('baueWahlAbrechnung: gleicher Lohn, keine Differenz, Zeilen wie beim Vorschlag', () => {
