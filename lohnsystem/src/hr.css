@@ -77,3 +77,4 @@ table.auszahlung tr.dreizehnter td:first-child { border-left:5px solid var(--akz
 .wahl-abrechnung h4 { margin:0 0 6px; font-size:.95rem; }
 .wahl-abrechnung .differenz { margin:0 0 6px; font-size:.9rem; font-weight:600; }
 .wahl-abrechnung td:first-child { overflow-wrap:anywhere; }
+table.auszahlung tr.kopf td { font-weight:700; background:#fff; border-top:2px solid var(--akzent); }
