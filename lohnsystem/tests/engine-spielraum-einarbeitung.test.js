@@ -18,14 +18,12 @@ function baueConfig() {
         stufen: { Ia: 3735, Ib: 3967, II: 4094, IIIa: 4555, IIIb: 4663, IV: 5325, P: 2404 } },
     ],
     stufen,
+    lohnbaender: { Ia: { max: 5600 }, Ib: { max: 5600 }, II: { max: 5600 }, IIIa: { max: 5600 }, IIIb: { max: 5600 }, IV: { max: 5700 }, kader: { min: 6000, max: 7500, ueberschreitbar: true } },
     abteilungen: [{ id: 'a', label: 'A' }],
     bereiche: FX.bereiche,
     abschluesse: FX.abschluesse,
     funktionen: [
-      { id: 'rec', abteilung: 'a', label: 'Rec', gaestekontakt: true, bandMin: 4300, bandMax: 5600 },
-      { id: 'schmal', abteilung: 'a', label: 'Schmal', gaestekontakt: true, bandMin: 4750, bandMax: 4800 },
-      { id: 'weit', abteilung: 'a', label: 'Weit', gaestekontakt: true, bandMin: 4300, bandMax: 6000 },
-      { id: 'eng', abteilung: 'a', label: 'Eng', gaestekontakt: true, bandMin: 4300, bandMax: 4400 },
+      { id: 'rec', abteilung: 'a', label: 'Rec', gaestekontakt: true },
     ].map(FX.funktion),
     bausteine: { erfahrungProJahr: 50, spracheProSprache: 100, maxSprachen: 2, sprachen: ['EN', 'FR', 'IT'], mindestNiveau: 'B2' },
     zusatzbausteine: [],
@@ -158,16 +156,18 @@ test('spanne: mit GM-Limit 3 %', () => {
 });
 
 test('spanne: begrenzt durch Band', () => {
-  const r = E.berechne(cfg, eingabe({ funktionId: 'schmal' }));
+  const c = JSON.parse(JSON.stringify(cfg));
+  c.lohnbaender.IIIa.max = 4800;
+  const r = E.berechne(c, eingabe());
   assert.equal(r.vorschlag, 4755);
-  // Untergrenze ist der Stufen-Mindestlohn IIIa (4555), nicht das Funktionsband (4750); die Obergrenze 4800 begrenzt weiterhin.
+  // Untergrenze ist der Stufen-Mindestlohn IIIa (4555); die Obergrenze 4800 des Bandes begrenzt.
   assert.deepEqual(r.spanne, { min: 4613, max: 4800 });
   assert.deepEqual(r.spanneStufen.vorgesetzte, { min: 4708, max: 4800 });
   assert.deepEqual(r.spanneStufen.hr, { min: 4660, max: 4800 });
 });
 
 test('spanne: nie unter dem Mindestlohn', () => {
-  const r = E.berechne(cfg, eingabe({ funktionId: 'weit', abschluss: 'berufspruefung', erfahrungJahre: 0 }));
+  const r = E.berechne(cfg, eingabe({ abschluss: 'berufspruefung', erfahrungJahre: 0 }));
   assert.equal(r.vorschlag, 5325);
   assert.equal(r.spanne.min, 5325);
   assert.equal(r.spanneStufen.hr.min, 5325);
@@ -175,7 +175,9 @@ test('spanne: nie unter dem Mindestlohn', () => {
 });
 
 test('spanne: band_zu_eng ergibt min = max = Mindestlohn', () => {
-  const r = E.berechne(cfg, eingabe({ funktionId: 'eng', abschluss: 'berufspruefung' }));
+  const c = JSON.parse(JSON.stringify(cfg));
+  c.lohnbaender.IV.max = 4400;
+  const r = E.berechne(c, eingabe({ abschluss: 'berufspruefung' }));
   assert.ok(r.warnungen.some((w) => w.code === 'band_zu_eng'));
   assert.deepEqual(r.spanne, { min: 5325, max: 5325 });
   ['vorgesetzte', 'hr', 'gm'].forEach((t) => assert.deepEqual(r.spanneStufen[t], { min: 5325, max: 5325 }));
@@ -194,12 +196,12 @@ test('spanne: null ohne Spielraum in der Konfiguration und bei Fehlern', () => {
 const erg = () => E.berechne(cfg, eingabe());
 
 test('pruefeAbweichung: Vorschlag ist freigabe keine, ohne Begründung ok', () => {
-  assert.deepEqual(E.pruefeAbweichung(erg(), 4755, ''), { ok: true, fehler: [], freigabe: 'keine' });
+  assert.deepEqual(E.pruefeAbweichung(erg(), 4755, ''), { ok: true, fehler: [], freigabe: 'keine', ueberBandmax: false });
 });
 
 test('pruefeAbweichung: Vorgesetzte, ohne Begründung ok', () => {
-  assert.deepEqual(E.pruefeAbweichung(erg(), 4800, ''), { ok: true, fehler: [], freigabe: 'Vorgesetzte' });
-  assert.deepEqual(E.pruefeAbweichung(erg(), 4708, '  '), { ok: true, fehler: [], freigabe: 'Vorgesetzte' });
+  assert.deepEqual(E.pruefeAbweichung(erg(), 4800, ''), { ok: true, fehler: [], freigabe: 'Vorgesetzte', ueberBandmax: false });
+  assert.deepEqual(E.pruefeAbweichung(erg(), 4708, '  '), { ok: true, fehler: [], freigabe: 'Vorgesetzte', ueberBandmax: false });
 });
 
 test('pruefeAbweichung: HR und GM brauchen Begründung', () => {
@@ -208,11 +210,11 @@ test('pruefeAbweichung: HR und GM brauchen Begründung', () => {
   assert.equal(hr.freigabe, 'HR');
   assert.ok(hr.fehler.some((f) => f.includes('Begründung nötig')));
   assert.equal(E.pruefeAbweichung(erg(), 4850, '   ').ok, false);
-  assert.deepEqual(E.pruefeAbweichung(erg(), 4850, 'Marktlage'), { ok: true, fehler: [], freigabe: 'HR' });
+  assert.deepEqual(E.pruefeAbweichung(erg(), 4850, 'Marktlage'), { ok: true, fehler: [], freigabe: 'HR', ueberBandmax: false });
   const gm = E.pruefeAbweichung(erg(), 4890, '');
   assert.equal(gm.ok, false);
   assert.equal(gm.freigabe, 'GM');
-  assert.deepEqual(E.pruefeAbweichung(erg(), 4890, 'Schlüsselperson'), { ok: true, fehler: [], freigabe: 'GM' });
+  assert.deepEqual(E.pruefeAbweichung(erg(), 4890, 'Schlüsselperson'), { ok: true, fehler: [], freigabe: 'GM', ueberBandmax: false });
   assert.equal(E.pruefeAbweichung(erg(), 4613, 'Grund').freigabe, 'GM');
 });
 

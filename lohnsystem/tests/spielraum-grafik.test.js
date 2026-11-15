@@ -13,12 +13,12 @@ function config() {
     mindestloehne: [{ jahr: 2027, gueltigAbJahresbetrieb: '2027-01-01',
       stufen: { Ia: 3735, Ib: 3967, II: 4094, IIIa: 4555, IIIb: 4663, IV: 5325, P: 2404 } }],
     stufen: { IIIa: { spielraum: sp }, IV: { spielraum: sp }, P: { spielraum: sp } },
+    lohnbaender: { Ia: { max: 5600 }, Ib: { max: 5600 }, II: { max: 5600 }, IIIa: { max: 5600 }, IIIb: { max: 5600 }, IV: { max: 5700 }, kader: { min: 6000, max: 7500, ueberschreitbar: true } },
     abteilungen: [{ id: 'a', label: 'A' }],
     bereiche: FX.bereiche,
     abschluesse: FX.abschluesse,
     funktionen: [
-      { id: 'rec', abteilung: 'a', label: 'Rec', gaestekontakt: true, bandMin: 4300, bandMax: 5600 },
-      { id: 'eng', abteilung: 'a', label: 'Eng', gaestekontakt: true, bandMin: 4300, bandMax: 4400 },
+      { id: 'rec', abteilung: 'a', label: 'Rec', gaestekontakt: true },
     ].map(FX.funktion),
     bausteine: { erfahrungProJahr: 50, spracheProSprache: 100, maxSprachen: 2, sprachen: ['EN', 'FR', 'IT'], mindestNiveau: 'B2' },
     zusatzbausteine: [],
@@ -100,7 +100,9 @@ test('gewählter Lohn ausserhalb des GM-Bandes: am Achsenrand mit Hinweis ausser
 });
 
 test('band_zu_eng: Spanne null, keine Division durch null', () => {
-  const e = E.berechne(config(), eingabe({ funktionId: 'eng', abschluss: 'berufspruefung' }));
+  const c = config();
+  c.lohnbaender.IV.max = 4400;
+  const e = E.berechne(c, eingabe({ abschluss: 'berufspruefung' }));
   assert.ok(e.warnungen.some((w) => w.code === 'band_zu_eng'));
   const m = G.baueGrafikModell(e, null);
   assert.ok(m.achse.max > m.achse.min);

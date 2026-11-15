@@ -156,7 +156,7 @@
 
   function leeresErgebnis(modus, warnungen, fehler) {
     return {
-      modus: modus, stufe: null, mindestlohn: null, tabelleJahr: null, bandStart: null, bandMax: null, funktionsband: null,
+      modus: modus, stufe: null, mindestlohn: null, tabelleJahr: null, bandStart: null, bandMax: null, band: null,
       positionen: [], vorschlag: null, monatslohn: null, dreizehnter: null, totalMonat: null,
       jahresbrutto: null, stundenansatz: null, entschaedigungen: [], spanne: null, spanneStufen: null, einarbeitung: null,
       stufenvergleich: null, kader: null, ueberstundenpauschale: null, bezeichnungen: null,
@@ -349,7 +349,7 @@
     var vorschlag;
     var bandStart = null;
     var bandMax = null;
-    var funktionsband = null;
+    var band = null;
 
     if (sonder === 'praktikum') {
       vorschlag = mindestlohn;
@@ -366,11 +366,17 @@
       positionen = positionen.concat(zusatz);
 
       var summe = positionen.reduce(function (s, p) { return s + p.betrag; }, 0);
-      // Strikt nach Stufe: Untergrenze ist der Mindestlohn der Stufe, das Funktionsband hebt nicht an.
-      // Ausnahme: Funktionen mit bandAlsUntergrenze (z.B. Chef de cuisine) starten mindestens beim Bandminimum.
-      bandStart = funktion.bandAlsUntergrenze === true ? Math.max(mindestlohn, funktion.bandMin) : mindestlohn;
-      funktionsband = { min: funktion.bandMin, max: funktion.bandMax };
-      bandMax = funktion.bandMax;
+      // Das Band hängt an der Person: Kader haben das Kaderband, alle anderen das Band ihrer Stufe (Minimum = Mindestlohn).
+      var lb = config.lohnbaender || {};
+      if (funktion.kader === true && lb.kader) {
+        band = { art: 'kader', min: lb.kader.min, max: lb.kader.max, ueberschreitbar: lb.kader.ueberschreitbar === true };
+      } else if (lb[stufe] && istZahl(lb[stufe].max)) {
+        band = { art: 'stufe', min: mindestlohn, max: lb[stufe].max, ueberschreitbar: lb[stufe].ueberschreitbar === true };
+      } else {
+        return fehlerErgebnis(['Kein Lohnband für Stufe ' + stufe + '.'], warnungen);
+      }
+      bandStart = band.art === 'kader' ? Math.max(mindestlohn, band.min) : mindestlohn;
+      bandMax = band.max;
       if (bandMax < mindestlohn) {
         warnungen.push({ code: 'band_zu_eng', text: 'Das Bandmaximum liegt unter dem Mindestlohn; der Mindestlohn gilt.' });
         bandMax = mindestlohn;
@@ -418,11 +424,6 @@
         + ' (CHF ' + stufenvergleich.mindestlohnNaechste.toFixed(2) + '). Prüfen, ob die Einstufung stimmt und ob der Lohn gegenüber Mitarbeitenden gleicher Qualifikation begründbar ist.' });
     }
 
-    if (funktionsband && vorschlag < funktionsband.min) {
-      warnungen.push({ code: 'unter_funktionsband', text: 'Der Lohn liegt unter dem Lohnband der Funktion (CHF ' + funktionsband.min.toFixed(2) + ' bis ' + funktionsband.max.toFixed(2)
-        + '), weil die Einstufung der Person (Stufe ' + stufe + ') tiefer ist als die typische Stufe der Funktion. Einstufung und Anerkennung des Abschlusses prüfen.' });
-    }
-
     var kaderErgebnis = null;
     if (istKader) {
       var grenze = betrieb.ueberstundenGrenze6750;
@@ -441,7 +442,7 @@
 
     return {
       modus: 'berechnet', stufe: stufe, mindestlohn: mindestlohn, tabelleJahr: tab.tabelle.jahr,
-      bandStart: bandStart, bandMax: bandMax, funktionsband: funktionsband, positionen: positionen, vorschlag: vorschlag,
+      bandStart: bandStart, bandMax: bandMax, band: band, positionen: positionen, vorschlag: vorschlag,
       monatslohn: monatslohn, dreizehnter: betraege.dreizehnter, totalMonat: betraege.totalMonat,
       jahresbrutto: betraege.jahresbrutto,
       stundenansatz: betraege.stundenansatz,
@@ -465,7 +466,7 @@
       return { ok: false, fehler: ['Der gewählte Lohn liegt unter dem Mindestlohn.'], freigabe: null };
     }
     if (Math.abs(gewaehlterMonatslohn - ergebnis.vorschlag) < eps) {
-      return { ok: true, fehler: [], freigabe: 'keine' };
+      return { ok: true, fehler: [], freigabe: 'keine', ueberBandmax: false };
     }
     var st = ergebnis.spanneStufen;
     var tiers = [['vorgesetzte', 'Vorgesetzte'], ['hr', 'HR'], ['gm', 'GM']];
@@ -479,13 +480,19 @@
         }
       }
     }
+    var band = ergebnis.band;
+    // Überschreitbares Band (Kader): Lohn über dem Spielraum gilt als Freigabe GM, auch über dem Bandmaximum.
+    if (!freigabe && band && band.ueberschreitbar && gewaehlterMonatslohn > ergebnis.vorschlag) {
+      freigabe = 'GM';
+    }
     if (!freigabe) {
       return { ok: false, fehler: ['Abweichung ausserhalb des zulässigen Spielraums.'], freigabe: null };
     }
+    var ueberBandmax = !!(band && band.ueberschreitbar && gewaehlterMonatslohn > band.max + eps);
     if (freigabe !== 'Vorgesetzte' && !(typeof begruendung === 'string' && begruendung.trim())) {
       fehler.push('Begründung nötig: Die Abweichung braucht die Freigabe von ' + freigabe + '.');
     }
-    return { ok: fehler.length === 0, fehler: fehler, freigabe: freigabe };
+    return { ok: fehler.length === 0, fehler: fehler, freigabe: freigabe, ueberBandmax: ueberBandmax };
   }
 
   return {
