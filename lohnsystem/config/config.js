@@ -4,7 +4,7 @@ window.LOHN_CONFIG = {
     "name": "Waldhaus Flims",
     "wochenstunden": 43.5,
     "dreizehnterProzent": 8.33,
-    "maxErfahrungsjahre": 10,
+    "maxErfahrungsjahre": 20,
     "einarbeitungMaxProzent": 8,
     "baenderBestaetigt": true,
     "kaderWochenstunden": 50,

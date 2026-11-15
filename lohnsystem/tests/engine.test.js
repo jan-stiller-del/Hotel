@@ -897,6 +897,16 @@ test('Zusatzbausteine von Hand: nur für Kader gewählt von Nicht-Kader ist ein 
   assert.equal(doppelt.entschaedigungen.filter((x) => /Wäsche/.test(x.label)).length, 1);
 });
 
+test('Standardkonfiguration: Erfahrung bis 20 Jahre, CHF 10 pro Jahr, Lohn bleibt im Stufenband', () => {
+  const eb = (stufeAbschluss, funktionId, jahre) => E.berechne(SC, eingabe({ funktionId, abschluss: stufeAbschluss, erfahrungJahre: jahre, sprachen: [] }));
+  const r = eb('kaufmann-efz', 'reception-receptionist', 20);
+  assert.equal(r.positionen.find((p) => /^Erfahrung/.test(p.label)).label, 'Erfahrung (20 Jahre)');
+  assert.equal(r.vorschlag, 4755); // 4555 + 20 x 10
+  assert.equal(eb('kaufmann-efz', 'reception-receptionist', 25).vorschlag, 4755); // Höchstens 20 Jahre
+  assert.equal(E.berechne(SC, eingabe({ funktionId: 'reception-receptionist', abschluss: 'kaufmann-efz', erfahrungJahre: 21, sprachen: [] })).modus, 'berechnet');
+  assert.ok(eb('keiner', 'housekeeping-zimmermaedchen', 20).vorschlag <= 4050);
+});
+
 // ---- Sprachniveau: A1 nichts, A2 halber Betrag, ab B1 voller Betrag ----
 function sprachConfig() {
   const c = baueConfig();

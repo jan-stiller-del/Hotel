@@ -55,7 +55,7 @@ test('Lohnbänder pro Stufe: Minimum ist der Mindestlohn, Maximum aus der Konfig
 test('Regeln der Zuschlaege aus der Konfiguration', () => {
   const m = baueLeseModell(standardConfig(), '2027-02-01');
   assert.equal(m.regeln.erfahrungProJahr, 10);
-  assert.equal(m.regeln.maxErfahrungsjahre, 10);
+  assert.equal(m.regeln.maxErfahrungsjahre, 20);
   assert.equal(m.regeln.spracheProSprache, 20);
   assert.equal(m.regeln.mindestNiveau, 'B1');
   assert.equal(m.regeln.teilNiveau, 'A2');
