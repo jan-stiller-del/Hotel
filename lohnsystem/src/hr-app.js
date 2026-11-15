@@ -85,6 +85,12 @@
     });
   }
 
+  // Funktionen einer Abteilung für die Auswahl: alphabetisch nach Bezeichnung (deutsche Sortierung, ohne Akzent- und Gross-/Kleinschreibung).
+  function funktionenFuerAbteilung(config, abteilungId) {
+    return ((config && config.funktionen) || []).filter(function (f) { return f.abteilung === abteilungId; })
+      .sort(function (a, b) { return a.label.localeCompare(b.label, 'de', { sensitivity: 'base' }); });
+  }
+
   // Block «Auszahlung pro Monat»: Zeilen {label, betrag, art}; der 13. Monatslohn steht immer als eigene Zeile.
   function baueAuszahlungZeilen(e, config, kontext) {
     var satz = String(config.betrieb.dreizehnterProzent).replace('.', ',');
@@ -132,8 +138,15 @@
     }
     zeilen.push({ label: 'Stundenansatz (Vollzeitbasis, ' + String(config.betrieb.wochenstunden).replace('.', ',') + ' Wochenstunden, ohne 13. Monatslohn)', betrag: b.stundenansatz, art: 'stundenansatz' });
     var diff = Math.round((wert - ergebnis.vorschlag) * 100) / 100;
+    // Wer muss den gewählten Lohn freigeben: Vorgesetzte, HR oder GM (HR und GM mit Begründung).
+    var pr = Engine.pruefeAbweichung(ergebnis, wert, 'x');
+    var FREIGABE_TEXT = { keine: 'Keine Freigabe nötig (Vorschlag).', Vorgesetzte: 'Freigabe durch: Vorgesetzte.', HR: 'Freigabe durch: HR, mit Begründung.', GM: 'Freigabe durch: GM, mit Begründung.' };
+    var freigabe = pr.freigabe
+      ? { stufe: pr.freigabe, text: FREIGABE_TEXT[pr.freigabe] }
+      : { stufe: null, text: wert < ergebnis.mindestlohn ? 'Nicht zulässig: unter dem Mindestlohn.' : 'Nicht zulässig: ausserhalb des Spielraums.' };
     return {
       titel: 'Abrechnung mit gewähltem Lohn (CHF ' + wert.toFixed(2) + ')',
+      freigabe: freigabe,
       zeilen: zeilen,
       differenz: diff === 0 ? null : { chf: diff, prozent: Math.round(diff / ergebnis.vorschlag * 1000) / 10 }
     };
@@ -326,8 +339,11 @@
       zeile.appendChild(sel);
       $('sprachenListe').appendChild(zeile);
     });
-    $('sprachenHilfe').textContent = 'Gezählt werden Sprachen ab Niveau ' + config.bausteine.mindestNiveau
-      + ', höchstens ' + config.bausteine.maxSprachen + '.';
+    var bs = config.bausteine;
+    $('sprachenHilfe').textContent = 'Voller Betrag ab Niveau ' + bs.mindestNiveau
+      + (bs.teilNiveau && bs.teilProzent ? ', ' + bs.teilProzent + ' % ab Niveau ' + bs.teilNiveau + ', darunter nichts' : '')
+      + (bs.muttersprachFaktor > 1 ? ', Muttersprache ' + (bs.muttersprachFaktor === 2 ? 'doppelt' : bs.muttersprachFaktor + '-fach') : '')
+      + ', höchstens ' + bs.maxSprachen + ' Sprachen.';
     var zusatz = (config.zusatzbausteine || []).filter(function (z) { return z.nurKader !== true && z.nurNichtKader !== true; });
     function zusatzFuellen() {
       var gewaehlt = {};
@@ -358,11 +374,9 @@
       leeren(sel);
       option(sel, '', '– bitte wählen –');
       var ids = [];
-      config.funktionen.forEach(function (f) {
-        if (f.abteilung === $('abteilung').value) {
-          ids.push(f.id);
-          option(sel, f.id, f.label);
-        }
+      funktionenFuerAbteilung(config, $('abteilung').value).forEach(function (f) {
+        ids.push(f.id);
+        option(sel, f.id, f.label);
       });
       sel.value = waehleOption(ids, alt);
       if (sel.selectedIndex < 0) { sel.selectedIndex = 0; }
@@ -529,6 +543,7 @@
       box.hidden = !a;
       if (!a) { return; }
       box.appendChild(el('h4', null, a.titel));
+      box.appendChild(el('p', 'freigabe freigabe-' + (a.freigabe.stufe || 'nein'), a.freigabe.text));
       if (a.differenz) { box.appendChild(el('p', 'differenz', formatDifferenz(a.differenz))); }
       var t = el('table', 'auszahlung');
       a.zeilen.forEach(function (r) { zeile(t, r.label, r.betrag === null ? '' : chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' || r.art === 'kopf' ? r.art : null); });
@@ -672,5 +687,5 @@
     start();
   }
 
-  return { baueStufeManuellOptionen: baueStufeManuellOptionen, formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueWahlAbrechnung: baueWahlAbrechnung, formatDifferenz: formatDifferenz, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
+  return { funktionenFuerAbteilung: funktionenFuerAbteilung, baueStufeManuellOptionen: baueStufeManuellOptionen, formularZuInput: formularZuInput, waehleOption: waehleOption, baueSprachZeilen: baueSprachZeilen, baueAbschlussGruppen: baueAbschlussGruppen, funktionsbereichText: funktionsbereichText, bereichLabel: bereichLabel, baueAnerkennungsZeile: baueAnerkennungsZeile, zeigeBaenderHinweis: zeigeBaenderHinweis, zeigeStufeManuell: zeigeStufeManuell, stufeManuellBleibt: stufeManuellBleibt, baueAuszahlungZeilen: baueAuszahlungZeilen, baueWahlAbrechnung: baueWahlAbrechnung, formatDifferenz: formatDifferenz, baueStufenvergleichZeilen: baueStufenvergleichZeilen };
 }));

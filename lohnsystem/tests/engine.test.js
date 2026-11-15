@@ -785,6 +785,22 @@ test('Kaderband gilt unabhängig von der Ausbildung', () => {
   assert.equal(r.vorschlag, 6000);
 });
 
+test('Kaderband: Erfahrung und Sprachen kommen auf den Start von 6000, nach oben bis 7500 begrenzt', () => {
+  const k = (extra) => E.berechne(SC, eingabe(Object.assign({ funktionId: 'reception-leitung', abschluss: 'chef-de-reception-fa', erfahrungJahre: 0, sprachen: [] }, extra)));
+  assert.equal(k().vorschlag, 6000);
+  const r = k({ erfahrungJahre: 3, sprachen: [{ sprache: 'EN', niveau: 'B1' }, { sprache: 'DE', niveau: 'Muttersprache' }] });
+  assert.equal(r.vorschlag, 6090); // 6000 + 30 Erfahrung + 20 + 40 Sprachen
+  assert.deepEqual(r.positionen.map((p) => [p.label, p.betrag]), [
+    ['Basis Stufe IV', 5325], ['Kaderband: Anhebung auf den Start von CHF 6000.00', 675], ['Erfahrung (3 Jahre)', 30], ['Sprachen (1 Muttersprache, 1 voll)', 60]]);
+  assert.equal(r.mindestlohn, 5325);
+  const c = JSON.parse(JSON.stringify(SC));
+  c.zusatzbausteine.push({ id: 'zz', label: 'Grosse Zulage', art: 'lohn', betrag: 5000 });
+  const oben = E.berechne(c, eingabe({ funktionId: 'reception-leitung', abschluss: 'chef-de-reception-fa', erfahrungJahre: 0, sprachen: [], zusatzIds: ['zz'] }));
+  assert.equal(oben.vorschlag, 7500);
+  const nk = E.berechne(SC, eingabe({ funktionId: 'reception-receptionist', abschluss: 'kaufmann-efz', erfahrungJahre: 0, sprachen: [] }));
+  assert.ok(!nk.positionen.some((p) => /Kaderband/.test(p.label)));
+});
+
 // Kaderband mit knappem Maximum 6100, damit der Spielraum (3 % von 6000 = 6180) über das Maximum hinausreicht.
 function engesKader() {
   const c = JSON.parse(JSON.stringify(SC));
@@ -800,13 +816,21 @@ test('Kaderband: der Spielraum wird vom Bandmaximum nicht begrenzt, bei Stufenb�
   assert.ok(s.spanneStufen.gm.max <= s.bandMax);
 });
 
-test('Kaderband: Lohn über dem Spielraum wird abgelehnt, auch wenn er unter dem Maximum liegt', () => {
-  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa' }));
-  for (const lohn of [6500, 7400, 7800]) {
-    const p = E.pruefeAbweichung(r, lohn, 'Begründung');
-    assert.equal(p.ok, false, String(lohn));
-    assert.deepEqual(p.fehler, ['Abweichung ausserhalb des zulässigen Spielraums.']);
+test('Kaderband: jeder Lohn über dem Vorschlag ist möglich, mit Freigabe GM und Begründung', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa', erfahrungJahre: 0 }));
+  assert.equal(r.vorschlag, 6000);
+  for (const lohn of [6500, 7400, 7800, 9000]) {
+    const ohne = E.pruefeAbweichung(r, lohn, '');
+    assert.equal(ohne.ok, false, String(lohn));
+    assert.ok(ohne.fehler[0].includes('Begründung'));
+    const mit = E.pruefeAbweichung(r, lohn, 'Marktlage');
+    assert.equal(mit.ok, true, String(lohn));
+    assert.equal(mit.freigabe, 'GM');
+    assert.equal(mit.ueberBandmax, lohn > 7500);
   }
+  // innerhalb des Spielraums gelten die Stufen wie bisher, unter dem Kader-Start bleibt es abgelehnt
+  assert.equal(E.pruefeAbweichung(r, 6050, '').freigabe, 'Vorgesetzte');
+  assert.equal(E.pruefeAbweichung(r, 5900, 'Grund').ok, false);
 });
 
 test('Kaderband: Lohn im Spielraum über dem Maximum braucht Begründung und gilt als Freigabe GM', () => {
@@ -818,7 +842,7 @@ test('Kaderband: Lohn im Spielraum über dem Maximum braucht Begründung und gil
   assert.equal(mit.ok, true);
   assert.equal(mit.freigabe, 'GM');
   assert.equal(mit.ueberBandmax, true);
-  assert.equal(E.pruefeAbweichung(r, 6190, 'Marktlage').ok, false);
+  assert.equal(E.pruefeAbweichung(r, 6190, 'Marktlage').freigabe, 'GM');
 });
 
 test('Kaderband: genau auf dem Maximum ist keine Überschreitung', () => {
@@ -871,6 +895,72 @@ test('Zusatzbausteine von Hand: nur für Kader gewählt von Nicht-Kader ist ein 
   assert.ok(nk.fehler[0].includes('nur für Kader'));
   const doppelt = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-kleidung', 'waesche-kleidung'] }));
   assert.equal(doppelt.entschaedigungen.filter((x) => /Wäsche/.test(x.label)).length, 1);
+});
+
+test('Standardkonfiguration: Erfahrung bis 20 Jahre, CHF 10 pro Jahr, Lohn bleibt im Stufenband', () => {
+  const eb = (stufeAbschluss, funktionId, jahre) => E.berechne(SC, eingabe({ funktionId, abschluss: stufeAbschluss, erfahrungJahre: jahre, sprachen: [] }));
+  const r = eb('kaufmann-efz', 'reception-receptionist', 20);
+  assert.equal(r.positionen.find((p) => /^Erfahrung/.test(p.label)).label, 'Erfahrung (20 Jahre)');
+  assert.equal(r.vorschlag, 4755); // 4555 + 20 x 10
+  assert.equal(eb('kaufmann-efz', 'reception-receptionist', 25).vorschlag, 4755); // Höchstens 20 Jahre
+  assert.equal(E.berechne(SC, eingabe({ funktionId: 'reception-receptionist', abschluss: 'kaufmann-efz', erfahrungJahre: 21, sprachen: [] })).modus, 'berechnet');
+  assert.ok(eb('keiner', 'housekeeping-zimmermaedchen', 20).vorschlag <= 4050);
+});
+
+// ---- Sprachniveau: A1 nichts, A2 halber Betrag, ab B1 voller Betrag ----
+function sprachConfig() {
+  const c = baueConfig();
+  Object.assign(c.bausteine, { mindestNiveau: 'B1', teilNiveau: 'A2', teilProzent: 50 });
+  return c;
+}
+const spr = (...paare) => paare.map(([sprache, niveau]) => ({ sprache, niveau }));
+const sprachBetrag = (r) => (r.positionen.find((p) => /^Sprachen/.test(p.label)) || { betrag: 0 }).betrag;
+
+test('Sprachniveau: A1 nichts, A2 halber Betrag, ab B1 voller Betrag', () => {
+  const c = sprachConfig();
+  const b = (sp) => sprachBetrag(E.berechne(c, eingabe({ sprachen: sp })));
+  assert.equal(b(spr(['EN', 'A1'])), 0);
+  assert.equal(b(spr(['EN', 'A2'])), 50);
+  assert.equal(b(spr(['EN', 'B1'])), 100);
+  assert.equal(b(spr(['EN', 'C2'])), 100);
+  assert.equal(b(spr(['DE', 'Muttersprache'])), 100);
+  assert.equal(b(spr(['EN', 'B1'], ['FR', 'A2'])), 150);
+});
+
+test('Sprachniveau: Höchstzahl zählt volle Sprachen zuerst, Beschriftung nennt halbe', () => {
+  const c = sprachConfig(); // maxSprachen 2
+  const b = (sp) => sprachBetrag(E.berechne(c, eingabe({ sprachen: sp })));
+  assert.equal(b(spr(['FR', 'A2'], ['DE', 'B1'], ['EN', 'B1'])), 200);
+  assert.equal(b(spr(['IT', 'A2'], ['FR', 'A2'], ['EN', 'A2'])), 100);
+  const r = E.berechne(c, eingabe({ sprachen: spr(['EN', 'B1'], ['FR', 'A2']) }));
+  assert.equal(r.positionen.find((p) => /^Sprachen/.test(p.label)).label, 'Sprachen (1 voll, 1 zu 50 %)');
+  const nurVoll = E.berechne(c, eingabe({ sprachen: spr(['EN', 'B1'], ['FR', 'B2']) }));
+  assert.equal(nurVoll.positionen.find((p) => /^Sprachen/.test(p.label)).label, 'Sprachen (2)');
+});
+
+test('Sprachniveau: ohne teilNiveau in der Konfiguration zählt nur ab dem Mindestniveau', () => {
+  const c = baueConfig(); // mindestNiveau B2, kein teilNiveau
+  assert.equal(sprachBetrag(E.berechne(c, eingabe({ sprachen: spr(['EN', 'B1']) }))), 0);
+  assert.equal(sprachBetrag(E.berechne(c, eingabe({ sprachen: spr(['EN', 'B2']) }))), 100);
+});
+
+test('Muttersprache zählt den doppelten Betrag, auch bei der Höchstzahl zuerst', () => {
+  const c = sprachConfig();
+  c.bausteine.muttersprachFaktor = 2;
+  const b = (sp) => sprachBetrag(E.berechne(c, eingabe({ sprachen: sp })));
+  assert.equal(b(spr(['DE', 'Muttersprache'])), 200);
+  assert.equal(b(spr(['DE', 'Muttersprache'], ['EN', 'B1'])), 300);
+  assert.equal(b(spr(['FR', 'A2'], ['EN', 'B1'], ['DE', 'Muttersprache'])), 300); // Höchstzahl 2: Muttersprache, dann voll
+  assert.equal(b(spr(['DE', 'Muttersprache'], ['IT', 'Muttersprache'], ['EN', 'B1'])), 400);
+  const r = E.berechne(c, eingabe({ sprachen: spr(['DE', 'Muttersprache'], ['EN', 'B1']) }));
+  assert.equal(r.positionen.find((p) => /^Sprachen/.test(p.label)).label, 'Sprachen (1 Muttersprache, 1 voll)');
+  const ohne = baueConfig(); // ohne muttersprachFaktor: wie jede Sprache
+  assert.equal(sprachBetrag(E.berechne(ohne, eingabe({ sprachen: spr(['DE', 'Muttersprache']) }))), 100);
+});
+
+test('Sprachniveau: nur bei Gästekontakt', () => {
+  const c = sprachConfig();
+  assert.equal(sprachBetrag(E.berechne(c, eingabe({ funktionId: 'koch', sprachen: spr(['EN', 'C1']) }))), 0);
 });
 
 test('Eintritt vor dem Stichtag: befristet behaelt den alten Mindestlohn, unbefristet bekommt ab Stichtag den hoeheren', () => {

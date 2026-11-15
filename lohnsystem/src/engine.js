@@ -205,18 +205,32 @@
     return f;
   }
 
+  // Sprachen: Muttersprache muttersprachFaktor-facher Betrag (Standard 1), ab mindestNiveau voller Betrag, ab teilNiveau
+  // (falls gesetzt) teilProzent vom Betrag, darunter nichts. Höchstens maxSprachen Sprachen, Reihenfolge: Muttersprache, voll, teil.
   function zaehleSprachen(config, funktion, sprachen) {
-    if (!funktion.gaestekontakt || !Array.isArray(sprachen)) { return 0; }
+    var leer = { mutter: 0, voll: 0, teil: 0, faktor: 0, teilProzent: 0 };
+    if (!funktion.gaestekontakt || !Array.isArray(sprachen)) { return leer; }
     var b = config.bausteine || {};
-    var min = NIVEAUS.indexOf(b.mindestNiveau || 'B2');
-    var gezaehlt = {};
-    var n = 0;
+    var voll = NIVEAUS.indexOf(b.mindestNiveau || 'B2');
+    var teilIdx = b.teilNiveau ? NIVEAUS.indexOf(b.teilNiveau) : -1;
+    var teilProzent = istZahl(b.teilProzent) ? b.teilProzent : 0;
+    var mutterFaktor = istZahl(b.muttersprachFaktor) ? b.muttersprachFaktor : 1;
+    var gesehen = {};
+    var mutterListe = 0;
+    var vollListe = 0;
+    var teilListe = 0;
     sprachen.forEach(function (s) {
-      if (!s || (b.sprachen || []).indexOf(s.sprache) < 0 || gezaehlt[s.sprache]) { return; }
-      var niveau = s.niveau === 'Muttersprache' ? 'MS' : s.niveau;
-      if (NIVEAUS.indexOf(niveau) >= min) { gezaehlt[s.sprache] = true; n++; }
+      if (!s || (b.sprachen || []).indexOf(s.sprache) < 0 || gesehen[s.sprache]) { return; }
+      gesehen[s.sprache] = true;
+      if (s.niveau === 'Muttersprache') { mutterListe++; return; }
+      var idx = NIVEAUS.indexOf(s.niveau);
+      if (idx >= voll) { vollListe++; } else if (teilIdx >= 0 && teilProzent > 0 && idx >= teilIdx) { teilListe++; }
     });
-    return Math.min(n, b.maxSprachen === undefined ? n : b.maxSprachen);
+    var maxS = b.maxSprachen === undefined ? mutterListe + vollListe + teilListe : b.maxSprachen;
+    var nMutter = Math.min(mutterListe, maxS);
+    var nVoll = Math.min(vollListe, Math.max(0, maxS - nMutter));
+    var nTeil = Math.min(teilListe, Math.max(0, maxS - nMutter - nVoll));
+    return { mutter: nMutter, voll: nVoll, teil: nTeil, faktor: nMutter * mutterFaktor + nVoll + nTeil * teilProzent / 100, teilProzent: teilProzent };
   }
 
   function monateHinzu(datum, monate) {
@@ -367,9 +381,14 @@
       if (jahre > 0 && proJahr > 0) {
         positionen.push({ label: 'Erfahrung (' + jahre + ' Jahre)', betrag: runde1(jahre * proJahr), art: 'lohn' });
       }
-      var nSprachen = zaehleSprachen(config, funktion, input.sprachen);
-      if (nSprachen > 0) {
-        positionen.push({ label: 'Sprachen (' + nSprachen + ')', betrag: runde1(nSprachen * config.bausteine.spracheProSprache), art: 'lohn' });
+      var sp = zaehleSprachen(config, funktion, input.sprachen);
+      if (sp.mutter + sp.voll + sp.teil > 0) {
+        var teile = [];
+        if (sp.mutter > 0) { teile.push(sp.mutter + ' Muttersprache'); }
+        if (sp.voll > 0) { teile.push(sp.mutter + sp.teil > 0 ? sp.voll + ' voll' : String(sp.voll)); }
+        if (sp.teil > 0) { teile.push(sp.teil + ' zu ' + sp.teilProzent + ' %'); }
+        var spLabel = 'Sprachen (' + teile.join(', ') + ')';
+        positionen.push({ label: spLabel, betrag: runde1(sp.faktor * config.bausteine.spracheProSprache), art: 'lohn' });
       }
       positionen = positionen.concat(zusatz);
 
@@ -384,6 +403,12 @@
         return fehlerErgebnis(['Kein Lohnband für Stufe ' + stufe + '.'], warnungen);
       }
       bandStart = band.art === 'kader' ? Math.max(mindestlohn, band.min) : mindestlohn;
+      // Kader: der Start des Kaderbands ersetzt die Basis, Erfahrung, Sprachen und Zusatzbausteine kommen darauf.
+      if (bandStart > mindestlohn) {
+        var anhebung = runde1(bandStart - mindestlohn);
+        positionen.splice(1, 0, { label: 'Kaderband: Anhebung auf den Start von CHF ' + bandStart.toFixed(2), betrag: anhebung, art: 'lohn' });
+        summe += anhebung;
+      }
       bandMax = band.max;
       if (bandMax < mindestlohn) {
         warnungen.push({ code: 'band_zu_eng', text: 'Das Bandmaximum liegt unter dem Mindestlohn; der Mindestlohn gilt.' });
@@ -489,6 +514,10 @@
           break;
         }
       }
+    }
+    // Überschreitbares Band (Kader): jeder Lohn über dem Vorschlag ist möglich, wenn der Spielraum nicht reicht, mit Freigabe GM.
+    if (!freigabe && ergebnis.band && ergebnis.band.ueberschreitbar && gewaehlterMonatslohn > ergebnis.vorschlag) {
+      freigabe = 'GM';
     }
     if (!freigabe) {
       return { ok: false, fehler: ['Abweichung ausserhalb des zulässigen Spielraums.'], freigabe: null };

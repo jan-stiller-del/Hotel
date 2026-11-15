@@ -128,7 +128,7 @@ test('ungültiger gewählter Lohn (NaN) wird wie leer behandelt', () => {
 test('Kader mit überschreitbarem Band: Achse reicht bis zum gewählten Lohn, Bandende erscheint', () => {
   const c = config();
   c.funktionen.push(FX.funktion({ id: 'chef', abteilung: 'a', label: 'Chef', gaestekontakt: false, kader: true }));
-  const e = E.berechne(c, eingabe({ funktionId: 'chef', abschluss: 'berufspruefung', sprachen: [] }));
+  const e = E.berechne(c, eingabe({ funktionId: 'chef', abschluss: 'berufspruefung', sprachen: [], erfahrungJahre: 0 }));
   assert.equal(e.vorschlag, 6000);
   const m = G.baueGrafikModell(e, 7400);
   assert.ok(m.achse.max >= 7400);

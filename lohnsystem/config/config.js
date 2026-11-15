@@ -4,7 +4,7 @@ window.LOHN_CONFIG = {
     "name": "Waldhaus Flims",
     "wochenstunden": 43.5,
     "dreizehnterProzent": 8.33,
-    "maxErfahrungsjahre": 10,
+    "maxErfahrungsjahre": 20,
     "einarbeitungMaxProzent": 8,
     "baenderBestaetigt": true,
     "kaderWochenstunden": 50,
@@ -149,8 +149,11 @@ window.LOHN_CONFIG = {
     "spracheProSprache": 20,
     "maxSprachen": 4,
     "sprachen": ["DE", "EN", "FR", "IT"],
-    "mindestNiveau": "B2",
-    "hinweis": "Beträge von Jan festgelegt: Erfahrung CHF 10 pro Jahr, Sprache CHF 20 pro Sprache; Deutsch, Englisch, Französisch und Italienisch zählen (ab Niveau B2, höchstens CHF 80)"
+    "mindestNiveau": "B1",
+    "teilNiveau": "A2",
+    "teilProzent": 50,
+    "muttersprachFaktor": 2,
+    "hinweis": "Beträge von Jan festgelegt: Erfahrung CHF 10 pro Jahr, Sprache CHF 20 pro Sprache; Deutsch, Englisch, Französisch und Italienisch zählen (A1 nichts, A2 halber Betrag, ab B1 voller Betrag, Muttersprache doppelter Betrag, höchstens 4 Sprachen)"
   },
   "lohnbaender": {
     "hinweis": "Band pro Stufe der Person (Ausbildung); Minimum ist der Mindestlohn der Stufe. Kader haben ein eigenes Band, das Maximum ist dort überschreitbar.",

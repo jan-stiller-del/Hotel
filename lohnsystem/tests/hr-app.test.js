@@ -5,7 +5,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const vm = require('node:vm');
 const { stufeMitErklaerung } = require('../src/config.js');
-const { baueStufeManuellOptionen, formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueWahlAbrechnung, formatDifferenz, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
+const { funktionenFuerAbteilung, baueStufeManuellOptionen, formularZuInput, waehleOption, baueSprachZeilen, baueAuszahlungZeilen, baueWahlAbrechnung, formatDifferenz, baueAbschlussGruppen, funktionsbereichText, bereichLabel, baueAnerkennungsZeile, zeigeStufeManuell, zeigeBaenderHinweis, stufeManuellBleibt } = require('../src/hr-app.js');
 
 function werte(extra) {
   return Object.assign({
@@ -384,6 +384,17 @@ test('baueWahlAbrechnung: Hinweis vergleicht mit dem wirksamen Maximum, nicht mi
   assert.equal(a.zeilen.filter(r => r.art === 'hinweis').length, 0);
 });
 
+test('baueWahlAbrechnung: zeigt, wer den gewählten Lohn freigeben muss', () => {
+  const erg = Object.assign({}, WERG, { bandMax: 4900, band: { art: 'stufe', min: 4555, max: 4900, ueberschreitbar: false },
+    spanneStufen: { vorgesetzte: { min: 4628, max: 4722 }, hr: { min: 4581, max: 4769 }, gm: { min: 4534, max: 4816 } } });
+  const f = (lohn) => baueWahlAbrechnung(standardConfig(), erg, lohn, { beschaeftigungsgrad: '100' }).freigabe;
+  assert.deepEqual(f(4675), { stufe: 'keine', text: 'Keine Freigabe nötig (Vorschlag).' });
+  assert.deepEqual(f(4700), { stufe: 'Vorgesetzte', text: 'Freigabe durch: Vorgesetzte.' });
+  assert.deepEqual(f(4750), { stufe: 'HR', text: 'Freigabe durch: HR, mit Begründung.' });
+  assert.deepEqual(f(4800), { stufe: 'GM', text: 'Freigabe durch: GM, mit Begründung.' });
+  assert.deepEqual(f(5000), { stufe: null, text: 'Nicht zulässig: ausserhalb des Spielraums.' });
+});
+
 test('baueWahlAbrechnung: gleicher Lohn, keine Differenz, Zeilen wie beim Vorschlag', () => {
   const cfg = standardConfig();
   const a = baueWahlAbrechnung(cfg, WERG, 4675, { beschaeftigungsgrad: '100' });
@@ -491,4 +502,22 @@ test('baueStufeManuellOptionen: ohne Erklärung nur die Stufe, ohne Konfiguratio
 test('baueStufenvergleichZeilen: nächsthöhere Stufe mit Erklärung, wenn die Konfiguration übergeben wird', () => {
   const z = baueStufenvergleichZeilen(SV, standardConfig());
   assert.equal(z[1].text, '⚠ Nächsthöhere Stufe IIIb, EFZ plus 6 Tage berufsspezifische Weiterbildung (CHF 4663.00) erreicht oder überschritten');
+});
+
+test('funktionenFuerAbteilung: nur die Funktionen der Abteilung, alphabetisch nach Bezeichnung', () => {
+  const cfg = standardConfig();
+  for (const a of cfg.abteilungen) {
+    const liste = funktionenFuerAbteilung(cfg, a.id);
+    assert.ok(liste.length > 0, a.id);
+    assert.ok(liste.every((f) => f.abteilung === a.id), a.id);
+    const labels = liste.map((f) => f.label);
+    assert.deepEqual(labels, labels.slice().sort((x, y) => x.localeCompare(y, 'de', { sensitivity: 'base' })), a.id);
+  }
+  const kueche = funktionenFuerAbteilung(cfg, 'kueche').map((f) => f.label);
+  assert.equal(kueche[0], 'Allrounder Küche / Casserollier');
+  assert.ok(kueche.indexOf('Pâtissier / Confiseur') > kueche.indexOf('Demi-chef de partie'));
+  assert.deepEqual(funktionenFuerAbteilung(cfg, 'gibtsnicht'), []);
+  const vorher = cfg.funktionen.map((f) => f.id).join();
+  funktionenFuerAbteilung(cfg, 'kueche');
+  assert.equal(cfg.funktionen.map((f) => f.id).join(), vorher); // Konfiguration bleibt unverändert
 });

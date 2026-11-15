@@ -5,6 +5,8 @@ body { margin:0; font:16px/1.5 system-ui, "Segoe UI", Arial, sans-serif; color:v
 header.kopf { padding:16px; background:var(--nachtblau); color:#fff; display:flex; align-items:center; gap:20px; flex-wrap:wrap; }
 header.kopf .logo { height:84px; width:auto; display:block; }
 .kopf-text { flex:1 1 220px; min-width:0; }
+.start-link { display:inline-block; margin-bottom:4px; color:#fff; opacity:.85; font-size:.85rem; text-decoration:none; }
+.start-link:hover, .start-link:focus-visible { opacity:1; text-decoration:underline; }
 header.kopf h1 { margin:0; font-size:1.4rem; }
 .untertitel { margin:4px 0 0; opacity:.9; font-size:.9rem; }
 .inhalt { max-width:860px; margin:0 auto; padding:16px; }

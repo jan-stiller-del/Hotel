@@ -163,6 +163,30 @@ test('setzeBausteine', () => {
   assert.strictEqual(E.setzeBausteine(c, { mindestNiveau: 'Z9' }).ok, false);
 });
 
+test('setzeBausteine: Teilniveau und Teilprozent', () => {
+  const c = lade();
+  const r = E.setzeBausteine(c, { teilNiveau: 'A1', teilProzent: 30 });
+  meldungsfrei(r);
+  assert.strictEqual(r.config.bausteine.teilNiveau, 'A1');
+  assert.strictEqual(r.config.bausteine.teilProzent, 30);
+  const aus = E.setzeBausteine(c, { teilNiveau: null });
+  meldungsfrei(aus);
+  assert.strictEqual(aus.config.bausteine.teilNiveau, undefined);
+  for (const patch of [{ teilNiveau: 'Z9' }, { teilNiveau: 'C1' }, { teilNiveau: 'B1' }, { teilProzent: 0 }, { teilProzent: 100 }, { teilProzent: 'x' }]) {
+    assert.strictEqual(E.setzeBausteine(c, patch).ok, false, JSON.stringify(patch));
+  }
+});
+
+test('setzeBausteine: Faktor für die Muttersprache', () => {
+  const c = lade();
+  const r = E.setzeBausteine(c, { muttersprachFaktor: 3 });
+  meldungsfrei(r);
+  assert.strictEqual(r.config.bausteine.muttersprachFaktor, 3);
+  for (const patch of [{ muttersprachFaktor: 0 }, { muttersprachFaktor: 0.5 }, { muttersprachFaktor: 'x' }, { muttersprachFaktor: 11 }]) {
+    assert.strictEqual(E.setzeBausteine(c, patch).ok, false, JSON.stringify(patch));
+  }
+});
+
 test('setzeBetrieb: gleiche Regeln wie validateConfig', () => {
   const c = lade();
   const r = E.setzeBetrieb(c, { wochenstunden: 42, dreizehnterInklPauschale: false, baenderBestaetigt: false });

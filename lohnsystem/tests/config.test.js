@@ -148,6 +148,14 @@ test('Maximum null oder keine Zahl wird abgelehnt', () => {
   }
 });
 
+test('Standardkonfiguration: Sprachniveau A1 nichts, A2 halb, ab B1 voll', () => {
+  const b = ladeStandardkonfiguration().bausteine;
+  assert.strictEqual(b.mindestNiveau, 'B1');
+  assert.strictEqual(b.teilNiveau, 'A2');
+  assert.strictEqual(b.teilProzent, 50);
+  assert.strictEqual(b.muttersprachFaktor, 2);
+});
+
 test('Lohnband: ueberschreitbar muss ja oder nein sein', () => {
   const c = kopie();
   c.lohnbaender.kader.ueberschreitbar = 'ja';
