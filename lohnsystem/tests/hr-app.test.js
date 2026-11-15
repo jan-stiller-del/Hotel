@@ -384,6 +384,17 @@ test('baueWahlAbrechnung: Hinweis vergleicht mit dem wirksamen Maximum, nicht mi
   assert.equal(a.zeilen.filter(r => r.art === 'hinweis').length, 0);
 });
 
+test('baueWahlAbrechnung: zeigt, wer den gewählten Lohn freigeben muss', () => {
+  const erg = Object.assign({}, WERG, { bandMax: 4900, band: { art: 'stufe', min: 4555, max: 4900, ueberschreitbar: false },
+    spanneStufen: { vorgesetzte: { min: 4628, max: 4722 }, hr: { min: 4581, max: 4769 }, gm: { min: 4534, max: 4816 } } });
+  const f = (lohn) => baueWahlAbrechnung(standardConfig(), erg, lohn, { beschaeftigungsgrad: '100' }).freigabe;
+  assert.deepEqual(f(4675), { stufe: 'keine', text: 'Keine Freigabe nötig (Vorschlag).' });
+  assert.deepEqual(f(4700), { stufe: 'Vorgesetzte', text: 'Freigabe durch: Vorgesetzte.' });
+  assert.deepEqual(f(4750), { stufe: 'HR', text: 'Freigabe durch: HR, mit Begründung.' });
+  assert.deepEqual(f(4800), { stufe: 'GM', text: 'Freigabe durch: GM, mit Begründung.' });
+  assert.deepEqual(f(5000), { stufe: null, text: 'Nicht zulässig: ausserhalb des Spielraums.' });
+});
+
 test('baueWahlAbrechnung: gleicher Lohn, keine Differenz, Zeilen wie beim Vorschlag', () => {
   const cfg = standardConfig();
   const a = baueWahlAbrechnung(cfg, WERG, 4675, { beschaeftigungsgrad: '100' });

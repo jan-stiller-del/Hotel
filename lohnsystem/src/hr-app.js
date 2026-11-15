@@ -132,8 +132,15 @@
     }
     zeilen.push({ label: 'Stundenansatz (Vollzeitbasis, ' + String(config.betrieb.wochenstunden).replace('.', ',') + ' Wochenstunden, ohne 13. Monatslohn)', betrag: b.stundenansatz, art: 'stundenansatz' });
     var diff = Math.round((wert - ergebnis.vorschlag) * 100) / 100;
+    // Wer muss den gewählten Lohn freigeben: Vorgesetzte, HR oder GM (HR und GM mit Begründung).
+    var pr = Engine.pruefeAbweichung(ergebnis, wert, 'x');
+    var FREIGABE_TEXT = { keine: 'Keine Freigabe nötig (Vorschlag).', Vorgesetzte: 'Freigabe durch: Vorgesetzte.', HR: 'Freigabe durch: HR, mit Begründung.', GM: 'Freigabe durch: GM, mit Begründung.' };
+    var freigabe = pr.freigabe
+      ? { stufe: pr.freigabe, text: FREIGABE_TEXT[pr.freigabe] }
+      : { stufe: null, text: wert < ergebnis.mindestlohn ? 'Nicht zulässig: unter dem Mindestlohn.' : 'Nicht zulässig: ausserhalb des Spielraums.' };
     return {
       titel: 'Abrechnung mit gewähltem Lohn (CHF ' + wert.toFixed(2) + ')',
+      freigabe: freigabe,
       zeilen: zeilen,
       differenz: diff === 0 ? null : { chf: diff, prozent: Math.round(diff / ergebnis.vorschlag * 1000) / 10 }
     };
@@ -529,6 +536,7 @@
       box.hidden = !a;
       if (!a) { return; }
       box.appendChild(el('h4', null, a.titel));
+      box.appendChild(el('p', 'freigabe freigabe-' + (a.freigabe.stufe || 'nein'), a.freigabe.text));
       if (a.differenz) { box.appendChild(el('p', 'differenz', formatDifferenz(a.differenz))); }
       var t = el('table', 'auszahlung');
       a.zeilen.forEach(function (r) { zeile(t, r.label, r.betrag === null ? '' : chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' || r.art === 'kopf' ? r.art : null); });
