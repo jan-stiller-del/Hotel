@@ -133,7 +133,7 @@
 
   // ---- Funktionen ----
 
-  var FUNKTION_FELDER = ['label', 'abteilung', 'bereich', 'gaestekontakt', 'kader', 'bandAlsUntergrenze', 'bandMin', 'bandMax'];
+  var FUNKTION_FELDER = ['label', 'abteilung', 'bereich', 'gaestekontakt', 'kader'];
 
   function pruefeFunktionsfelder(c, f, patch) {
     var fehler = [];
@@ -148,19 +148,9 @@
     if (patch.bereich !== undefined && patch.bereich !== null && bereichIds.indexOf(patch.bereich) < 0) {
       fehler.push('Unbekannter Funktionsbereich «' + patch.bereich + '».');
     }
-    ['gaestekontakt', 'kader', 'bandAlsUntergrenze'].forEach(function (k) {
+    ['gaestekontakt', 'kader'].forEach(function (k) {
       if (patch[k] !== undefined && typeof patch[k] !== 'boolean') { fehler.push('«' + k + '» muss ja oder nein sein.'); }
     });
-    ['bandMin', 'bandMax'].forEach(function (k) {
-      if (patch[k] !== undefined && (!istZahl(patch[k]) || patch[k] <= 0)) {
-        fehler.push((k === 'bandMin' ? 'Bandminimum' : 'Bandmaximum') + ' muss eine Zahl grösser als 0 sein.');
-      }
-    });
-    if (!fehler.length) {
-      var min = patch.bandMin !== undefined ? patch.bandMin : f.bandMin;
-      var max = patch.bandMax !== undefined ? patch.bandMax : f.bandMax;
-      if (min >= max) { fehler.push('Das Bandminimum muss kleiner sein als das Bandmaximum.'); }
-    }
     return fehler;
   }
 
@@ -175,7 +165,33 @@
         f[k] = typeof patch[k] === 'string' ? patch[k].trim() : patch[k];
       });
       if (patch.kader === false) { delete f.kader; }
-      if (patch.bandAlsUntergrenze === false) { delete f.bandAlsUntergrenze; }
+      return [];
+    });
+  }
+
+  // ---- Lohnbänder pro Stufe und Kaderband ----
+
+  var BAND_STUFEN = ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV'];
+
+  // patch: { max, ueberschreitbar } für eine Stufe, zusätzlich { min } für 'kader'. Die Prüfung macht validateConfig.
+  function setzeBand(config, bandId, patch) {
+    return anwenden(config, function (c) {
+      patch = patch || {};
+      var kader = bandId === 'kader';
+      if (!kader && BAND_STUFEN.indexOf(bandId) < 0) { return ['Unbekanntes Band «' + bandId + '».']; }
+      var fehler = unbekannteFelder(patch, kader ? ['min', 'max', 'ueberschreitbar'] : ['max', 'ueberschreitbar']);
+      ['min', 'max'].forEach(function (k) {
+        if (patch[k] !== undefined && (!istZahl(patch[k]) || patch[k] <= 0)) {
+          fehler.push((k === 'min' ? 'Das Minimum' : 'Das Maximum') + ' muss eine Zahl grösser als 0 sein.');
+        }
+      });
+      if (patch.ueberschreitbar !== undefined && typeof patch.ueberschreitbar !== 'boolean') {
+        fehler.push('«Max überschreitbar» muss ja oder nein sein.');
+      }
+      if (fehler.length) { return fehler; }
+      var baender = c.lohnbaender || (c.lohnbaender = {});
+      var b = baender[bandId] || (baender[bandId] = {});
+      Object.keys(patch).forEach(function (k) { b[k] = patch[k]; });
       return [];
     });
   }
@@ -196,12 +212,9 @@
         bereich: neu.bereich === undefined ? null : neu.bereich,
         label: typeof neu.label === 'string' ? neu.label.trim() : neu.label,
         gaestekontakt: neu.gaestekontakt === undefined ? false : neu.gaestekontakt,
-        bandMin: neu.bandMin,
-        bandMax: neu.bandMax,
       };
       if (neu.kader === true) { f.kader = true; }
-      if (neu.bandAlsUntergrenze === true) { f.bandAlsUntergrenze = true; }
-      ['label', 'abteilung', 'bandMin', 'bandMax'].forEach(function (k) {
+      ['label', 'abteilung'].forEach(function (k) {
         if (f[k] === undefined) { fehler.push('Angabe fehlt: ' + k + '.'); }
       });
       fehler = fehler.concat(fehler.length ? [] : pruefeFunktionsfelder(c, f, f));
@@ -332,6 +345,8 @@
     setzeMindestlohn: setzeMindestlohn,
     setzeStichtage: setzeStichtage,
     setzeStufe: setzeStufe,
+    BAND_STUFEN: BAND_STUFEN,
+    setzeBand: setzeBand,
     aktualisiereFunktion: aktualisiereFunktion,
     fuegeFunktionHinzu: fuegeFunktionHinzu,
     entferneFunktion: entferneFunktion,

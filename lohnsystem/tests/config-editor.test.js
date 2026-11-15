@@ -53,7 +53,9 @@ test('neueJahrestabelle lehnt doppeltes Jahr und unsinnige Teuerung ab', () => {
   assert.strictEqual(E.neueJahrestabelle(c, 2028.5, 1).ok, false);
   assert.strictEqual(E.neueJahrestabelle(c, 2028, 0).ok, true);
   assert.strictEqual(E.neueJahrestabelle(c, 2028, -5).ok, true);
-  assert.strictEqual(E.neueJahrestabelle(c, 2028, 20).ok, true);
+  assert.strictEqual(E.neueJahrestabelle(c, 2028, 5).ok, true);
+  // 20 % Teuerung bringt den Mindestlohn der Stufe IV über das Bandmaximum 5700: Fehler, erst das Band anheben.
+  assert.strictEqual(E.neueJahrestabelle(c, 2028, 20).ok, false);
 });
 
 test('setzeMindestlohn und setzeStichtage', () => {
@@ -99,16 +101,12 @@ test('setzeStufe: Erklärung ändern, leere Erklärung abgelehnt', () => {
 
 // ---- Funktionen ----
 
-test('aktualisiereFunktion: Band, Bereich und Kader', () => {
+test('aktualisiereFunktion: Bereich und Kader, Bandfelder gibt es bei der Funktion nicht mehr', () => {
   const c = lade();
   const id = 'kueche-commis';
-  const ok = E.aktualisiereFunktion(c, id, { bandMin: 4600, bandMax: 5000 });
-  meldungsfrei(ok);
-  const f = ok.config.funktionen.find((x) => x.id === id);
-  assert.strictEqual(f.bandMin, 4600);
-  assert.strictEqual(f.bandMax, 5000);
-  assert.strictEqual(E.aktualisiereFunktion(c, id, { bandMin: 5000, bandMax: 5000 }).ok, false);
-  assert.strictEqual(E.aktualisiereFunktion(c, id, { bandMin: 6000 }).ok, false);
+  for (const feld of [{ bandMin: 4600 }, { bandMax: 5000 }, { bandAlsUntergrenze: true }]) {
+    assert.strictEqual(E.aktualisiereFunktion(c, id, feld).ok, false, JSON.stringify(feld));
+  }
   assert.strictEqual(E.aktualisiereFunktion(c, id, { bereich: 'gibtsnicht' }).ok, false);
   assert.strictEqual(E.aktualisiereFunktion(c, id, { abteilung: 'gibtsnicht' }).ok, false);
   assert.strictEqual(E.aktualisiereFunktion(c, 'gibtsnicht', { label: 'x' }).ok, false);
@@ -124,7 +122,7 @@ test('aktualisiereFunktion: Band, Bereich und Kader', () => {
 
 test('fuegeFunktionHinzu: doppelte ID abgelehnt, erzeugte ID eindeutig', () => {
   const c = lade();
-  const neu = { abteilung: 'kueche', bereich: 'kueche', label: 'Chef de partie Spezial', gaestekontakt: false, bandMin: 4700, bandMax: 5000 };
+  const neu = { abteilung: 'kueche', bereich: 'kueche', label: 'Chef de partie Spezial', gaestekontakt: false };
   const a = E.fuegeFunktionHinzu(c, neu);
   meldungsfrei(a);
   assert.strictEqual(a.config.funktionen.length, c.funktionen.length + 1);
@@ -139,7 +137,7 @@ test('fuegeFunktionHinzu: doppelte ID abgelehnt, erzeugte ID eindeutig', () => {
   assert.strictEqual(dup.ok, false);
   assert.match(dup.fehler[0], /schon/);
   assert.strictEqual(E.fuegeFunktionHinzu(c, Object.assign({}, neu, { label: '' })).ok, false);
-  assert.strictEqual(E.fuegeFunktionHinzu(c, Object.assign({}, neu, { bandMin: 5000, bandMax: 4000 })).ok, false);
+  assert.strictEqual(E.fuegeFunktionHinzu(c, Object.assign({}, neu, { bandMin: 5000, bandMax: 4000 })).ok, false); // Bandfelder sind unbekannt
   assert.strictEqual(E.fuegeFunktionHinzu(c, Object.assign({}, neu, { bereich: 'x' })).ok, false);
 });
 
@@ -223,9 +221,10 @@ test('alle Funktionen lassen die (tief eingefrorene) Eingabe unverändert', () =
     () => E.setzeStichtage(c, 2027, '2027-02-01'),
     () => E.setzeStufe(c, 'Ia', { erklaerung: 'neu', spielraum: { vorgesetzte: 1, hr: 2, gm: 4 } }),
     () => E.setzeStufe(c, 'Ia', { spielraum: { vorgesetzte: 3, hr: 2, gm: 1 } }),
-    () => E.aktualisiereFunktion(c, 'kueche-commis', { bandMin: 4600, kader: true }),
-    () => E.aktualisiereFunktion(c, 'kueche-commis', { bandMin: 9000 }),
-    () => E.fuegeFunktionHinzu(c, { abteilung: 'kueche', label: 'Neu', bandMin: 4000, bandMax: 4500 }),
+    () => E.aktualisiereFunktion(c, 'kueche-commis', { label: '', kader: true }),
+    () => E.aktualisiereFunktion(c, 'kueche-commis', { bereich: 'x' }),
+    () => E.fuegeFunktionHinzu(c, { abteilung: 'kueche', label: '' }),
+    () => E.setzeBand(c, 'IIIa', { max: 5000 }),
     () => E.entferneFunktion(c, 'kueche-commis'),
     () => E.setzeBausteine(c, { erfahrungProJahr: 12 }),
     () => E.setzeBetrieb(c, { wochenstunden: 42 }),
@@ -258,13 +257,38 @@ test('unterscheidet erkennt Änderungen, nicht gleiche Kopien', () => {
   assert.strictEqual(E.unterscheidet(r.config, c), true);
 });
 
-test('aktualisiereFunktion: bandAlsUntergrenze setzen und wieder entfernen', () => {
+test('setzeBand: Stufenmaximum und Häkchen ändern', () => {
   const c = lade();
-  const id = 'kueche-sous-chef';
-  const an = E.aktualisiereFunktion(c, id, { bandAlsUntergrenze: true });
-  assert.strictEqual(an.ok, true);
-  assert.strictEqual(an.config.funktionen.find((x) => x.id === id).bandAlsUntergrenze, true);
-  const aus = E.aktualisiereFunktion(an.config, id, { bandAlsUntergrenze: false });
-  assert.ok(!aus.config.funktionen.find((x) => x.id === id).bandAlsUntergrenze);
-  assert.strictEqual(E.aktualisiereFunktion(c, id, { bandAlsUntergrenze: 'ja' }).ok, false);
+  const ok = E.setzeBand(c, 'IIIa', { max: 5000, ueberschreitbar: true });
+  meldungsfrei(ok);
+  assert.strictEqual(ok.config.lohnbaender.IIIa.max, 5000);
+  assert.strictEqual(ok.config.lohnbaender.IIIa.ueberschreitbar, true);
+  const aus = E.setzeBand(ok.config, 'IIIa', { ueberschreitbar: false });
+  meldungsfrei(aus);
+  assert.ok(!aus.config.lohnbaender.IIIa.ueberschreitbar);
+  assert.strictEqual(c.lohnbaender.IIIa.max, 4900);
+});
+
+test('setzeBand: Fehlerfälle', () => {
+  const c = lade();
+  for (const [id, patch] of [['IIIa', { max: 0 }], ['IIIa', { max: 'x' }], ['IIIa', { min: 4000 }], ['IIIa', { ueberschreitbar: 'ja' }],
+    ['gibtsnicht', { max: 5000 }], ['IIIa', { max: 4000 }], ['IIIa', { gibtsnicht: 1 }], ['P', { max: 3000 }]]) {
+    const r = E.setzeBand(c, id, patch);
+    assert.strictEqual(r.ok, false, id + JSON.stringify(patch));
+    assert.strictEqual(r.config, c);
+  }
+});
+
+test('setzeBand: Kaderband Minimum, Maximum und Häkchen', () => {
+  const c = lade();
+  const ok = E.setzeBand(c, 'kader', { min: 6500, max: 8000, ueberschreitbar: false });
+  meldungsfrei(ok);
+  assert.deepStrictEqual(ok.config.lohnbaender.kader, { min: 6500, max: 8000, ueberschreitbar: false });
+  assert.strictEqual(E.setzeBand(c, 'kader', { min: 9000 }).ok, false);
+  assert.strictEqual(E.setzeBand(c, 'kader', { max: 5000 }).ok, false);
+});
+
+test('aktualisiereFunktion: bandAlsUntergrenze ist ein unbekanntes Feld', () => {
+  const r = E.aktualisiereFunktion(lade(), 'kueche-commis', { bandAlsUntergrenze: true });
+  assert.strictEqual(r.ok, false);
 });
