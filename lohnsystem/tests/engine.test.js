@@ -816,13 +816,21 @@ test('Kaderband: der Spielraum wird vom Bandmaximum nicht begrenzt, bei Stufenb�
   assert.ok(s.spanneStufen.gm.max <= s.bandMax);
 });
 
-test('Kaderband: Lohn über dem Spielraum wird abgelehnt, auch wenn er unter dem Maximum liegt', () => {
-  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa' }));
-  for (const lohn of [6500, 7400, 7800]) {
-    const p = E.pruefeAbweichung(r, lohn, 'Begründung');
-    assert.equal(p.ok, false, String(lohn));
-    assert.deepEqual(p.fehler, ['Abweichung ausserhalb des zulässigen Spielraums.']);
+test('Kaderband: jeder Lohn über dem Vorschlag ist möglich, mit Freigabe GM und Begründung', () => {
+  const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa', erfahrungJahre: 0 }));
+  assert.equal(r.vorschlag, 6000);
+  for (const lohn of [6500, 7400, 7800, 9000]) {
+    const ohne = E.pruefeAbweichung(r, lohn, '');
+    assert.equal(ohne.ok, false, String(lohn));
+    assert.ok(ohne.fehler[0].includes('Begründung'));
+    const mit = E.pruefeAbweichung(r, lohn, 'Marktlage');
+    assert.equal(mit.ok, true, String(lohn));
+    assert.equal(mit.freigabe, 'GM');
+    assert.equal(mit.ueberBandmax, lohn > 7500);
   }
+  // innerhalb des Spielraums gelten die Stufen wie bisher, unter dem Kader-Start bleibt es abgelehnt
+  assert.equal(E.pruefeAbweichung(r, 6050, '').freigabe, 'Vorgesetzte');
+  assert.equal(E.pruefeAbweichung(r, 5900, 'Grund').ok, false);
 });
 
 test('Kaderband: Lohn im Spielraum über dem Maximum braucht Begründung und gilt als Freigabe GM', () => {
@@ -834,7 +842,7 @@ test('Kaderband: Lohn im Spielraum über dem Maximum braucht Begründung und gil
   assert.equal(mit.ok, true);
   assert.equal(mit.freigabe, 'GM');
   assert.equal(mit.ueberBandmax, true);
-  assert.equal(E.pruefeAbweichung(r, 6190, 'Marktlage').ok, false);
+  assert.equal(E.pruefeAbweichung(r, 6190, 'Marktlage').freigabe, 'GM');
 });
 
 test('Kaderband: genau auf dem Maximum ist keine Überschreitung', () => {

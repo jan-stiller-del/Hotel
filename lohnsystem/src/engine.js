@@ -515,6 +515,10 @@
         }
       }
     }
+    // Überschreitbares Band (Kader): jeder Lohn über dem Vorschlag ist möglich, wenn der Spielraum nicht reicht, mit Freigabe GM.
+    if (!freigabe && ergebnis.band && ergebnis.band.ueberschreitbar && gewaehlterMonatslohn > ergebnis.vorschlag) {
+      freigabe = 'GM';
+    }
     if (!freigabe) {
       return { ok: false, fehler: ['Abweichung ausserhalb des zulässigen Spielraums.'], freigabe: null };
     }
