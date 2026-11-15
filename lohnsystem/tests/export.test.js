@@ -158,13 +158,15 @@ test('baueExportZeilen: Kader-Zeilen mit Pauschale als Zahl, aus kontext.betraeg
   const z = X.baueExportZeilen(ergebnis(), k);
   const labels = z.map(r => r[0]);
   const i = labels.indexOf('Auszahlung pro Monat');
-  assert.deepEqual(labels.slice(i + 1, i + 6), ['Grundlohn (43,5 h)',
+  assert.deepEqual(labels.slice(i + 1, i + 7), ['Grundlohn (43,5 h)',
     'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)',
+    'Zwischentotal (Grundlohn plus Pauschale)',
     '13. Monatslohn (auf Grundlohn plus Pauschale)', 'Total pro Monat', 'Jahresbrutto']);
   assert.equal(z[i + 1][1], 5325);
   assert.equal(z[i + 2][1], 795.8);
   assert.equal(typeof z[i + 2][1], 'number');
-  assert.equal(z[i + 3][1], 509.9);
+  assert.equal(z[i + 3][1], 6120.8);
+  assert.equal(z[i + 4][1], 509.9);
 });
 
 test('baueExportZeilen: ohne Pauschale bleibt der Block wie bisher', () => {

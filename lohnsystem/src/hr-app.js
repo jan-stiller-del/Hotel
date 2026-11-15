@@ -98,7 +98,10 @@
     var lohnLabel = grad === 100 ? 'Monatslohn brutto (Vollzeit)' : 'Monatslohn brutto bei ' + String(grad).replace('.', ',') + ' %';
     var kader = e.ueberstundenpauschale !== null && e.ueberstundenpauschale !== undefined && !!e.bezeichnungen;
     var zeilen = [{ label: kader ? e.bezeichnungen.grundlohn : lohnLabel, betrag: e.monatslohn, art: 'lohn' }];
-    if (kader) { zeilen.push({ label: e.bezeichnungen.pauschale, betrag: e.ueberstundenpauschale, art: 'pauschale' }); }
+    if (kader) {
+      zeilen.push({ label: e.bezeichnungen.pauschale, betrag: e.ueberstundenpauschale, art: 'pauschale' });
+      zeilen.push({ label: 'Zwischentotal (Grundlohn plus Pauschale)', betrag: Math.round((e.monatslohn + e.ueberstundenpauschale) * 100) / 100, art: 'zwischentotal' });
+    }
     return zeilen.concat([
       { label: kader ? e.bezeichnungen.dreizehnter : '13. Monatslohn (' + satz + ' %), monatlich ausbezahlt, separat ausgewiesen', betrag: e.dreizehnter, art: 'dreizehnter' },
       { label: 'Total pro Monat', betrag: e.totalMonat, art: 'summe' },
@@ -484,7 +487,7 @@
       var azHinweis = [];
       baueAuszahlungZeilen(e, config, kontext).forEach(function (r) {
         if (r.art === 'hinweis') { azHinweis.push(r.label); return; }
-        zeile(az, r.label, chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' ? r.art : null);
+        zeile(az, r.label, chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' || r.art === 'zwischentotal' ? r.art : null);
       });
       out.appendChild(az);
       azHinweis.forEach(function (t) { out.appendChild(el('p', 'hilfe', t)); });
@@ -546,7 +549,7 @@
       box.appendChild(el('p', 'freigabe freigabe-' + (a.freigabe.stufe || 'nein'), a.freigabe.text));
       if (a.differenz) { box.appendChild(el('p', 'differenz', formatDifferenz(a.differenz))); }
       var t = el('table', 'auszahlung');
-      a.zeilen.forEach(function (r) { zeile(t, r.label, r.betrag === null ? '' : chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' || r.art === 'kopf' ? r.art : null); });
+      a.zeilen.forEach(function (r) { zeile(t, r.label, r.betrag === null ? '' : chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' || r.art === 'zwischentotal' || r.art === 'kopf' ? r.art : null); });
       box.appendChild(t);
     }
 

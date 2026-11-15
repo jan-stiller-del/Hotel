@@ -56,7 +56,10 @@
     add('Auszahlung pro Monat', '');
     var kader = b.ueberstundenpauschale !== null && b.ueberstundenpauschale !== undefined && !!b.bezeichnungen;
     add(kader ? b.bezeichnungen.grundlohn : 'Monatslohn brutto ' + (Number(k.beschaeftigungsgrad) === 100 ? '(Vollzeit)' : 'bei ' + prozentText(k.beschaeftigungsgrad) + ' %'), b.monatslohn);
-    if (kader) { add(b.bezeichnungen.pauschale, b.ueberstundenpauschale); }
+    if (kader) {
+      add(b.bezeichnungen.pauschale, b.ueberstundenpauschale);
+      add('Zwischentotal (Grundlohn plus Pauschale)', Math.round((b.monatslohn + b.ueberstundenpauschale) * 100) / 100);
+    }
     add(kader ? b.bezeichnungen.dreizehnter : '13. Monatslohn (' + prozentText(k.dreizehnterProzent) + ' %), monatlich ausbezahlt, separat ausgewiesen', b.dreizehnter);
     add('Total pro Monat', b.totalMonat);
     add('Jahresbrutto', b.jahresbrutto);
