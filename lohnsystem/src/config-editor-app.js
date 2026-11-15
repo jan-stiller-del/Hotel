@@ -418,6 +418,9 @@
     var spr = zahlFeld(b.spracheProSprache, 'any');
     var max = zahlFeld(b.maxSprachen, '1');
     var niveau = auswahl(E.NIVEAUS.map(function (n) { return [n, n]; }), b.mindestNiveau);
+    var teilNiveau = auswahl([['', '(kein Teilbetrag)']].concat(E.NIVEAUS.map(function (n) { return [n, n]; })), b.teilNiveau || '');
+    var teilProzent = zahlFeld(b.teilProzent, 'any');
+    var mutterFaktor = zahlFeld(b.muttersprachFaktor === undefined ? 1 : b.muttersprachFaktor, 'any');
     [[erf, 'erfahrungProJahr'], [spr, 'spracheProSprache'], [max, 'maxSprachen']].forEach(function (p) {
       p[0].addEventListener('change', function () {
         var patch = {};
@@ -428,9 +431,19 @@
     niveau.addEventListener('change', function () {
       uebernehmen('bausteine-niveau', 'bausteine', E.setzeBausteine(arbeit, { mindestNiveau: niveau.value }), [niveau]);
     });
+    teilNiveau.addEventListener('change', function () {
+      uebernehmen('bausteine-teilniveau', 'bausteine', E.setzeBausteine(arbeit, { teilNiveau: teilNiveau.value === '' ? null : teilNiveau.value }), [teilNiveau]);
+    });
+    mutterFaktor.addEventListener('change', function () {
+      uebernehmen('bausteine-muttersprache', 'bausteine', E.setzeBausteine(arbeit, { muttersprachFaktor: zahl(mutterFaktor) }), [mutterFaktor]);
+    });
+    teilProzent.addEventListener('change', function () {
+      uebernehmen('bausteine-teilprozent', 'bausteine', E.setzeBausteine(arbeit, { teilProzent: zahl(teilProzent) }), [teilProzent]);
+    });
     ziel.appendChild(el('div', { cls: 'raster' }, [
       feld('Erfahrung: CHF pro Jahr', erf), feld('Sprache: CHF pro Sprache', spr),
-      feld('Höchste Anzahl Sprachen', max), feld('Mindestniveau Sprache', niveau)]));
+      feld('Höchste Anzahl Sprachen', max), feld('Voller Betrag ab Niveau', niveau),
+      feld('Teilbetrag ab Niveau', teilNiveau), feld('Teilbetrag in Prozent', teilProzent), feld('Muttersprache: Faktor (2 = doppelt)', mutterFaktor)]));
     var gruppeId = neueId('t');
     var boxen = E.SPRACHEN_CODES.map(function (code) {
       var box = el('input', { attr: { type: 'checkbox', value: code } });

@@ -96,6 +96,7 @@
       funktionen: funktionen,
       texte: {
         berechnung: 'Einstiegslohn = Mindestlohn der Stufe der Person + Zuschläge, höchstens bis zum Ende des Lohnbands der Stufe.',
+        sprachNachweis: 'Die Sprachkenntnisse müssen überprüft werden oder durch ein Diplom belegt sein.',
         baender: 'Das Lohnband hängt an der Ausbildung der Person (Stufe). Gleiche Ausbildung ergibt gleichen Lohn, unabhängig von der Funktion.'
       },
       regeln: {
@@ -104,6 +105,9 @@
         spracheProSprache: b.spracheProSprache,
         sprachen: liste(b.sprachen).map(function (c) { return { code: c, label: SPRACHNAMEN[c] || c }; }),
         mindestNiveau: b.mindestNiveau,
+        teilNiveau: b.teilNiveau || null,
+        teilProzent: istZahl(b.teilProzent) ? b.teilProzent : null,
+        muttersprachFaktor: istZahl(b.muttersprachFaktor) ? b.muttersprachFaktor : 1,
         dreizehnterProzent: betrieb.dreizehnterProzent,
         wochenstunden: betrieb.wochenstunden
       },
@@ -205,7 +209,10 @@
     s4.appendChild(el('h3', 'Sprachen'));
     var ul2 = el('ul');
     ul2.appendChild(el('li', 'CHF ' + zahl(r.spracheProSprache) + ' pro Sprache ab Niveau ' + r.mindestNiveau + '.'));
+    if (r.teilNiveau && r.teilProzent) { ul2.appendChild(el('li', 'Ab Niveau ' + r.teilNiveau + ' gibt es ' + zahl(r.teilProzent) + ' % davon (CHF ' + zahl(r.spracheProSprache * r.teilProzent / 100) + '), darunter nichts.')); }
+    if (r.muttersprachFaktor > 1) { ul2.appendChild(el('li', 'Die Muttersprache zählt ' + (r.muttersprachFaktor === 2 ? 'doppelt' : zahl(r.muttersprachFaktor) + '-fach') + ' (CHF ' + zahl(r.spracheProSprache * r.muttersprachFaktor) + ').')); }
     ul2.appendChild(el('li', 'Nur bei Funktionen mit Gästekontakt.'));
+    ul2.appendChild(el('li', m.texte.sprachNachweis));
     ul2.appendChild(el('li', 'Zählende Sprachen: ' + r.sprachen.map(function (x) { return x.label; }).join(', ') + '.'));
     s4.appendChild(ul2);
     ziel.appendChild(s4);

@@ -333,8 +333,11 @@
       zeile.appendChild(sel);
       $('sprachenListe').appendChild(zeile);
     });
-    $('sprachenHilfe').textContent = 'Gezählt werden Sprachen ab Niveau ' + config.bausteine.mindestNiveau
-      + ', höchstens ' + config.bausteine.maxSprachen + '.';
+    var bs = config.bausteine;
+    $('sprachenHilfe').textContent = 'Voller Betrag ab Niveau ' + bs.mindestNiveau
+      + (bs.teilNiveau && bs.teilProzent ? ', ' + bs.teilProzent + ' % ab Niveau ' + bs.teilNiveau + ', darunter nichts' : '')
+      + (bs.muttersprachFaktor > 1 ? ', Muttersprache ' + (bs.muttersprachFaktor === 2 ? 'doppelt' : bs.muttersprachFaktor + '-fach') : '')
+      + ', höchstens ' + bs.maxSprachen + ' Sprachen.';
     var zusatz = (config.zusatzbausteine || []).filter(function (z) { return z.nurKader !== true && z.nurNichtKader !== true; });
     function zusatzFuellen() {
       var gewaehlt = {};

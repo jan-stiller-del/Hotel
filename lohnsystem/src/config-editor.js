@@ -250,7 +250,7 @@
   function setzeBausteine(config, patch) {
     return anwenden(config, function (c) {
       patch = patch || {};
-      var fehler = unbekannteFelder(patch, ['erfahrungProJahr', 'spracheProSprache', 'maxSprachen', 'sprachen', 'mindestNiveau']);
+      var fehler = unbekannteFelder(patch, ['erfahrungProJahr', 'spracheProSprache', 'maxSprachen', 'sprachen', 'mindestNiveau', 'teilNiveau', 'teilProzent', 'muttersprachFaktor']);
       var b = c.bausteine || (c.bausteine = {});
       ['erfahrungProJahr', 'spracheProSprache'].forEach(function (k) {
         if (patch[k] !== undefined) {
@@ -266,6 +266,19 @@
       }
       if (patch.mindestNiveau !== undefined) {
         if (NIVEAUS.indexOf(patch.mindestNiveau) < 0) { fehler.push('Mindestniveau: erlaubt sind ' + NIVEAUS.join(', ') + '.'); } else { b.mindestNiveau = patch.mindestNiveau; }
+      }
+      if (patch.teilNiveau !== undefined) {
+        var vollNiveau = patch.mindestNiveau !== undefined ? patch.mindestNiveau : b.mindestNiveau;
+        if (patch.teilNiveau === null) { delete b.teilNiveau; delete b.teilProzent; }
+        else if (NIVEAUS.indexOf(patch.teilNiveau) < 0) { fehler.push('Teilniveau: erlaubt sind ' + NIVEAUS.join(', ') + '.'); }
+        else if (NIVEAUS.indexOf(patch.teilNiveau) >= NIVEAUS.indexOf(vollNiveau)) { fehler.push('Das Teilniveau muss unter dem Mindestniveau für den vollen Betrag liegen.'); }
+        else { b.teilNiveau = patch.teilNiveau; }
+      }
+      if (patch.muttersprachFaktor !== undefined) {
+        if (!istZahl(patch.muttersprachFaktor) || patch.muttersprachFaktor < 1 || patch.muttersprachFaktor > 10) { fehler.push('Der Faktor für die Muttersprache muss eine Zahl von 1 bis 10 sein.'); } else { b.muttersprachFaktor = patch.muttersprachFaktor; }
+      }
+      if (patch.teilProzent !== undefined) {
+        if (!istZahl(patch.teilProzent) || patch.teilProzent <= 0 || patch.teilProzent >= 100) { fehler.push('Der Teilbetrag muss eine Zahl über 0 und unter 100 Prozent sein.'); } else { b.teilProzent = patch.teilProzent; }
       }
       return fehler;
     });

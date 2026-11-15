@@ -57,7 +57,10 @@ test('Regeln der Zuschlaege aus der Konfiguration', () => {
   assert.equal(m.regeln.erfahrungProJahr, 10);
   assert.equal(m.regeln.maxErfahrungsjahre, 10);
   assert.equal(m.regeln.spracheProSprache, 20);
-  assert.equal(m.regeln.mindestNiveau, 'B2');
+  assert.equal(m.regeln.mindestNiveau, 'B1');
+  assert.equal(m.regeln.teilNiveau, 'A2');
+  assert.equal(m.regeln.teilProzent, 50);
+  assert.equal(m.regeln.muttersprachFaktor, 2);
   assert.equal(m.regeln.dreizehnterProzent, 8.33);
   assert.equal(m.regeln.wochenstunden, 43.5);
   assert.deepEqual(m.regeln.sprachen.map((s) => s.label), ['Deutsch', 'Englisch', 'Französisch', 'Italienisch']);
@@ -148,4 +151,9 @@ test('Öffentliche Leseansicht: nirgends ein Hinweis auf Kader, Kaderband oder K
   for (const l of ['Front Office Manager', 'Chef de cuisine', 'F&B Manager', 'HR Manager', 'Head of Engineering']) {
     assert.ok(!json.includes(l), l);
   }
+});
+
+test('Texte: Sprachkenntnisse müssen überprüft oder mit Diplom belegt sein', () => {
+  const m = baueLeseModell(standardConfig(), '2027-02-01');
+  assert.equal(m.texte.sprachNachweis, 'Die Sprachkenntnisse müssen überprüft werden oder durch ein Diplom belegt sein.');
 });
