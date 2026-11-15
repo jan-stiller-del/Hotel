@@ -52,7 +52,9 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   for (const f of c.funktionen) {
     assert.notStrictEqual(f.beispiel, true, f.id);
     assert.ok(f.id.startsWith(f.abteilung + '-'), f.id);
-    assert.ok(f.bandMin < f.bandMax, f.id);
+    assert.strictEqual(f.bandMin, undefined, f.id);
+    assert.strictEqual(f.bandMax, undefined, f.id);
+    assert.strictEqual(f.bandAlsUntergrenze, undefined, f.id);
     if (['kueche', 'technik'].includes(f.abteilung)) assert.strictEqual(f.gaestekontakt, false, f.id);
     if (['reception', 'service', 'spa'].includes(f.abteilung)) assert.strictEqual(f.gaestekontakt, true, f.id);
   }
@@ -79,13 +81,11 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
     'administration-it-manager': ['IT Manager', false, 5325, 5700],
     'reception-reservations-manager': ['Reservations Manager', true, 5325, 5700],
   };
-  for (const [id, [label, g, min, max]] of Object.entries(neu)) {
+  for (const [id, [label, g]] of Object.entries(neu)) {
     const f = c.funktionen.find((x) => x.id === id);
     assert.ok(f, id);
     assert.strictEqual(f.label, label, id);
     assert.strictEqual(f.gaestekontakt, g, id);
-    assert.strictEqual(f.bandMin, min, id);
-    assert.strictEqual(f.bandMax, max, id);
   }
   const gk = (id) => c.funktionen.find((f) => f.id === id).gaestekontakt;
   assert.strictEqual(gk('housekeeping-gouvernante'), true);
@@ -94,42 +94,19 @@ test('Standardkonfiguration: Inhalt gemäss Vorgabe', () => {
   assert.strictEqual(gk('administration-sales-marketing'), true);
   assert.strictEqual(gk('administration-marketingfachperson'), true);
   assert.strictEqual(gk('administration-buchhalter'), false);
-  const rec = c.funktionen.find((f) => f.id === 'reception-receptionist');
-  assert.strictEqual(rec.bandMin, 4555);
-  assert.strictEqual(rec.bandMax, 4900);
 });
 
-test('alle Funktionen einer Stufe teilen dasselbe Einstiegsband', () => {
+test('Lohnbänder: Maxima pro Stufe und Kaderband', () => {
   const c = ladeStandardkonfiguration();
-  const paare = new Set(c.funktionen.map((f) => f.bandMin + '-' + f.bandMax));
-  assert.deepStrictEqual([...paare].sort(),
-    ['3735-4050', '4094-4450', '4555-4900', '4663-5000', '4663-5100', '5325-5700', '6000-7500']);
+  const max = {};
+  for (const s of ['Ia', 'Ib', 'II', 'IIIa', 'IIIb', 'IV']) max[s] = c.lohnbaender[s].max;
+  assert.deepStrictEqual(max, { Ia: 4050, Ib: 4450, II: 4450, IIIa: 4900, IIIb: 5000, IV: 5700 });
+  assert.deepStrictEqual(c.lohnbaender.kader, { min: 6000, max: 7500, ueberschreitbar: true });
 });
 
-test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Demi-chef Band IIIa (4555-4900), Sous-chef und Chef de cuisine bleiben IV', () => {
+test('Kader-Funktionen: zehn Stück, alle teilen das Kaderband', () => {
   const c = ladeStandardkonfiguration();
-  const band = (id) => {
-    const f = c.funktionen.find((x) => x.id === id);
-    assert.ok(f, id);
-    return [f.bandMin, f.bandMax];
-  };
-  for (const id of ['kueche-chef-de-partie']) {
-    assert.deepStrictEqual(band(id), [4663, 5000], id);
-  }
-  assert.deepStrictEqual(band('kueche-sous-chef'), [5325, 5700]);
-  assert.deepStrictEqual(band('kueche-kuechenchef'), [6000, 7500]);
-  assert.deepStrictEqual(band('kueche-demi-chef'), [4555, 4900]);
-});
-
-test('Bandzahl pro Einstiegsband: Ia 12, II 2, IIIa 19, IIIb 4 plus Tournant 1, IV 16 Funktionen', () => {
-  const c = ladeStandardkonfiguration();
-  const zaehl = (min, max) => c.funktionen.filter((f) => f.bandMin === min && f.bandMax === max).length;
-  assert.strictEqual(zaehl(4663, 5000), 4);
-  assert.strictEqual(zaehl(4663, 5100), 1);
-  assert.strictEqual(zaehl(5325, 5700), 16);
-  assert.strictEqual(zaehl(3735, 4050), 12);
-  assert.strictEqual(zaehl(4094, 4450), 2);
-  assert.strictEqual(zaehl(4555, 4900), 19);
+  assert.strictEqual(c.funktionen.filter((f) => f.kader === true).length, 10);
 });
 
 test('fehlende Mindestlohn-Stufe wird abgelehnt', () => {
@@ -140,13 +117,45 @@ test('fehlende Mindestlohn-Stufe wird abgelehnt', () => {
   assert.ok(r.fehler.some((t) => t.includes('IIIb')));
 });
 
-test('bandMin grösser als bandMax wird abgelehnt', () => {
+test('fehlende Stufe in den Lohnbändern wird abgelehnt', () => {
   const c = kopie();
-  c.funktionen[0].bandMin = 6000;
-  c.funktionen[0].bandMax = 5000;
+  delete c.lohnbaender.IIIb;
   const r = validateConfig(c);
   assert.strictEqual(r.ok, false);
-  assert.ok(r.fehler.length > 0);
+  assert.ok(r.fehler.some((t) => t.includes('IIIb')));
+});
+
+test('Kaderband mit Minimum über Maximum wird abgelehnt', () => {
+  const c = kopie();
+  c.lohnbaender.kader = { min: 8000, max: 7500, ueberschreitbar: true };
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.fehler.some((t) => t.includes('Kaderband')));
+});
+
+test('Stufenmaximum unter dem Mindestlohn der Stufe wird abgelehnt', () => {
+  const c = kopie();
+  c.lohnbaender.IIIa.max = 4000;
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, false);
+  assert.ok(r.fehler.some((t) => t.includes('IIIa')));
+});
+
+test('Maximum null oder keine Zahl wird abgelehnt', () => {
+  for (const w of [0, 'x', -1]) {
+    const c = kopie();
+    c.lohnbaender.II.max = w;
+    assert.strictEqual(validateConfig(c).ok, false);
+  }
+});
+
+test('alte Bandfelder bei einer Funktion: gültig, aber Warnung', () => {
+  const c = kopie();
+  c.funktionen[0].bandMin = 3500;
+  c.funktionen[0].bandMax = 6000;
+  const r = validateConfig(c);
+  assert.strictEqual(r.ok, true);
+  assert.strictEqual(r.warnungen.length, 1);
 });
 
 test('Funktion mit unbekannter Abteilung wird abgelehnt', () => {
@@ -173,24 +182,6 @@ test('wochenstunden <= 0 wird abgelehnt', () => {
     assert.strictEqual(r.ok, false);
     assert.ok(r.fehler.some((t) => t.includes('Wochenstunden')));
   }
-});
-
-test('bandMin unter Mindestlohn Ia: nur Warnung', () => {
-  const c = kopie();
-  c.funktionen[0].bandMin = 3500;
-  c.funktionen[0].bandMax = 6000;
-  const r = validateConfig(c);
-  assert.strictEqual(r.ok, true);
-  assert.deepStrictEqual(r.fehler, []);
-  assert.strictEqual(r.warnungen.length, 1);
-});
-
-test('Band einer Stufe Ia (3735 bis 4500) ist ohne Warnung', () => {
-  const c = kopie();
-  c.funktionen[0].bandMin = 3735;
-  c.funktionen[0].bandMax = 4500;
-  const r = validateConfig(c);
-  assert.deepStrictEqual(r.warnungen, []);
 });
 
 test('Nicht-Objekt wird mit Fehler abgelehnt, ohne Absturz', () => {
