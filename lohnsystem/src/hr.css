@@ -64,6 +64,7 @@ tr.summe td { font-weight:700; }
 .sg-freigabe { margin:8px 0 0; font-weight:700; }
 
 /* Block «Auszahlung pro Monat»: 13. Monatslohn abgesetzt durch Rand links, Kursivschrift und eigene Bezeichnung (nicht nur Farbe) */
+table.auszahlung tr.zwischentotal td { font-weight:600; border-top:1px solid var(--rand); background:var(--flaeche); }
 table.auszahlung tr.dreizehnter td { font-style:italic; background:#fff; }
 table.auszahlung tr.dreizehnter td:first-child { border-left:5px solid var(--akzent); padding-left:8px; }
 .stundenansatz { margin:8px 0 0; font-size:.9rem; color:var(--grau); }

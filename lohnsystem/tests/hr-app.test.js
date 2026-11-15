@@ -318,13 +318,15 @@ test('baueAuszahlungZeilen: Kader mit eigener Pauschalenzeile, Reihenfolge und B
     }
   };
   const z = baueAuszahlungZeilen(kader, cfg, { beschaeftigungsgrad: '100' });
-  assert.deepEqual(z.map(r => r.art), ['lohn', 'pauschale', 'dreizehnter', 'summe', 'jahr', 'hinweis']);
+  assert.deepEqual(z.map(r => r.art), ['lohn', 'pauschale', 'zwischentotal', 'dreizehnter', 'summe', 'jahr', 'hinweis']);
   assert.equal(z[0].label, 'Grundlohn (43,5 h)');
   assert.equal(z[0].betrag, 5325);
   assert.equal(z[1].label, 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)');
   assert.equal(z[1].betrag, 795.8);
-  assert.equal(z[2].label, '13. Monatslohn (auf Grundlohn plus Pauschale)');
-  assert.equal(z[3].betrag, 6630.7);
+  assert.equal(z[2].label, 'Zwischentotal (Grundlohn plus Pauschale)');
+  assert.equal(z[2].betrag, 6120.8);
+  assert.equal(z[3].label, '13. Monatslohn (auf Grundlohn plus Pauschale)');
+  assert.equal(z[4].betrag, 6630.7);
 });
 
 test('baueAuszahlungZeilen: ohne Pauschale unveraendert (Nicht-Kader)', () => {
@@ -431,7 +433,7 @@ test('baueWahlAbrechnung: Kader mit Pauschale, 13. auf Grundlohn plus Pauschale'
   const cfg = standardConfig();
   const kader = Object.assign({}, WERG, { vorschlag: 5325, kader: { aktiv: true } });
   const a = baueWahlAbrechnung(cfg, kader, 5325, { beschaeftigungsgrad: '100' });
-  assert.deepEqual(a.zeilen.map(r => r.art), ['lohn', 'pauschale', 'dreizehnter', 'summe', 'jahr', 'stundenansatz']);
+  assert.deepEqual(a.zeilen.map(r => r.art), ['lohn', 'pauschale', 'zwischentotal', 'dreizehnter', 'summe', 'jahr', 'stundenansatz']);
   assert.equal(wArt(a, 'pauschale').betrag, 796);
   assert.equal(wArt(a, 'pauschale').label, 'Überstundenpauschale (6,5 h pro Woche, 28,17 h pro Monat, 100 %)');
   assert.equal(wArt(a, 'dreizehnter').label, '13. Monatslohn (auf Grundlohn plus Pauschale)');
