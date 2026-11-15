@@ -1,0 +1,11 @@
+.start { max-width:960px; margin:0 auto; padding:24px 16px; }
+.karten { list-style:none; margin:0; padding:0; display:grid; gap:16px; grid-template-columns:minmax(0,1fr); }
+@media (min-width:760px) { .karten { grid-template-columns:repeat(3,minmax(0,1fr)); } }
+.karte { display:flex; flex-direction:column; gap:8px; height:100%; padding:20px; border:1px solid var(--rand); border-top:4px solid var(--nachtblau); border-radius:8px; background:#fff; color:var(--text); text-decoration:none; }
+.karte:hover, .karte:focus-visible { background:var(--flaeche); border-color:var(--nachtblau); }
+.karte:focus-visible { outline:3px solid var(--akzent); outline-offset:2px; }
+.karte .titel { font-size:1.2rem; font-weight:700; color:var(--nachtblau); }
+.karte .text { color:var(--grau); }
+.karte .marke { align-self:flex-start; font-size:.8rem; font-weight:600; padding:2px 8px; border-radius:999px; }
+.karte .marke.alle { background:var(--info-bg); color:var(--akzent); }
+.karte .marke.hr { background:var(--warn-bg); color:#6b4a00; }
