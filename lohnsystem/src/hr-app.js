@@ -112,6 +112,11 @@
     var ein = ergebnis.einarbeitung && ergebnis.einarbeitung.erlaubt ? ergebnis.einarbeitung : null;
     var b = Engine.rechneBetraege(config, wert, { beschaeftigungsgrad: grad, einarbeitung: ein, kader: !!ergebnis.kader });
     var zeilen = baueAuszahlungZeilen(b, config, kontext).filter(function (r) { return r.art !== 'hinweis'; });
+    // Zulagen und Entschädigungen (Handy, Wäsche usw.): stehen unter dem Bruttolohn, sind aber nicht Teil davon.
+    if (ergebnis.entschaedigungen && ergebnis.entschaedigungen.length) {
+      zeilen.push({ label: 'Zulagen und Entschädigungen (nicht im Bruttolohn)', betrag: null, art: 'kopf' });
+      ergebnis.entschaedigungen.forEach(function (x) { zeilen.push({ label: x.label, betrag: x.betrag, art: 'entschaedigung' }); });
+    }
     if (ein) {
       var rp = String(ein.reduktionProzent).replace('.', ',');
       zeilen.push({ label: 'Während der Einarbeitung (um ' + rp + ' % reduziert): Monatslohn', betrag: b.reduzierterMonatslohn, art: 'einarbeitung' });
@@ -521,7 +526,7 @@
       box.appendChild(el('h4', null, a.titel));
       if (a.differenz) { box.appendChild(el('p', 'differenz', formatDifferenz(a.differenz))); }
       var t = el('table', 'auszahlung');
-      a.zeilen.forEach(function (r) { zeile(t, r.label, chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' ? r.art : null); });
+      a.zeilen.forEach(function (r) { zeile(t, r.label, r.betrag === null ? '' : chf(r.betrag), r.art === 'summe' || r.art === 'dreizehnter' || r.art === 'kopf' ? r.art : null); });
       box.appendChild(t);
     }
 

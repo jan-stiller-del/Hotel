@@ -339,7 +339,7 @@
       var automatisch = (z.nurKader === true && istKaderFunktion) || (z.nurNichtKader === true && !istKaderFunktion);
       if (!automatisch || (input.zusatzIds || []).indexOf(z.id) >= 0) { return; }
       if (z.art === 'entschaedigung') {
-        entschaedigungen.push({ label: z.label, betrag: z.betrag });
+        entschaedigungen.push({ label: z.label, betrag: z.anteilig === true ? Math.round(z.betrag * input.beschaeftigungsgrad / 100 * 20) / 20 : z.betrag });
       } else {
         zusatz.push({ label: z.label, betrag: z.betrag, art: 'lohn' });
       }

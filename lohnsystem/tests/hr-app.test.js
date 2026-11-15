@@ -352,6 +352,17 @@ test('baueWahlAbrechnung: Vorschlag 4675, gewaehlt 5000 Vollzeit', () => {
   assert.equal(formatDifferenz(a.differenz), 'Differenz zum Vorschlag: +CHF 325.00 (7,0 %)');
 });
 
+test('baueWahlAbrechnung: Handy und Waesche erscheinen als Zulagen unter dem Bruttolohn', () => {
+  const erg = Object.assign({}, WERG, { entschaedigungen: [
+    { label: 'Entschädigung private Handynutzung', betrag: 5 },
+    { label: 'Wäscheentschädigung Berufskleidung (L-GAV Art. 30)', betrag: 30 }] });
+  const a = baueWahlAbrechnung(standardConfig(), erg, 5000, { beschaeftigungsgrad: '60' });
+  assert.deepEqual(a.zeilen.map(r => r.art), ['lohn', 'dreizehnter', 'summe', 'jahr', 'kopf', 'entschaedigung', 'entschaedigung', 'stundenansatz']);
+  const ents = a.zeilen.filter(r => r.art === 'entschaedigung');
+  assert.deepEqual(ents.map(r => r.betrag), [5, 30]);
+  assert.equal(wArt(a, 'summe').betrag, wArt(baueWahlAbrechnung(standardConfig(), WERG, 5000, { beschaeftigungsgrad: '60' }), 'summe').betrag);
+});
+
 test('baueWahlAbrechnung: gleicher Lohn, keine Differenz, Zeilen wie beim Vorschlag', () => {
   const cfg = standardConfig();
   const a = baueWahlAbrechnung(cfg, WERG, 4675, { beschaeftigungsgrad: '100' });
