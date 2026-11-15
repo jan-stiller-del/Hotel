@@ -832,7 +832,7 @@ test('Handy-Entschaedigung wird auf das Pensum reduziert', () => {
   const teil = E.berechne(SC, eingabe({ funktionId: 'kueche-sous-chef', abschluss: 'gastronomiekoch-fa', beschaeftigungsgrad: 60 }));
   assert.deepEqual(teil.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 3]]);
   const kader = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa', beschaeftigungsgrad: 50 }));
-  assert.deepEqual(kader.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 10], ['Spesenentschädigung', 200]]);
+  assert.deepEqual(kader.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 10], ['Spesenentschädigung', 100]]);
 });
 
 test('Eintritt vor dem Stichtag: befristet behaelt den alten Mindestlohn, unbefristet bekommt ab Stichtag den hoeheren', () => {
