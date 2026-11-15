@@ -62,7 +62,7 @@
     if (e.entschaedigungen.length) {
       add('Entschädigungen', 'nicht Teil des Bruttolohns');
       e.entschaedigungen.forEach(function (x) { add(x.label, x.betrag); });
-      add('Gesamtauszahlung pro Monat (Total plus Zulagen)', Math.round((b.totalMonat + e.entschaedigungen.reduce(function (s, x) { return s + x.betrag; }, 0)) * 100) / 100);
+      add('Brutto pro Monat gesamt (Total plus Zulagen)', Math.round((b.totalMonat + e.entschaedigungen.reduce(function (s, x) { return s + x.betrag; }, 0)) * 100) / 100);
     }
     if (e.einarbeitung) {
       var ein = e.einarbeitung;

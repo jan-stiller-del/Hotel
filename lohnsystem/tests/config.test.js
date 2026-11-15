@@ -103,7 +103,7 @@ test('alle Funktionen einer Stufe teilen dasselbe Einstiegsband', () => {
   const c = ladeStandardkonfiguration();
   const paare = new Set(c.funktionen.map((f) => f.bandMin + '-' + f.bandMax));
   assert.deepStrictEqual([...paare].sort(),
-    ['3735-4050', '4094-4450', '4555-4900', '4663-5000', '4663-5100', '5325-5700', '6000-6800']);
+    ['3735-4050', '4094-4450', '4555-4900', '4663-5000', '4663-5100', '5325-5700', '6000-7500']);
 });
 
 test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Demi-chef Band IIIa (4555-4900), Sous-chef und Chef de cuisine bleiben IV', () => {
@@ -117,7 +117,7 @@ test('Küche: Chef-de-partie-Posten tragen Band IIIb (4663-5000), Demi-chef Band
     assert.deepStrictEqual(band(id), [4663, 5000], id);
   }
   assert.deepStrictEqual(band('kueche-sous-chef'), [5325, 5700]);
-  assert.deepStrictEqual(band('kueche-kuechenchef'), [6000, 6800]);
+  assert.deepStrictEqual(band('kueche-kuechenchef'), [6000, 7500]);
   assert.deepStrictEqual(band('kueche-demi-chef'), [4555, 4900]);
 });
 

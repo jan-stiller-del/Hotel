@@ -744,7 +744,7 @@ test('bandAlsUntergrenze: Chef de cuisine (IV) startet bei 6000, nicht bei 5325'
   const r = E.berechne(SC, eingabe({ funktionId: 'kueche-kuechenchef', abschluss: 'gastronomiekoch-fa' }));
   assert.equal(r.stufe, 'IV');
   assert.equal(r.bandStart, 6000);
-  assert.equal(r.bandMax, 6800);
+  assert.equal(r.bandMax, 7500);
   assert.equal(r.vorschlag, 6000);
 });
 
