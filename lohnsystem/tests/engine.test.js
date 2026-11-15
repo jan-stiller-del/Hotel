@@ -843,15 +843,19 @@ test('Kein Kader (Sous-chef): nur 5 Franken Handy-Entschaedigung', () => {
   assert.deepEqual(r.entschaedigungen.map((x) => [x.label, x.betrag]), [['Entschädigung private Handynutzung', 5]]);
 });
 
-test('Waescheentschaedigung: Vollzeit 50, Teilzeit anteilig, nur in der passenden Abteilung', () => {
-  const voll = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-kueche'] }));
+test('Waescheentschaedigung: nur 50 und 20, Teilzeit anteilig, Schürze nur im Service', () => {
+  const voll = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-kleidung'] }));
   assert.deepEqual(voll.entschaedigungen.map((x) => [x.label, x.betrag]).filter((x) => /Wäsche/.test(x[0])),
-    [['Wäscheentschädigung Berufskleidung (L-GAV Art. 30)', 50]]);
-  const teil = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', beschaeftigungsgrad: 60, zusatzIds: ['waesche-kueche'] }));
+    [['Wäscheentschädigung Berufs- und Dienstkleidung (L-GAV Art. 30)', 50]]);
+  const teil = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', beschaeftigungsgrad: 60, zusatzIds: ['waesche-kleidung'] }));
   assert.ok(teil.entschaedigungen.some((x) => x.betrag === 30));
   assert.equal(teil.vorschlag, voll.vorschlag);
-  const falsch = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-service-weste'] }));
+  const falsch = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-schuerze'] }));
   assert.equal(falsch.modus, 'fehler');
+  const service = E.berechne(SC, eingabe({ funktionId: 'service-chef-de-rang', abschluss: 'koch-efz', zusatzIds: ['waesche-kleidung', 'waesche-schuerze'] }));
+  assert.deepEqual(service.entschaedigungen.filter((x) => /Wäsche/.test(x.label)).map((x) => x.betrag), [50, 20]);
+  const etage = E.berechne(SC, eingabe({ funktionId: 'housekeeping-zimmermaedchen', abschluss: 'keiner', zusatzIds: ['waesche-kleidung'] }));
+  assert.notEqual(etage.modus, 'fehler');
 });
 
 test('Handy-Entschaedigung wird auf das Pensum reduziert', () => {
@@ -865,7 +869,7 @@ test('Zusatzbausteine von Hand: nur für Kader gewählt von Nicht-Kader ist ein 
   const nk = E.berechne(SC, eingabe({ funktionId: 'kueche-sous-chef', abschluss: 'gastronomiekoch-fa', zusatzIds: ['kader-spesen'] }));
   assert.equal(nk.modus, 'fehler');
   assert.ok(nk.fehler[0].includes('nur für Kader'));
-  const doppelt = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-kueche', 'waesche-kueche'] }));
+  const doppelt = E.berechne(SC, eingabe({ funktionId: 'kueche-commis', abschluss: 'gastronomiekoch-fa', zusatzIds: ['waesche-kleidung', 'waesche-kleidung'] }));
   assert.equal(doppelt.entschaedigungen.filter((x) => /Wäsche/.test(x.label)).length, 1);
 });
 
