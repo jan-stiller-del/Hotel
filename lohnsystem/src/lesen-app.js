@@ -60,8 +60,9 @@
     var funktionen = config.abteilungen.map(function (a) {
       return {
         abteilung: a.label,
-        funktionen: config.funktionen.filter(function (f) { return f.abteilung === a.id; }).map(function (f) {
-          return { label: f.label, gaestekontakt: f.gaestekontakt === true, kader: f.kader === true, bereich: f.bereich || null };
+        // Kader-Funktionen und das Kaderband erscheinen nicht in der öffentlichen Leseansicht.
+        funktionen: config.funktionen.filter(function (f) { return f.abteilung === a.id && f.kader !== true; }).map(function (f) {
+          return { label: f.label, gaestekontakt: f.gaestekontakt === true, bereich: f.bereich || null };
         })
       };
     }).filter(function (x) { return x.funktionen.length > 0; });
@@ -70,8 +71,7 @@
     var lohnbaender = {
       stufen: STUFEN_REIHENFOLGE.filter(function (st) { return st !== 'P' && lb[st] && istZahl(lb[st].max) && istZahl(tabelle.stufen[st]); }).map(function (st) {
         return { stufe: st, label: stufenLabel(config, st), erklaerung: Cfg.stufeErklaerung(config, st), min: tabelle.stufen[st], max: lb[st].max, ueberschreitbar: lb[st].ueberschreitbar === true };
-      }),
-      kader: lb.kader && istZahl(lb.kader.min) && istZahl(lb.kader.max) ? { min: lb.kader.min, max: lb.kader.max, ueberschreitbar: lb.kader.ueberschreitbar === true } : null
+      })
     };
 
     var bereichLabels = {};
@@ -95,8 +95,8 @@
       lohnbaender: lohnbaender,
       funktionen: funktionen,
       texte: {
-        berechnung: 'Einstiegslohn = Mindestlohn der Stufe der Person + Zuschläge, höchstens bis zum Ende des Lohnbands der Stufe. Kader haben ein eigenes Kaderband.',
-        baender: 'Das Lohnband hängt an der Ausbildung der Person (Stufe). Gleiche Ausbildung ergibt gleichen Lohn, unabhängig von der Funktion. Kader haben ein eigenes Band.'
+        berechnung: 'Einstiegslohn = Mindestlohn der Stufe der Person + Zuschläge, höchstens bis zum Ende des Lohnbands der Stufe.',
+        baender: 'Das Lohnband hängt an der Ausbildung der Person (Stufe). Gleiche Ausbildung ergibt gleichen Lohn, unabhängig von der Funktion.'
       },
       regeln: {
         erfahrungProJahr: b.erfahrungProJahr,
@@ -184,14 +184,13 @@
     s3.appendChild(el('h2', 'Lohnbänder pro Stufe'));
     s3.appendChild(el('p', m.texte.baender));
     var bandZeilen = m.lohnbaender.stufen.map(function (x) { return [x.label + (x.erklaerung ? ', ' + x.erklaerung : ''), chf(x.min), chf(x.max)]; });
-    if (m.lohnbaender.kader) { bandZeilen.push(['Kader (alle Kader-Funktionen)', chf(m.lohnbaender.kader.min), chf(m.lohnbaender.kader.max) + (m.lohnbaender.kader.ueberschreitbar ? ', mit Begründung überschreitbar' : '')]); }
     s3.appendChild(tabelle('Lohnbänder pro Stufe, brutto pro Monat in CHF', ['Stufe', 'Band von (CHF)', 'Band bis (CHF)'], bandZeilen, [1, 2]));
     s3.appendChild(el('h2', 'Funktionen'));
-    s3.appendChild(el('p', '«Gästekontakt» bedeutet, dass bei der Funktion Sprachzuschläge möglich sind. «Kader» bedeutet, dass das Kaderband gilt.'));
+    s3.appendChild(el('p', '«Gästekontakt» bedeutet, dass bei der Funktion Sprachzuschläge möglich sind.'));
     m.funktionen.forEach(function (b) {
       s3.appendChild(el('h3', b.abteilung));
-      s3.appendChild(tabelle('Funktionen ' + b.abteilung, ['Funktion', 'Gästekontakt', 'Kader'],
-        b.funktionen.map(function (f) { return [f.label, f.gaestekontakt ? 'ja' : 'nein', f.kader ? 'ja' : 'nein']; }), []));
+      s3.appendChild(tabelle('Funktionen ' + b.abteilung, ['Funktion', 'Gästekontakt'],
+        b.funktionen.map(function (f) { return [f.label, f.gaestekontakt ? 'ja' : 'nein']; }), []));
     });
     ziel.appendChild(s3);
 
